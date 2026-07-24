@@ -149,6 +149,8 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   padding: var(--header-height) 2rem 2rem 2rem;
   transition: margin-left var(--transition-normal);
+  min-width: 0;
+  max-width: calc(100vw - var(--sidebar-width));
 }
 
 /* Header style */

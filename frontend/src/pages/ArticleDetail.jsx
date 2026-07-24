@@ -721,6 +721,12 @@ const ArticleDetail = () => {
     });
   };
 
+  const getProcessedHtml = (content) => {
+    if (!content) return '';
+    const serverBase = import.meta.env.VITE_SERVER_BASE || 'https://kings-tv.onrender.com';
+    return content.replace(/(src|href)="\/uploads\//g, `$1="${serverBase}/uploads/`);
+  };
+
   if (!article) {
     return (
       <div className="container" style={{ marginTop: '30px', marginBottom: '40px' }}>
@@ -835,12 +841,12 @@ const ArticleDetail = () => {
           </div>
 
           {/* Full Width Hero Image */}
-          <div className="article-hero-img-container" style={{ margin: '24px 0' }}>
+          <div className="article-hero-img-container" style={{ margin: '24px 0', textAlign: 'center' }}>
             {article.imageUrl ? (
               <img 
                 src={article.imageUrl} 
                 alt={lang === 'en' ? (article.titleEn || article.titleTa) : article.titleTa} 
-                style={{ width: '100%', height: '350px', objectFit: 'cover', borderRadius: '12px' }}
+                style={{ width: '100%', height: 'auto', maxHeight: '650px', objectFit: 'contain', borderRadius: '12px' }}
               />
             ) : (
               <div style={{ width: '100%', height: '350px', borderRadius: '12px', background: article.gradient || 'linear-gradient(135deg, #1E3A8A, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -863,7 +869,9 @@ const ArticleDetail = () => {
             className="article-body-text" 
             id="articleBody" 
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
-            dangerouslySetInnerHTML={{ __html: lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa }}
+            dangerouslySetInnerHTML={{ 
+              __html: getProcessedHtml(lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa) 
+            }}
           />
 
           {/* MID-ARTICLE FEED AD WIDGET */}

@@ -159,4 +159,21 @@ public class UserController {
                     .body(Map.of("message", "Failed to store file: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/reporters")
+    public ResponseEntity<?> getReporters() {
+        java.util.List<User> allUsers = userRepository.findAll();
+        java.util.List<Map<String, Object>> reporters = allUsers.stream()
+            .filter(u -> u.getRole() != null && !"READER".equalsIgnoreCase(u.getRole()))
+            .map(u -> {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", u.getId());
+                map.put("fullName", u.getFullName());
+                map.put("email", u.getEmail());
+                map.put("role", u.getRole());
+                return map;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(reporters);
+    }
 }

@@ -3,6 +3,7 @@ package com.kingstv.controllers.admin;
 import com.kingstv.models.*;
 import com.kingstv.repository.*;
 import com.kingstv.security.RequiresPermission;
+import com.kingstv.services.SlugService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ public class TaxonomyAndConfigController {
     @Autowired private FontConfigRepository fontConfigRepository;
     @Autowired private SurveyPollRepository surveyPollRepository;
     @Autowired private WebstoreItemRepository webstoreItemRepository;
+    @Autowired private SlugService slugService;
 
     // --- Taxonomy: Categories (#18) ---
     @GetMapping("/taxonomy/categories")
@@ -42,22 +44,33 @@ public class TaxonomyAndConfigController {
     @PostMapping("/taxonomy/categories")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> createCategory(@RequestBody Map<String, Object> req) {
-        Category cat = new Category();
-        cat.setName((String) req.get("name"));
-        cat.setNameTa((String) req.get("nameTa"));
-        cat.setSlug((String) req.get("slug"));
-        cat.setDisplayOrder(req.containsKey("displayOrder") ? (Integer) req.get("displayOrder") : 0);
-        cat.setIcon((String) req.get("icon"));
-        if (req.containsKey("color")) cat.setColor((String) req.get("color"));
-        cat.setIsNav(req.containsKey("isNav") ? (Boolean) req.get("isNav") : true);
-        cat.setIsActive(req.containsKey("isActive") ? (Boolean) req.get("isActive") : true);
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoryRepository.save(cat));
+        try {
+            Category cat = new Category();
+            cat.setName((String) req.get("name"));
+            cat.setNameTa((String) req.get("nameTa"));
+            cat.setSlug((String) req.get("slug"));
+            cat.setDisplayOrder(req.containsKey("displayOrder") ? (Integer) req.get("displayOrder") : 0);
+            cat.setIcon((String) req.get("icon"));
+            if (req.containsKey("color")) cat.setColor((String) req.get("color"));
+            cat.setIsNav(req.containsKey("isNav") ? (Boolean) req.get("isNav") : true);
+            cat.setIsActive(req.containsKey("isActive") ? (Boolean) req.get("isActive") : true);
+            
+            slugService.generateAndSetSlug(cat);
+            return ResponseEntity.status(HttpStatus.CREATED).body(categoryRepository.save(cat));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Category with this name or slug already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/taxonomy/categories/{id}")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody Map<String, Object> req) {
-        return categoryRepository.findById(id).map(cat -> {
+        try {
+            Optional<Category> catOpt = categoryRepository.findById(id);
+            if (catOpt.isEmpty()) return ResponseEntity.notFound().build();
+            Category cat = catOpt.get();
             if (req.containsKey("name")) cat.setName((String) req.get("name"));
             if (req.containsKey("nameTa")) cat.setNameTa((String) req.get("nameTa"));
             if (req.containsKey("slug")) cat.setSlug((String) req.get("slug"));
@@ -66,8 +79,14 @@ public class TaxonomyAndConfigController {
             if (req.containsKey("color")) cat.setColor((String) req.get("color"));
             if (req.containsKey("isNav")) cat.setIsNav((Boolean) req.get("isNav"));
             if (req.containsKey("isActive")) cat.setIsActive((Boolean) req.get("isActive"));
+            
+            slugService.generateAndSetSlug(cat);
             return ResponseEntity.ok((Object) categoryRepository.save(cat));
-        }).orElse(ResponseEntity.notFound().build());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Category with this name or slug already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/taxonomy/categories/{id}")
@@ -86,22 +105,54 @@ public class TaxonomyAndConfigController {
     @PostMapping("/taxonomy/subcategories")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> createSubCategory(@RequestBody SubCategory subcat) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(subCategoryRepository.save(subcat));
+        try {
+            if (subcat.getStatus() == null || subcat.getStatus().trim().isEmpty()) {
+                subcat.setStatus("active");
+            } else if (!List.of("active", "inactive", "deleted").contains(subcat.getStatus().toLowerCase())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + subcat.getStatus()));
+            }
+            subcat.setStatus(subcat.getStatus().toLowerCase());
+            slugService.generateAndSetSlug(subcat);
+            return ResponseEntity.status(HttpStatus.CREATED).body(subCategoryRepository.save(subcat));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Subcategory with this name or slug already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/taxonomy/subcategories/{id}")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> updateSubCategory(@PathVariable Long id, @RequestBody Map<String, Object> req) {
-        return subCategoryRepository.findById(id).map(sub -> {
+        try {
+            Optional<SubCategory> subOpt = subCategoryRepository.findById(id);
+            if (subOpt.isEmpty()) return ResponseEntity.notFound().build();
+            SubCategory sub = subOpt.get();
             if (req.containsKey("name")) sub.setName((String) req.get("name"));
             if (req.containsKey("nameTa")) sub.setNameTa((String) req.get("nameTa"));
             if (req.containsKey("slug")) sub.setSlug((String) req.get("slug"));
             if (req.containsKey("displayOrder")) sub.setDisplayOrder((Integer) req.get("displayOrder"));
             if (req.containsKey("categoryId")) sub.setCategoryId(Long.valueOf(req.get("categoryId").toString()));
             if (req.containsKey("parentId")) sub.setParentId(req.get("parentId") != null ? Long.valueOf(req.get("parentId").toString()) : null);
-            if (req.containsKey("status")) sub.setStatus((String) req.get("status"));
+            if (req.containsKey("status")) {
+                String statusVal = (String) req.get("status");
+                if (statusVal != null && !statusVal.trim().isEmpty()) {
+                    if (!List.of("active", "inactive", "deleted").contains(statusVal.toLowerCase())) {
+                        return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + statusVal));
+                    }
+                    sub.setStatus(statusVal.toLowerCase());
+                } else {
+                    sub.setStatus("active");
+                }
+            }
+            
+            slugService.generateAndSetSlug(sub);
             return ResponseEntity.ok((Object) subCategoryRepository.save(sub));
-        }).orElse(ResponseEntity.notFound().build());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Subcategory with this name or slug already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/taxonomy/subcategories/{id}")
@@ -120,10 +171,33 @@ public class TaxonomyAndConfigController {
     @PostMapping("/taxonomy/districts")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> createDistrict(@RequestBody Map<String, String> req) {
-        District d = new District();
-        d.setNameEn(req.get("nameEn"));
-        d.setNameTa(req.get("nameTa"));
-        return ResponseEntity.status(HttpStatus.CREATED).body(districtRepository.save(d));
+        try {
+            District d = new District();
+            d.setNameEn(req.get("nameEn"));
+            d.setNameTa(req.get("nameTa"));
+            return ResponseEntity.status(HttpStatus.CREATED).body(districtRepository.save(d));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "District with this name already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/taxonomy/districts/{id}")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
+    public ResponseEntity<?> updateDistrict(@PathVariable Long id, @RequestBody Map<String, String> req) {
+        try {
+            Optional<District> dOpt = districtRepository.findById(id);
+            if (dOpt.isEmpty()) return ResponseEntity.notFound().build();
+            District d = dOpt.get();
+            if (req.containsKey("nameEn")) d.setNameEn(req.get("nameEn"));
+            if (req.containsKey("nameTa")) d.setNameTa(req.get("nameTa"));
+            return ResponseEntity.ok((Object) districtRepository.save(d));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "District with this name already exists."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/taxonomy/districts/{id}")
@@ -176,42 +250,60 @@ public class TaxonomyAndConfigController {
     public ResponseEntity<?> pingSearchEngines(HttpServletRequest request) {
         String baseUrl = getFrontendBaseUrl(request);
         String sitemapUrl = baseUrl + "/sitemap.xml";
-        String newsSitemapUrl = baseUrl + "/sitemap-news.xml";
 
-        List<String> logs = new ArrayList<>();
-        HttpClient client = HttpClient.newHttpClient();
+        List<Map<String, Object>> engines = new ArrayList<>();
+        boolean overallSuccess = false;
 
-        // Submit main sitemap to Google
-        try {
-            String googlePingUrl = "https://www.google.com/ping?sitemap=" + URLEncoder.encode(sitemapUrl, StandardCharsets.UTF_8);
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(googlePingUrl)).GET().build();
-            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            logs.add("Google sitemap ping: " + res.statusCode());
-        } catch (Exception e) {
-            logs.add("Google sitemap ping error: " + e.getMessage());
-        }
+        // Google
+        engines.add(Map.of(
+            "name", "Google",
+            "status", "skipped",
+            "message", "Google sitemap ping service has been retired (deprecated since December 2023)."
+        ));
 
-        // Submit news sitemap to Google (for Google News Publisher Center indexing)
-        try {
-            String googleNewsPingUrl = "https://www.google.com/ping?sitemap=" + URLEncoder.encode(newsSitemapUrl, StandardCharsets.UTF_8);
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(googleNewsPingUrl)).GET().build();
-            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            logs.add("Google News ping: " + res.statusCode());
-        } catch (Exception e) {
-            logs.add("Google News ping error: " + e.getMessage());
-        }
+        // Google News
+        engines.add(Map.of(
+            "name", "Google News",
+            "status", "skipped",
+            "message", "Google News sitemap ping service has been retired (deprecated since December 2023)."
+        ));
 
-        // Submit main sitemap to Bing
+        // Submit sitemap to Bing
+        Map<String, Object> bingResult = new LinkedHashMap<>();
+        bingResult.put("name", "Bing");
         try {
             String bingPingUrl = "https://www.bing.com/ping?sitemap=" + URLEncoder.encode(sitemapUrl, StandardCharsets.UTF_8);
+            HttpClient client = HttpClient.newHttpClient();
             HttpRequest req = HttpRequest.newBuilder().uri(URI.create(bingPingUrl)).GET().build();
             HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            logs.add("Bing sitemap ping: " + res.statusCode());
+            int statusCode = res.statusCode();
+            bingResult.put("status", statusCode == 200 ? "success" : "failed");
+            bingResult.put("statusCode", statusCode);
+            if (statusCode == 200) {
+                bingResult.put("message", "Sitemap successfully submitted to Bing.");
+                overallSuccess = true;
+            } else if (statusCode == 410) {
+                bingResult.put("message", "Bing sitemap ping service has been retired (HTTP 410 Gone). Use IndexNow or Webmaster Tools instead.");
+            } else {
+                bingResult.put("message", "Bing returned HTTP status " + statusCode);
+            }
         } catch (Exception e) {
-            logs.add("Bing sitemap ping error: " + e.getMessage());
+            bingResult.put("status", "failed");
+            bingResult.put("message", "Could not connect to Bing: " + e.getMessage());
         }
+        engines.add(bingResult);
 
-        return ResponseEntity.ok(Map.of("message", "Ping request submitted successfully to Google and Bing.", "logs", logs));
+        Map<String, Object> response = Map.of(
+            "success", overallSuccess,
+            "message", overallSuccess ? "Sitemaps submitted successfully." : "Search engine ping service is no longer supported or failed.",
+            "engines", engines
+        );
+
+        if (overallSuccess) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
+        }
     }
 
     private String getFrontendBaseUrl(HttpServletRequest request) {

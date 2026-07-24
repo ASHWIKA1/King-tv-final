@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * System configuration controller.
@@ -50,32 +51,76 @@ public class SystemConfigController {
         return ResponseEntity.ok(Map.of("key", key, "value", value));
     }
 
+    private void setConfigsIfPresent(Map<String, String> request, String[][] keysAndRequestKeys, String group, Long userId) {
+        Map<String, String> configsToSet = new HashMap<>();
+        for (String[] mapping : keysAndRequestKeys) {
+            String configKey = mapping[0];
+            String requestKey = mapping[1];
+            if (request.containsKey(requestKey)) {
+                configsToSet.put(configKey, request.get(requestKey));
+            }
+        }
+        if (!configsToSet.isEmpty()) {
+            configService.setMultipleConfigs(configsToSet, group, userId);
+        }
+    }
+
     // --- GPS / Location Config (#3) ---
     @PutMapping("/gps")
     public ResponseEntity<?> updateGpsConfig(@RequestBody Map<String, String> request) {
+        String radius = request.get("radiusKm");
+        if (radius == null || radius.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "GPS news radius is required."));
+        }
+        try {
+            double val = Double.parseDouble(radius);
+            if (val <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("message", "GPS news radius must be greater than 0."));
+            }
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "GPS news radius must be a valid number."));
+        }
         Long userId = getCallerId();
-        configService.setConfigValue(SystemConfig.GPS_NEWS_RADIUS_KM, request.get("radiusKm"), "gps", "GPS news radius in km", userId);
+        configService.setConfigValue(SystemConfig.GPS_NEWS_RADIUS_KM, radius.trim(), "gps", "GPS news radius in km", userId);
         return ResponseEntity.ok(Map.of("message", "GPS config updated"));
     }
 
     // --- Firebase Config (#4) ---
     @PutMapping("/firebase")
     public ResponseEntity<?> updateFirebaseConfig(@RequestBody Map<String, String> request) {
-        Long userId = getCallerId();
-        configService.setConfigValue(SystemConfig.FIREBASE_CONFIG, request.get("config"), "firebase", "Firebase configuration JSON", userId);
+        if (request.containsKey("config")) {
+            Long userId = getCallerId();
+            configService.setConfigValue(SystemConfig.FIREBASE_CONFIG, request.get("config"), "firebase", "Firebase configuration JSON", userId);
+        }
         return ResponseEntity.ok(Map.of("message", "Firebase config updated"));
     }
 
     // --- SMTP Config (#4) ---
     @PutMapping("/smtp")
     public ResponseEntity<?> updateSmtpConfig(@RequestBody Map<String, String> request) {
+        String host = request.get("host");
+        String port = request.get("port");
+        if (host == null || host.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "SMTP Host is required."));
+        }
+        if (port == null || port.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "SMTP Port is required."));
+        }
+        try {
+            int val = Integer.parseInt(port);
+            if (val <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("message", "SMTP Port must be greater than 0."));
+            }
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "SMTP Port must be a valid integer."));
+        }
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.SMTP_HOST, request.getOrDefault("host", ""),
-            SystemConfig.SMTP_PORT, request.getOrDefault("port", "587"),
-            SystemConfig.SMTP_USERNAME, request.getOrDefault("username", ""),
-            SystemConfig.SMTP_PASSWORD, request.getOrDefault("password", "")
-        ), "smtp", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.SMTP_HOST, "host"},
+            {SystemConfig.SMTP_PORT, "port"},
+            {SystemConfig.SMTP_USERNAME, "username"},
+            {SystemConfig.SMTP_PASSWORD, "password"}
+        }, "smtp", userId);
         return ResponseEntity.ok(Map.of("message", "SMTP config updated"));
     }
 
@@ -83,10 +128,10 @@ public class SystemConfigController {
     @PutMapping("/sms")
     public ResponseEntity<?> updateSmsConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.SMS_GATEWAY_URL, request.getOrDefault("gatewayUrl", ""),
-            SystemConfig.SMS_GATEWAY_API_KEY, request.getOrDefault("apiKey", "")
-        ), "sms", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.SMS_GATEWAY_URL, "gatewayUrl"},
+            {SystemConfig.SMS_GATEWAY_API_KEY, "apiKey"}
+        }, "sms", userId);
         return ResponseEntity.ok(Map.of("message", "SMS gateway config updated"));
     }
 
@@ -94,10 +139,10 @@ public class SystemConfigController {
     @PutMapping("/api-failover")
     public ResponseEntity<?> updateApiFailover(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.API_FAILOVER_PRIMARY_URL, request.getOrDefault("primaryUrl", ""),
-            SystemConfig.API_FAILOVER_SECONDARY_URL, request.getOrDefault("secondaryUrl", "")
-        ), "api_failover", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.API_FAILOVER_PRIMARY_URL, "primaryUrl"},
+            {SystemConfig.API_FAILOVER_SECONDARY_URL, "secondaryUrl"}
+        }, "api_failover", userId);
         return ResponseEntity.ok(Map.of("message", "API failover config updated"));
     }
 
@@ -105,18 +150,30 @@ public class SystemConfigController {
     @PutMapping("/youtube")
     public ResponseEntity<?> updateYoutubeConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.YOUTUBE_API_KEY, request.getOrDefault("apiKey", ""),
-            SystemConfig.YOUTUBE_CHANNEL_ID, request.getOrDefault("channelId", "")
-        ), "youtube", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.YOUTUBE_API_KEY, "apiKey"},
+            {SystemConfig.YOUTUBE_CHANNEL_ID, "channelId"}
+        }, "youtube", userId);
         return ResponseEntity.ok(Map.of("message", "YouTube config updated"));
     }
 
     // --- Video Length Limit (#9) ---
     @PutMapping("/video-limit")
     public ResponseEntity<?> updateVideoLimit(@RequestBody Map<String, String> request) {
+        String maxDuration = request.get("maxDurationSeconds");
+        if (maxDuration == null || maxDuration.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Video max duration is required."));
+        }
+        try {
+            int val = Integer.parseInt(maxDuration);
+            if (val <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Video max duration must be greater than 0."));
+            }
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Video max duration must be a valid integer."));
+        }
         Long userId = getCallerId();
-        configService.setConfigValue(SystemConfig.VIDEO_MAX_DURATION_SECONDS, request.get("maxDurationSeconds"), "video", "Max video duration in seconds", userId);
+        configService.setConfigValue(SystemConfig.VIDEO_MAX_DURATION_SECONDS, maxDuration.trim(), "video", "Max video duration in seconds", userId);
         return ResponseEntity.ok(Map.of("message", "Video limit updated"));
     }
 
@@ -124,10 +181,10 @@ public class SystemConfigController {
     @PutMapping("/cdn")
     public ResponseEntity<?> updateCdnConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.CDN_BASE_URL, request.getOrDefault("baseUrl", ""),
-            SystemConfig.CDN_API_KEY, request.getOrDefault("apiKey", "")
-        ), "cdn", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.CDN_BASE_URL, "baseUrl"},
+            {SystemConfig.CDN_API_KEY, "apiKey"}
+        }, "cdn", userId);
         return ResponseEntity.ok(Map.of("message", "CDN config updated"));
     }
 
@@ -135,10 +192,10 @@ public class SystemConfigController {
     @PutMapping("/hosting")
     public ResponseEntity<?> updateHostingConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.RENDER_API_KEY, request.getOrDefault("renderApiKey", ""),
-            SystemConfig.VERCEL_API_KEY, request.getOrDefault("vercelApiKey", "")
-        ), "hosting", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.RENDER_API_KEY, "renderApiKey"},
+            {SystemConfig.VERCEL_API_KEY, "vercelApiKey"}
+        }, "hosting", userId);
         return ResponseEntity.ok(Map.of("message", "Hosting config updated"));
     }
 
@@ -146,24 +203,32 @@ public class SystemConfigController {
     @PutMapping("/livestream")
     public ResponseEntity<?> updateLivestreamConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.LIVE_STREAM_SERVER_URL, request.getOrDefault("serverUrl", ""),
-            SystemConfig.LIVE_STREAM_BROADCAST_URL, request.getOrDefault("broadcastUrl", ""),
-            SystemConfig.LIVE_STREAM_KEY, request.getOrDefault("streamKey", "")
-        ), "livestream", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.LIVE_STREAM_SERVER_URL, "serverUrl"},
+            {SystemConfig.LIVE_STREAM_BROADCAST_URL, "broadcastUrl"},
+            {SystemConfig.LIVE_STREAM_KEY, "streamKey"}
+        }, "livestream", userId);
         return ResponseEntity.ok(Map.of("message", "Livestream config updated"));
     }
 
     // --- PWA Config (#17) ---
     @PutMapping("/pwa")
     public ResponseEntity<?> updatePwaConfig(@RequestBody Map<String, String> request) {
+        String name = request.get("name");
+        String shortName = request.get("shortName");
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "PWA Name is required."));
+        }
+        if (shortName == null || shortName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "PWA Short Name is required."));
+        }
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.PWA_NAME, request.getOrDefault("name", ""),
-            SystemConfig.PWA_SHORT_NAME, request.getOrDefault("shortName", ""),
-            SystemConfig.PWA_THEME_COLOR, request.getOrDefault("themeColor", ""),
-            SystemConfig.PWA_BACKGROUND_COLOR, request.getOrDefault("backgroundColor", "")
-        ), "pwa", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.PWA_NAME, "name"},
+            {SystemConfig.PWA_SHORT_NAME, "shortName"},
+            {SystemConfig.PWA_THEME_COLOR, "themeColor"},
+            {SystemConfig.PWA_BACKGROUND_COLOR, "backgroundColor"}
+        }, "pwa", userId);
         return ResponseEntity.ok(Map.of("message", "PWA config updated"));
     }
 
@@ -171,11 +236,11 @@ public class SystemConfigController {
     @PutMapping("/typography")
     public ResponseEntity<?> updateTypographyConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.FONT_PRIMARY, request.getOrDefault("primaryFont", "Inter"),
-            SystemConfig.FONT_SECONDARY, request.getOrDefault("secondaryFont", "Merriweather"),
-            SystemConfig.FONT_TERTIARY, request.getOrDefault("tertiaryFont", "Poppins")
-        ), "typography", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.FONT_PRIMARY, "primaryFont"},
+            {SystemConfig.FONT_SECONDARY, "secondaryFont"},
+            {SystemConfig.FONT_TERTIARY, "tertiaryFont"}
+        }, "typography", userId);
         return ResponseEntity.ok(Map.of("message", "Typography config updated"));
     }
 
@@ -183,12 +248,12 @@ public class SystemConfigController {
     @PutMapping("/notifications")
     public ResponseEntity<?> updateNotificationPreferences(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.NOTIFY_EMAIL_BREAKING, request.getOrDefault("emailBreaking", "false"),
-            SystemConfig.NOTIFY_EMAIL_DAILY, request.getOrDefault("emailDaily", "false"),
-            SystemConfig.NOTIFY_SMS_BREAKING, request.getOrDefault("smsBreaking", "false"),
-            SystemConfig.NOTIFY_SMS_OTP, request.getOrDefault("smsOtp", "true")
-        ), "notifications", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.NOTIFY_EMAIL_BREAKING, "emailBreaking"},
+            {SystemConfig.NOTIFY_EMAIL_DAILY, "emailDaily"},
+            {SystemConfig.NOTIFY_SMS_BREAKING, "smsBreaking"},
+            {SystemConfig.NOTIFY_SMS_OTP, "smsOtp"}
+        }, "notifications", userId);
         return ResponseEntity.ok(Map.of("message", "Notification preferences updated"));
     }
 
@@ -196,11 +261,11 @@ public class SystemConfigController {
     @PutMapping("/ai-llm")
     public ResponseEntity<?> updateAiLlmConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.AI_LLM_API_URL, request.getOrDefault("apiUrl", ""),
-            SystemConfig.AI_LLM_API_KEY, request.getOrDefault("apiKey", ""),
-            SystemConfig.AI_LLM_MODEL, request.getOrDefault("model", "gpt-3.5-turbo")
-        ), "ai", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.AI_LLM_API_URL, "apiUrl"},
+            {SystemConfig.AI_LLM_API_KEY, "apiKey"},
+            {SystemConfig.AI_LLM_MODEL, "model"}
+        }, "ai", userId);
         return ResponseEntity.ok(Map.of("message", "AI/LLM config updated"));
     }
 
@@ -214,11 +279,11 @@ public class SystemConfigController {
     @PutMapping("/telegram")
     public ResponseEntity<?> updateTelegramConfig(@RequestBody Map<String, String> request) {
         Long userId = getCallerId();
-        configService.setMultipleConfigs(Map.of(
-            SystemConfig.TELEGRAM_BOT_TOKEN, request.getOrDefault("botToken", ""),
-            SystemConfig.TELEGRAM_CHAT_ID, request.getOrDefault("chatId", ""),
-            SystemConfig.TELEGRAM_ENABLED, request.getOrDefault("enabled", "false")
-        ), "telegram", userId);
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.TELEGRAM_BOT_TOKEN, "botToken"},
+            {SystemConfig.TELEGRAM_CHAT_ID, "chatId"},
+            {SystemConfig.TELEGRAM_ENABLED, "enabled"}
+        }, "telegram", userId);
         return ResponseEntity.ok(Map.of("message", "Telegram config updated"));
     }
 

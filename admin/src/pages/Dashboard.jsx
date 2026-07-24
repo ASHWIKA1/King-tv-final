@@ -6,40 +6,27 @@ import UptimeStatus from "../components/common/UptimeStatus";
 import { Users, FileText, Activity, TrendingUp, BarChart2, Plus, Radio, Clock, Eye, AlertCircle, Send, Inbox, ShieldAlert, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid, Legend } from "recharts";
 
-const StatCard = ({ label, value, icon: Icon, color, subLabel, subColor, linkTo }) => {
-  const navigate = useNavigate();
-  return (
-    <div 
-      className="glass-panel stat-card" 
-      onClick={() => linkTo && navigate(linkTo)}
-      style={{ 
-        padding: "1.5rem", 
-        borderRadius: "12px", 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "0.5rem",
-        cursor: linkTo ? "pointer" : "default",
-        transition: "all 0.2s ease"
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{label}</div>
-        <div 
-          onClick={(e) => { e.stopPropagation(); if (linkTo) navigate(linkTo); }}
-          style={{ 
-            color, 
-            padding: "0.5rem", 
-            background: `${color}18`, 
-            borderRadius: "8px", 
-            cursor: linkTo ? "pointer" : "default",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
-          title={`Go to ${label}`}
-        >
-          <Icon size={20} />
-        </div>
+const StatCard = ({ label, value, icon: Icon, color, subLabel, subColor, onClick }) => (
+  <div
+    className="glass-panel stat-card"
+    onClick={onClick}
+    style={{
+      padding: "1.5rem",
+      borderRadius: "12px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem",
+      cursor: onClick ? "pointer" : "default",
+      transition: "transform 0.15s, box-shadow 0.15s"
+    }}
+    onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; } }}
+    onMouseLeave={e => { if (onClick) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; } }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{label}</div>
+      <div style={{ color, padding: "0.5rem", background: `${color}15`, borderRadius: "8px" }}>
+        <Icon size={20} />
+      </div>
       </div>
       <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>{value ?? "-"}</div>
       {subLabel && (
@@ -72,19 +59,45 @@ const QuickPublishWidget = ({ onPublished }) => {
       return;
     }
     setLoading(true);
+    let createdBreakingId = null;
     try {
-      await api.post("/articles", { ...form, contentTa: "", status: "published" });
       if (form.isBreaking) {
         const expiresAt = new Date(Date.now() + 6 * 3600000).toISOString();
-        await api.post("/breaking-news", { titleTa: form.titleTa, titleEn: form.titleEn, isActive: true, expiresAt, priority: "HIGH" });
+        const breakingRes = await api.post("/breaking-news", {
+          title: form.titleEn || form.titleTa,
+          titleTa: form.titleTa,
+          titleEn: form.titleEn,
+          status: "published",
+          isActive: true,
+          expiresAt,
+          priority: 1 // HIGH priority maps to integer 1
+        });
+        
+        if (!breakingRes || !breakingRes.data || !breakingRes.data.id) {
+          throw new Error("Failed to create breaking news ticker alert.");
+        }
+        createdBreakingId = breakingRes.data.id;
       }
+      
+      try {
+        await api.post("/articles", { ...form, contentTa: "", status: "published" });
+      } catch (articleErr) {
+        if (createdBreakingId) {
+          await api.delete(`/breaking-news/${createdBreakingId}`).catch(err => {
+            console.error("Failed to rollback breaking news:", err);
+          });
+        }
+        throw articleErr;
+      }
+
       setMsg({ text: "Article published live!", err: false });
       setForm({ titleTa: "", titleEn: "", categoryId: "", isBreaking: false });
       if (onPublished) onPublished();
       setTimeout(() => setMsg(null), 3000);
     } catch (err) {
-      setMsg({ text: "Publish failed.", err: true });
-      setTimeout(() => setMsg(null), 3000);
+      const errMsg = err.response?.data?.message || err.message || "Publish failed.";
+      setMsg({ text: errMsg, err: true });
+      setTimeout(() => setMsg(null), 5000);
     }
     setLoading(false);
   };
@@ -176,10 +189,10 @@ const Dashboard = () => {
         <>
           {/* KPI Stat Cards Grid */}
           <div className="stats-grid">
-            <StatCard label="Total Views" value={newsPerf?.totalViews?.toLocaleString() || "0"} icon={Eye} color="#3B82F6" subLabel="Total video & article views" linkTo="/admin/analytics" />
-            <StatCard label="Published News" value={newsPerf?.publishedCount?.toLocaleString() || "0"} icon={FileText} color="var(--primary)" subLabel="Articles live on portal" linkTo="/admin/news" />
-            <StatCard label="Pending Review" value={counts.pendingArticles || "0"} icon={Inbox} color="#F59E0B" subLabel="Submitted for approval" linkTo="/admin/content" />
-            <StatCard label="Active Authors" value={kpis?.activeUsers || "0"} icon={Users} color="#10B981" subLabel="Content creators online" linkTo="/admin/users" />
+            <StatCard label="Total Views" value={newsPerf?.totalViews?.toLocaleString() || "0"} icon={Eye} color="#3B82F6" subLabel="Total video & article views" onClick={() => navigate("/admin/analytics")} />
+            <StatCard label="Published News" value={newsPerf?.publishedCount?.toLocaleString() || "0"} icon={FileText} color="var(--primary)" subLabel="Articles live on portal" onClick={() => navigate("/admin/news")} />
+            <StatCard label="Pending Review" value={counts.pendingArticles || "0"} icon={Inbox} color="#F59E0B" subLabel="Submitted for approval" onClick={() => navigate("/admin/news?status=pending")} />
+            <StatCard label="Active Authors" value={kpis?.activeUsers || "0"} icon={Users} color="#10B981" subLabel="Content creators online" onClick={() => navigate("/admin/users")} />
           </div>
 
           {/* Charts & Graphs Row */}

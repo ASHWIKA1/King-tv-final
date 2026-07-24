@@ -273,25 +273,12 @@ const Header = () => {
         subcategories: []
       });
 
-      // Politics
-      const politics = findDbItem('politics');
-      dynamicItems.push(politics || { id: 'politics', path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [] });
-
-      // Business
-      const business = findDbItem('business');
-      dynamicItems.push(business || { id: 'business', path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [] });
-
-      // Sports
-      const sports = findDbItem('sports');
-      dynamicItems.push(sports || { id: 'sports', path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [] });
-
-      // Cinema
-      const cinema = findDbItem('cinema');
-      dynamicItems.push(cinema || { id: 'cinema', path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [] });
-
-      // Technology
-      const tech = findDbItem('tech') || findDbItem('technology');
-      dynamicItems.push(tech || { id: 'tech', path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [] });
+      // Add all other active categories dynamically from DB in order
+      dbItems.forEach(item => {
+        if (!['regional', 'video', 'videos', 'web-stories'].includes(item.slug)) {
+          dynamicItems.push(item);
+        }
+      });
 
       // Regional Directory (with dropdown chevron containing all items)
       const regional = findDbItem('regional');
@@ -318,10 +305,6 @@ const Header = () => {
         label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்',
         subcategories: regionalSubcategories
       });
-
-      // International
-      const international = findDbItem('international');
-      dynamicItems.push(international || { id: 'international', path: '/category/international', label: lang === 'en' ? 'International' : 'சர்வதேசம்', subcategories: [] });
 
       // Videos (with dropdown chevron)
       const videos = findDbItem('video') || findDbItem('videos');

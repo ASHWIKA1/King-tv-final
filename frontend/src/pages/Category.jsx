@@ -421,7 +421,23 @@ const Category = () => {
     }
   };
 
-  const currentCat = catConfigurations[catKey] || catConfigurations['politics'];
+  const matchedDbCat = navCategories.find(c => (c.slug || '').toLowerCase() === catKey);
+
+  const baseConfig = catConfigurations[catKey] || {
+    themeClass: 'theme-politics',
+    color: '#1D4ED8',
+    articles: []
+  };
+
+  const currentCat = matchedDbCat ? {
+    ...baseConfig,
+    titleTa: matchedDbCat.nameTa || matchedDbCat.name,
+    titleEn: matchedDbCat.name,
+    breadTa: matchedDbCat.nameTa || matchedDbCat.name,
+    breadEn: matchedDbCat.name,
+    subcatsTa: ['அனைத்தும்', ...(matchedDbCat.subcategories || []).map(s => s.nameTa || s.name)],
+    subcatsEn: ['All', ...(matchedDbCat.subcategories || []).map(s => s.name)]
+  } : baseConfig;
 
   useEffect(() => {
     // Dynamically apply category color theme class to body
@@ -446,7 +462,7 @@ const Category = () => {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, international: 7, world: 7 };
-          const targetId = catIdMap[catKey] || 1;
+          const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
 
           const filtered = data.filter(item => item.categoryId === targetId);
           const formatted = filtered.map(item => ({

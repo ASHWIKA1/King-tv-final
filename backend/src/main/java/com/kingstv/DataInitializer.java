@@ -75,6 +75,10 @@ public class DataInitializer {
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Autowired
+    private SitemapConfigRepository sitemapConfigRepository;
+
+
+    @Autowired
     private NfcCardRepository nfcCardRepository;
 
     @Autowired
@@ -160,6 +164,10 @@ public class DataInitializer {
         }
 
         seedAdvertisements();
+
+        // Ensure default sitemaps and Chief Editor permissions are initialized/updated on every boot
+        seedSitemapConfigs();
+        updateChiefEditorPermissions();
 
         if (categoryRepository.count() > 0) {
             System.out.println("Database already has data. Skipping database seeding to preserve dynamic data.");
@@ -635,6 +643,7 @@ public class DataInitializer {
             
             // 1. Header Banner Ad
             Advertisement headerAd = new Advertisement();
+            headerAd.setPlacementId("header-ad-1");
             headerAd.setTitle("Learn Java Coding - Premium Bootcamp");
             headerAd.setImageUrl("https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1000");
             headerAd.setLinkUrl("https://github.com/google/gemini-api");
@@ -649,6 +658,7 @@ public class DataInitializer {
 
             // 2. Sidebar Ad
             Advertisement sidebarAd = new Advertisement();
+            sidebarAd.setPlacementId("sidebar-ad-1");
             sidebarAd.setTitle("Develop Android Apps - Zero to Hero");
             sidebarAd.setImageUrl("https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=1000");
             sidebarAd.setLinkUrl("https://developer.android.com");
@@ -663,6 +673,7 @@ public class DataInitializer {
 
             // 3. Mid-Article Ad
             Advertisement midAd = new Advertisement();
+            midAd.setPlacementId("mid-article-ad-1");
             midAd.setTitle("Cloud Computing Solutions with AWS & Google Cloud");
             midAd.setImageUrl("https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000");
             midAd.setLinkUrl("https://cloud.google.com");
@@ -868,5 +879,76 @@ public class DataInitializer {
         menu.setParentId(parentId);
         menu.setIsActive(true);
         return navigationMenuRepository.save(menu);
+    }
+
+    private void seedSitemapConfigs() {
+        if (sitemapConfigRepository.count() == 0) {
+            System.out.println("Seeding default sitemap configurations...");
+            String[][] sitemaps = {
+                {"/", "Home", "1.0", "daily"},
+                {"/category/politics", "Politics Category", "0.8", "daily"},
+                {"/category/business", "Business Category", "0.8", "daily"},
+                {"/category/sports", "Sports Category", "0.8", "daily"},
+                {"/category/cinema", "Cinema Category", "0.8", "daily"},
+                {"/category/tech", "Tech Category", "0.8", "daily"},
+                {"/category/international", "International Category", "0.8", "daily"},
+                {"/directory", "Local Business Directory", "0.6", "weekly"},
+                {"/wishes", "Wishes", "0.6", "weekly"},
+                {"/obituaries", "Obituaries", "0.6", "weekly"},
+                {"/jobs", "Jobs", "0.6", "weekly"},
+                {"/classifieds", "Classifieds", "0.6", "weekly"},
+                {"/videos", "Videos", "0.7", "daily"},
+                {"/web-stories", "Web Stories", "0.7", "daily"}
+            };
+            for (String[] sm : sitemaps) {
+                SitemapConfig c = new SitemapConfig();
+                c.setPagePath(sm[0]);
+                c.setPageLabel(sm[1]);
+                c.setPriority(sm[2]);
+                c.setChangeFreq(sm[3]);
+                c.setIsExcluded(false);
+                sitemapConfigRepository.save(c);
+            }
+        }
+    }
+
+    private void updateChiefEditorPermissions() {
+        Optional<Role> chiefEditorOpt = roleRepository.findByName(Role.CHIEF_EDITOR);
+        if (chiefEditorOpt.isPresent()) {
+            Role chiefEditor = chiefEditorOpt.get();
+            List<String> requiredPerms = Arrays.asList(
+                Permission.SITEMAP_MANAGE,
+                Permission.SEO_CONFIG_MANAGE,
+                Permission.TAXONOMY_MANAGE
+            );
+            
+            // Map of all permissions seeded in DB
+            Map<String, Permission> savedPerms = new HashMap<>();
+            for (String permName : requiredPerms) {
+                Optional<Permission> permOpt = permissionRepository.findByName(permName);
+                if (permOpt.isEmpty()) {
+                    String desc = "Manage " + permName.split(":")[0];
+                    String module = permName.split(":")[0].substring(0, 1).toUpperCase() + permName.split(":")[0].substring(1);
+                    Permission newPerm = permissionRepository.save(new Permission(permName, desc, module));
+                    savedPerms.put(permName, newPerm);
+                } else {
+                    savedPerms.put(permName, permOpt.get());
+                }
+            }
+
+            boolean updated = false;
+            for (String permName : requiredPerms) {
+                boolean hasPerm = chiefEditor.getPermissions().stream()
+                    .anyMatch(p -> p.getName().equals(permName));
+                if (!hasPerm) {
+                    chiefEditor.getPermissions().add(savedPerms.get(permName));
+                    updated = true;
+                }
+            }
+            if (updated) {
+                roleRepository.save(chiefEditor);
+                System.out.println("Updated Chief Editor permissions successfully.");
+            }
+        }
     }
 }

@@ -38,12 +38,7 @@ public class BreakingNewsController {
         Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
         Specification<BreakingNews> spec = SpecificationBuilder.build(search, status, categoryId, districtId);
-        Page<BreakingNews> result = breakingNewsRepository.findAll(spec, pageable);
-        if (result.isEmpty() && (status == null || status.equals("published"))) {
-            // Fallback: return any breaking news if status filter returned 0
-            return breakingNewsRepository.findAll(PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "id")));
-        }
-        return result;
+        return breakingNewsRepository.findAll(spec, pageable);
     }
 
     @GetMapping("/getAllWeb")
@@ -56,29 +51,41 @@ public class BreakingNewsController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
         
-        Page<BreakingNews> pageResult = getAll(search, null, categoryId, districtId, page, size, sortBy, direction);
+        Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<BreakingNews> spec = SpecificationBuilder.build(search, "published", categoryId, districtId);
+        Page<BreakingNews> pageResult = breakingNewsRepository.findAll(spec, pageable);
         List<BreakingNews> items = pageResult.getContent();
-        if (items.isEmpty()) {
-            items = breakingNewsRepository.findAll(PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "id"))).getContent();
-        }
+        
         return ResponseEntity.ok(Map.of(
             "content", items,
-            "totalElements", items.size(),
-            "totalPages", 1,
-            "number", 0
+            "totalElements", pageResult.getTotalElements(),
+            "totalPages", pageResult.getTotalPages(),
+            "number", pageResult.getNumber()
         ));
     }
 
     @PostMapping({"/saveUpdate", "", "/"})
     public ResponseEntity<?> save(@RequestBody BreakingNews entity) {
-        if (entity.getTitle() == null && entity.getTitleTa() == null) {
+        if ((entity.getTitle() == null || entity.getTitle().trim().isEmpty()) && 
+            (entity.getTitleTa() == null || entity.getTitleTa().trim().isEmpty())) {
             return ResponseEntity.badRequest().body(Map.of("message", "Title or Title (Tamil) is required"));
         }
         if (entity.getTitle() == null) entity.setTitle(entity.getTitleTa());
         if (entity.getTitleTa() == null) entity.setTitleTa(entity.getTitle());
+        
+        if (entity.getPriority() == null) {
+            entity.setPriority(1); // default to 1 (HIGH)
+        } else if (entity.getPriority() < 1 || entity.getPriority() > 3) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Priority must be between 1 (High) and 3 (Low)"));
+        }
+        
         if (entity.getStatus() == null || entity.getStatus().isEmpty()) {
             entity.setStatus("published");
+        } else if (!List.of("draft", "published", "archived", "deleted", "inactive").contains(entity.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
         }
+        
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(LocalDateTime.now());
         }
@@ -99,9 +106,23 @@ public class BreakingNewsController {
         if (opt.isEmpty()) {
             return save(entity);
         }
+        
+        if ((entity.getTitle() == null || entity.getTitle().trim().isEmpty()) && 
+            (entity.getTitleTa() == null || entity.getTitleTa().trim().isEmpty())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Title or Title (Tamil) is required"));
+        }
+        
+        if (entity.getPriority() != null && (entity.getPriority() < 1 || entity.getPriority() > 3)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Priority must be between 1 (High) and 3 (Low)"));
+        }
+        
+        if (entity.getStatus() != null && !List.of("draft", "published", "archived", "deleted", "inactive").contains(entity.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
+        }
+
         BreakingNews existing = opt.get();
-        existing.setTitle(entity.getTitle() != null ? entity.getTitle() : entity.getTitleTa());
-        existing.setTitleTa(entity.getTitleTa() != null ? entity.getTitleTa() : entity.getTitle());
+        existing.setTitle(entity.getTitle() != null && !entity.getTitle().trim().isEmpty() ? entity.getTitle() : entity.getTitleTa());
+        existing.setTitleTa(entity.getTitleTa() != null && !entity.getTitleTa().trim().isEmpty() ? entity.getTitleTa() : entity.getTitle());
         existing.setShortDescription(entity.getShortDescription());
         existing.setContent(entity.getContent());
         existing.setImageUrl(entity.getImageUrl());
@@ -110,8 +131,14 @@ public class BreakingNewsController {
         existing.setCategoryId(entity.getCategoryId());
         existing.setSubcategoryId(entity.getSubcategoryId());
         existing.setDistrictId(entity.getDistrictId());
-        existing.setPriority(entity.getPriority());
-        existing.setStatus(entity.getStatus() != null ? entity.getStatus() : "published");
+        
+        if (entity.getPriority() != null) {
+            existing.setPriority(entity.getPriority());
+        }
+        if (entity.getStatus() != null) {
+            existing.setStatus(entity.getStatus());
+        }
+        
         existing.setBreaking(entity.getBreaking() != null ? entity.getBreaking() : true);
         existing.setPublishedAt(entity.getPublishedAt() != null ? entity.getPublishedAt() : LocalDateTime.now());
         existing.setUpdatedBy(entity.getUpdatedBy());

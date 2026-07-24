@@ -85,7 +85,44 @@ const SystemSettings = () => {
     setConfig(prev => ({ ...prev, [name]: value }));
   };
 
+  const validateGroup = (group) => {
+    if (group === 'gps') {
+      if (config.gpsNewsRadius === undefined || config.gpsNewsRadius === null || String(config.gpsNewsRadius).trim() === '' || Number(config.gpsNewsRadius) <= 0) {
+        alert("GPS news radius is required and must be greater than 0.");
+        return false;
+      }
+    }
+    if (group === 'video') {
+      if (config.videoLengthLimit === undefined || config.videoLengthLimit === null || String(config.videoLengthLimit).trim() === '' || Number(config.videoLengthLimit) <= 0) {
+        alert("Video max duration is required and must be greater than 0.");
+        return false;
+      }
+    }
+    if (group === 'smtp') {
+      if (!config.smtpHost || !config.smtpHost.trim()) {
+        alert("SMTP Host is required.");
+        return false;
+      }
+      if (!config.smtpPort || !config.smtpPort.trim() || Number(config.smtpPort) <= 0) {
+        alert("SMTP Port is required and must be greater than 0.");
+        return false;
+      }
+    }
+    if (group === 'pwa') {
+      if (!config.pwaName || !config.pwaName.trim()) {
+        alert("PWA Name is required.");
+        return false;
+      }
+      if (!config.pwaShortName || !config.pwaShortName.trim()) {
+        alert("PWA Short Name is required.");
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSaveGroup = async (group) => {
+    if (!validateGroup(group)) return;
     setSavingGroup(group);
     try {
       if (group === 'gps') {
@@ -144,12 +181,16 @@ const SystemSettings = () => {
       alert(`${group.toUpperCase()} settings saved successfully.`);
     } catch (error) {
       console.error(error);
-      alert(`Failed to save ${group} settings.`);
+      const errMsg = error.response?.data?.message || `Failed to save ${group} settings.`;
+      alert(`Error: ${errMsg}`);
     }
     setSavingGroup('');
   };
 
   const handleSaveAll = async () => {
+    if (!validateGroup('gps') || !validateGroup('video') || !validateGroup('smtp') || !validateGroup('pwa')) {
+      return;
+    }
     setSavingGroup('all');
     try {
       await Promise.all([
@@ -197,7 +238,8 @@ const SystemSettings = () => {
       alert('All settings saved successfully.');
     } catch (error) {
       console.error(error);
-      alert('Failed to save some settings.');
+      const errMsg = error.response?.data?.message || 'Failed to save some settings.';
+      alert(`Error: ${errMsg}`);
     }
     setSavingGroup('');
   };
@@ -324,8 +366,21 @@ const SystemSettings = () => {
               />
             </div>
           </div>
-          <button className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }} onClick={() => { handleSaveGroup('gps'); handleSaveGroup('video'); }} disabled={savingGroup !== ''}>
-            {savingGroup === 'gps' || savingGroup === 'video' ? 'Saving...' : 'Save Variables'}
+          <button className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }} onClick={async () => {
+            if (!validateGroup('gps') || !validateGroup('video')) return;
+            setSavingGroup('variables');
+            try {
+              await api.put('/admin/config/gps', { radiusKm: String(config.gpsNewsRadius) });
+              await api.put('/admin/config/video-limit', { maxDurationSeconds: String(config.videoLengthLimit) });
+              alert("Portal variables saved successfully.");
+            } catch (error) {
+              console.error(error);
+              const errMsg = error.response?.data?.message || "Failed to save portal variables.";
+              alert(`Error: ${errMsg}`);
+            }
+            setSavingGroup('');
+          }} disabled={savingGroup !== ''}>
+            {savingGroup === 'variables' ? 'Saving...' : 'Save Variables'}
           </button>
         </div>
 

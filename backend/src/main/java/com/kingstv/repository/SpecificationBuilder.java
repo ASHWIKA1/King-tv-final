@@ -24,12 +24,26 @@ public class SpecificationBuilder {
             List<Predicate> predicates = new ArrayList<>();
 
             if (status != null && !status.isEmpty()) {
-                predicates.add(cb.equal(root.get("status"), status));
+                try {
+                    root.get("status");
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (Exception e) {
+                    try {
+                        root.get("isActive");
+                        if ("active".equalsIgnoreCase(status)) {
+                            predicates.add(cb.equal(root.get("isActive"), true));
+                        } else if ("inactive".equalsIgnoreCase(status)) {
+                            predicates.add(cb.equal(root.get("isActive"), false));
+                        }
+                    } catch (Exception ex) {
+                        // ignore if neither status nor isActive is present
+                    }
+                }
             } else {
                 try {
                     root.get("status");
                     predicates.add(cb.notEqual(root.get("status"), "deleted"));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // Entity doesn't have a status field, ignore
                 }
             }
@@ -38,7 +52,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("metaKeywords");
                     predicates.add(cb.like(cb.lower(root.get("metaKeywords")), "%" + tag.toLowerCase() + "%"));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // Entity doesn't have metaKeywords, ignore
                 }
             }
@@ -47,7 +61,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("publishedAt");
                     predicates.add(cb.greaterThanOrEqualTo(root.get("publishedAt"), startDate));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // ignore
                 }
             }
@@ -56,7 +70,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("publishedAt");
                     predicates.add(cb.lessThanOrEqualTo(root.get("publishedAt"), endDate));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // ignore
                 }
             }
@@ -65,7 +79,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("publishedAt");
                     predicates.add(cb.equal(cb.function("YEAR", Integer.class, root.get("publishedAt")), year));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // ignore
                 }
             }
@@ -74,7 +88,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("publishedAt");
                     predicates.add(cb.equal(cb.function("MONTH", Integer.class, root.get("publishedAt")), month));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // ignore
                 }
             }
@@ -83,7 +97,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("categoryId");
                     predicates.add(cb.equal(root.get("categoryId"), Long.parseLong(categoryId)));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // Entity doesn't have a categoryId field, ignore
                 }
             }
@@ -92,7 +106,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("districtId");
                     predicates.add(cb.equal(root.get("districtId"), Long.parseLong(districtId)));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // Entity doesn't have a districtId field, ignore
                 }
             }
@@ -101,7 +115,7 @@ public class SpecificationBuilder {
                 try {
                     root.get("authorName");
                     predicates.add(cb.equal(root.get("authorName"), authorId));
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     // Entity doesn't have an authorName field, ignore
                 }
             }
@@ -123,7 +137,7 @@ public class SpecificationBuilder {
                     try {
                         root.get(field);
                         searchPredicates.add(cb.like(cb.lower(root.get(field)), searchPattern));
-                    } catch (IllegalArgumentException e) {
+                    } catch (Exception e) {
                         // Field doesn't exist on this entity, ignore
                     }
                 }

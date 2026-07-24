@@ -60,6 +60,12 @@ public class SubCategoryController {
         if (entity.getName() == null || entity.getNameTa() == null || entity.getCategoryId() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "name, nameTa, and categoryId are required"));
         }
+        if (entity.getStatus() == null || entity.getStatus().trim().isEmpty()) {
+            entity.setStatus("active");
+        } else if (!java.util.List.of("active", "inactive", "deleted").contains(entity.getStatus().toLowerCase())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
+        }
+        entity.setStatus(entity.getStatus().toLowerCase());
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(LocalDateTime.now());
         }
@@ -84,7 +90,16 @@ public class SubCategoryController {
         existing.setSlug(entity.getSlug());
         existing.setCategoryId(entity.getCategoryId());
         existing.setDisplayOrder(entity.getDisplayOrder());
-        existing.setStatus(entity.getStatus());
+        
+        if (entity.getStatus() != null && !entity.getStatus().trim().isEmpty()) {
+            if (!java.util.List.of("active", "inactive", "deleted").contains(entity.getStatus().toLowerCase())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
+            }
+            existing.setStatus(entity.getStatus().toLowerCase());
+        } else {
+            existing.setStatus("active");
+        }
+        
         existing.setUpdatedAt(LocalDateTime.now());
         
         slugService.generateAndSetSlug(existing);

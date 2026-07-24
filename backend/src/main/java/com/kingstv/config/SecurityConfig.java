@@ -50,6 +50,7 @@ public class SecurityConfig {
                     "/api/v1/breaking-news", "/api/v1/breaking-news/**",
                     "/api/v1/articles", "/api/v1/articles/**",
                     "/api/v1/categories", "/api/v1/categories/**",
+                    "/api/v1/subcategories", "/api/v1/subcategories/**",
                     "/api/v1/videos", "/api/v1/videos/**",
                     "/api/v1/pdfs", "/api/v1/pdfs/**",
                     "/api/v1/jobs", "/api/v1/jobs/**",

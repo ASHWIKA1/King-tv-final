@@ -27,7 +27,7 @@ const callGemini = async (prompt) => {
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
-  if (!apiKey.startsWith('AIzaSy')) {
+  if (!activeAiConfig.apiUrl && !apiKey.startsWith('AIzaSy')) {
     throw new Error('Invalid key format. Google AI Studio keys start with "AIzaSy". Click "🔑 Set API Key" to enter your key from Google AI Studio.');
   }
 
@@ -323,7 +323,7 @@ const NewsEditor = () => {
     try {
       for (const file of files) {
         const url = await uploadSingleFile(file);
-        insertIntoActiveContent(`<p><img src="${url}" alt="${file.name}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;" /></p><p>&nbsp;</p>`);
+        insertIntoActiveContent(`<p><img src="${url}" alt="${file.name}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 12px 0; display: block;" /></p><p>&nbsp;</p>`);
       }
       showMsg('Image(s) added to editor successfully!');
     } catch (err) {
@@ -540,10 +540,11 @@ const NewsEditor = () => {
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {});
     api.get('/districts').then(r => setDistricts(r.data || [])).catch(() => {});
-    api.get('/admin/users?size=200').then(r => {
-      const users = (r.data?.users || []).filter(u => 
-        ['MOBILE_JOURNALIST', 'DISTRICT_ADMIN', 'CHIEF_EDITOR', 'INSTITUTION_LOGIN'].includes(u.role)
-      );
+    api.get('/user/reporters').then(r => {
+      const users = (Array.isArray(r.data) ? r.data : []).filter(u => {
+        const roleName = u.role ? u.role.replace(/^ROLE_/, '') : '';
+        return ['MOBILE_JOURNALIST', 'DISTRICT_ADMIN', 'CHIEF_EDITOR', 'INSTITUTION_LOGIN', 'SUPER_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR'].includes(roleName);
+      });
       setReporters(users);
     }).catch(() => {});
     
@@ -577,7 +578,15 @@ const NewsEditor = () => {
     if (form.categoryId) {
       api.get(`/subcategories/getAllWeb?categoryId=${form.categoryId}&size=200`)
         .then(r => setSubCategories(r.data?.content || r.data || []))
-        .catch(() => setSubCategories([]));
+        .catch(() => {
+          api.get('/admin/taxonomy/subcategories')
+            .then(res => {
+              const allSubs = Array.isArray(res.data) ? res.data : [];
+              const filtered = allSubs.filter(sc => String(sc.categoryId || sc.category?.id) === String(form.categoryId));
+              setSubCategories(filtered);
+            })
+            .catch(() => setSubCategories([]));
+        });
     } else {
       setSubCategories([]);
     }
@@ -636,7 +645,7 @@ const NewsEditor = () => {
       ? `<video controls style="max-width: 100%; border-radius: 8px;"><source src="${url}" type="${type}"></video><p>&nbsp;</p>`
       : (type.startsWith('audio/') 
         ? `<audio controls src="${url}"></audio><p>&nbsp;</p>`
-        : `<img src="${url}" style="max-width: 100%; border-radius: 8px;" /><p>&nbsp;</p>`);
+        : `<img src="${url}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; display: block; margin: 12px 0;" /><p>&nbsp;</p>`);
     editor.insertContent(html);
   };
 
@@ -655,12 +664,27 @@ const NewsEditor = () => {
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
     
     try {
-      const res = await api.post('/admin/ai-config/generate-draft', {
-        baseContent,
-        categoryList: catNames
-      });
-      const raw = res.data?.resultText || '';
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      let raw = '';
+      try {
+        const res = await api.post('/admin/ai-config/generate-draft', {
+          baseContent,
+          categoryList: catNames
+        });
+        raw = res.data?.resultText || '';
+      } catch (e) {
+        raw = await callGemini(prompt);
+      }
+
+      let parsed = {};
+      try {
+        const cleanText = (raw || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        const jsonString = (firstBrace !== -1 && lastBrace !== -1) ? cleanText.substring(firstBrace, lastBrace + 1) : cleanText;
+        parsed = JSON.parse(jsonString);
+      } catch (jsonErr) {
+        throw new Error('AI returned non-JSON text. Please try again.');
+      }
       
       setForm(f => ({
         ...f,
@@ -772,8 +796,10 @@ const NewsEditor = () => {
         res = await api.post('/articles', payload);
       }
       showMsg(`Article ${finalStatus === 'published' ? 'published' : 'saved'} successfully!`);
-      if (!isEdit && res.data?.id) {
-        setTimeout(() => navigate(`/admin/news/edit/${res.data.id}`), 1500);
+      if (finalStatus === 'published') {
+        setTimeout(() => navigate('/admin/news'), 1500);
+      } else if (!isEdit && res.data?.id) {
+        setTimeout(() => navigate(`/admin/news/${res.data.id}/edit`), 1500);
       }
     } catch (err) {
       showMsg('Failed to save article.', true);
@@ -1342,7 +1368,7 @@ const NewsEditor = () => {
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Subcategory</label>
                 <select value={form.subcategoryId} onChange={e => set('subcategoryId', e.target.value)} disabled={!subCategories.length} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
                   <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory</option>
-                  {subCategories.map(s => <option key={s.id} value={s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameEn || s.name}</option>)}
+                  {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameTa ? `${s.nameTa} / ${s.name}` : s.name}</option>)}
                 </select>
               </div>
               <div>
