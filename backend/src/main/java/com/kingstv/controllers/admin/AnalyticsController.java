@@ -24,6 +24,7 @@ public class AnalyticsController {
     @Autowired private PushNotificationRepository pushRepo;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private CategoryRepository categoryRepository;
+    @Autowired private UserDistrictRepository userDistrictRepository;
 
     /**
      * Dashboard KPIs (#56)
@@ -58,6 +59,17 @@ public class AnalyticsController {
     public ResponseEntity<?> getNewsPerformance(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long districtId) {
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_DISTRICT_ADMIN"))) {
+            if (auth.getDetails() instanceof Long) {
+                Long userId = (Long) auth.getDetails();
+                List<UserDistrict> uds = userDistrictRepository.findByUserId(userId);
+                if (!uds.isEmpty()) {
+                    districtId = uds.get(0).getDistrictId();
+                }
+            }
+        }
 
         List<Article> articles = articleRepository.findAll();
 

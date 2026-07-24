@@ -59,10 +59,12 @@ public class User {
     @Column(name = "two_factor_enabled")
     private Boolean twoFactorEnabled = false;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public Long getId() { return id; }

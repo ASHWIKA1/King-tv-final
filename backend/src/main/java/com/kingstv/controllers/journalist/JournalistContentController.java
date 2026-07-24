@@ -87,7 +87,15 @@ public class JournalistContentController {
         }
 
         // Check video duration if provided (#36, #42)
-        if (request.containsKey("videoDurationSeconds")) {
+        String imageUrl = (String) request.get("imageUrl");
+        boolean isVideo = imageUrl != null && (imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") || 
+            imageUrl.toLowerCase().endsWith(".avi") || imageUrl.toLowerCase().endsWith(".webm") || imageUrl.toLowerCase().endsWith(".mkv"));
+
+        if (isVideo && (!request.containsKey("videoDurationSeconds") || request.get("videoDurationSeconds") == null)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "videoDurationSeconds is required when uploading a video"));
+        }
+
+        if (request.containsKey("videoDurationSeconds") && request.get("videoDurationSeconds") != null) {
             try {
                 int duration = ((Number) request.get("videoDurationSeconds")).intValue();
                 videoUploadService.validateDuration(duration);
@@ -148,7 +156,7 @@ public class JournalistContentController {
         }
 
         // Max 2 edits enforcement (#35, #41)
-        if (Role.MOBILE_JOURNALIST.equals(userRole) || Role.INSTITUTION_LOGIN.equals(userRole)) {
+        if (Role.MOBILE_JOURNALIST.equals(userRole) || Role.INSTITUTION_LOGIN.equals(userRole) || Role.DISTRICT_ADMIN.equals(userRole)) {
             try {
                 contentEditService.attemptEdit("ARTICLE", id, userId);
             } catch (ContentEditService.MaxEditsExceededException e) {
@@ -158,6 +166,25 @@ public class JournalistContentController {
         }
 
         // Apply updates
+        if (request.containsKey("imageUrl")) {
+            String updatedImageUrl = (String) request.get("imageUrl");
+            boolean isUpdatedVideo = updatedImageUrl != null && (updatedImageUrl.toLowerCase().endsWith(".mp4") || updatedImageUrl.toLowerCase().endsWith(".mov") || 
+                updatedImageUrl.toLowerCase().endsWith(".avi") || updatedImageUrl.toLowerCase().endsWith(".webm") || updatedImageUrl.toLowerCase().endsWith(".mkv"));
+
+            if (isUpdatedVideo && (!request.containsKey("videoDurationSeconds") || request.get("videoDurationSeconds") == null)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "videoDurationSeconds is required when uploading a video"));
+            }
+
+            if (request.containsKey("videoDurationSeconds") && request.get("videoDurationSeconds") != null) {
+                try {
+                    int duration = ((Number) request.get("videoDurationSeconds")).intValue();
+                    videoUploadService.validateDuration(duration);
+                } catch (VideoUploadService.VideoTooLongException e) {
+                    return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+                }
+            }
+        }
+
         if (request.containsKey("titleTa")) article.setTitleTa((String) request.get("titleTa"));
         if (request.containsKey("titleEn")) article.setTitleEn((String) request.get("titleEn"));
         if (request.containsKey("contentTa")) article.setContentTa((String) request.get("contentTa"));

@@ -16,7 +16,7 @@ const UgcQueue = () => {
 
   useEffect(() => {
     setLoading(true);
-    api.get(`/admin/ugc?status=${filter}&page=0&size=50`)
+    api.get(`/report-news/getAll?status=${filter}&page=0&size=50`)
       .then(r => setItems(Array.isArray(r.data) ? r.data : (r.data?.content || [])))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -24,9 +24,9 @@ const UgcQueue = () => {
 
   const handleApprove = async (id) => {
     try {
-      await api.put(`/admin/ugc/${id}/approve`);
+      await api.patch(`/report-news/changeStatus`, { id, status: "approved" });
       setItems(prev => prev.map(i => i.id === id ? { ...i, status: "approved" } : i));
-      showMsg("Submission approved and converted to draft article!");
+      showMsg("Submission approved!");
       setSelected(null);
     } catch { showMsg("Failed to approve.", true); }
   };
@@ -34,7 +34,7 @@ const UgcQueue = () => {
   const handleReject = async (id) => {
     if (!rejectReason) { showMsg("Please provide a rejection reason.", true); return; }
     try {
-      await api.put(`/admin/ugc/${id}/reject`, { reason: rejectReason });
+      await api.patch(`/report-news/changeStatus`, { id, status: "rejected" });
       setItems(prev => prev.map(i => i.id === id ? { ...i, status: "rejected" } : i));
       showMsg("Submission rejected.");
       setSelected(null);
@@ -100,7 +100,7 @@ const UgcQueue = () => {
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
                         {item.category && <span>?? {item.category}</span>}
                         {item.imageUrl && <span><Image size={11} style={{ display: "inline" }} /> Has Image</span>}
-                        {item.submittedAt && <span><Clock size={11} style={{ display: "inline" }} /> {new Date(item.submittedAt).toLocaleDateString()}</span>}
+                        {(item.submittedAt || item.createdAt) && <span><Clock size={11} style={{ display: "inline" }} /> {new Date(item.submittedAt || item.createdAt).toLocaleDateString()}</span>}
                       </div>
                     </div>
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "3px 8px", borderRadius: "12px",
@@ -124,13 +124,14 @@ const UgcQueue = () => {
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: "0.875rem" }}>
               <div><strong>Title:</strong> {selected.title || selected.storyTitle}</div>
               <div><strong>Reporter:</strong> {selected.name || selected.reporterName} {selected.location && `· ${selected.location}`}</div>
-              {selected.storyText && (
+              {selected.reporterContact && <div><strong>Contact:</strong> {selected.reporterContact}</div>}
+              {(selected.storyText || selected.details) && (
                 <div style={{ background: "var(--bg-secondary)", padding: "0.75rem", borderRadius: "8px", maxHeight: "200px", overflowY: "auto" }}>
-                  {selected.storyText}
+                  {selected.storyText || selected.details}
                 </div>
               )}
               {selected.imageUrl && <img src={selected.imageUrl} alt="" style={{ width: "100%", borderRadius: "8px", maxHeight: "160px", objectFit: "cover" }} onError={e => e.target.style.display = "none"} />}
-              {selected.videoLink && <div><strong>Video:</strong> <a href={selected.videoLink} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>{selected.videoLink}</a></div>}
+              {(selected.videoLink || selected.videoUrl) && <div><strong>Video:</strong> <a href={selected.videoLink || selected.videoUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary)" }}>{selected.videoLink || selected.videoUrl}</a></div>}
             </div>
             {(selected.status === "pending" || !selected.status) && (
               <div style={{ marginTop: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>

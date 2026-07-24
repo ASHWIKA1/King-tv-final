@@ -93,7 +93,7 @@ public class AdminUserController {
      * Create a new user account (#1, #23, #30)
      */
     @PostMapping
-    @RequiresPermission(Permission.USER_CREATE)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
     public ResponseEntity<?> createUser(@RequestBody Map<String, Object> request) {
         String email = request.get("email") != null ? ((String) request.get("email")).trim().toLowerCase() : null;
         String fullName = request.get("fullName") != null ? ((String) request.get("fullName")).trim() : null;
@@ -135,12 +135,11 @@ public class AdminUserController {
                     .body(Map.of("message", "Email is already registered"));
         }
 
-        // Check caller's permissions: Chief Editor can only create DA and MJ
         String callerRole = getCallerRole();
-        if (Role.CHIEF_EDITOR.equals(callerRole)) {
-            if (!Role.DISTRICT_ADMIN.equals(role) && !Role.MOBILE_JOURNALIST.equals(role)) {
+        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
+            if (!Role.MOBILE_JOURNALIST.equals(role.toUpperCase())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "Chief Editor can only create District Admin and Mobile Journalist accounts"));
+                        .body(Map.of("message", "District Admin can only create Mobile Journalist accounts"));
             }
         }
 
@@ -181,7 +180,7 @@ public class AdminUserController {
      * Update user account (#1, #23, #31)
      */
     @PutMapping("/{id}")
-    @RequiresPermission(Permission.USER_UPDATE)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
@@ -189,6 +188,21 @@ public class AdminUserController {
         }
 
         User user = userOpt.get();
+
+        String callerRole = getCallerRole();
+        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
+            if (!Role.MOBILE_JOURNALIST.equals(user.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "District Admin can only update Mobile Journalist accounts"));
+            }
+            if (request.containsKey("role") && request.get("role") != null) {
+                String newRole = ((String) request.get("role")).toUpperCase();
+                if (!Role.MOBILE_JOURNALIST.equals(newRole)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("message", "District Admin cannot change role to anything other than Mobile Journalist"));
+                }
+            }
+        }
 
         if (request.containsKey("fullName") && request.get("fullName") != null) {
             String cleanName = ((String) request.get("fullName")).trim();
@@ -238,7 +252,7 @@ public class AdminUserController {
      * Suspend user account (#31 - District Admin can suspend MJ)
      */
     @PatchMapping("/{id}/suspend")
-    @RequiresPermission(Permission.USER_SUSPEND)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
     public ResponseEntity<?> suspendUser(@PathVariable Long id) {
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
@@ -246,6 +260,15 @@ public class AdminUserController {
         }
 
         User user = userOpt.get();
+
+        String callerRole = getCallerRole();
+        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
+            if (!Role.MOBILE_JOURNALIST.equals(user.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "District Admin can only suspend Mobile Journalist accounts"));
+            }
+        }
+
         user.setIsActive(false);
         userRepository.save(user);
         logAudit("SUSPEND", "User", id, "Suspended user: " + user.getEmail());

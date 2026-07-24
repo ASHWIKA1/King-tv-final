@@ -36,7 +36,6 @@ const StatCard = ({ label, value, icon: Icon, color, subLabel, subColor, onClick
       )}
     </div>
   );
-};
 
 const QuickPublishWidget = ({ onPublished }) => {
   const [form, setForm] = useState({ titleTa: "", titleEn: "", categoryId: "", isBreaking: false });
@@ -141,13 +140,24 @@ const Dashboard = () => {
 
   const fetchAll = async () => {
     try {
-      const [kpiRes, perfRes, catRes, logsRes, countsRes] = await Promise.allSettled([
+      const requests = [
         api.get("/admin/analytics/dashboard"),
         api.get("/admin/analytics/news-performance"),
         api.get("/admin/analytics/content-by-category"),
-        api.get("/admin/audit-logs?page=0&size=6&sortBy=timestamp&direction=desc"),
         api.get("/admin/sidebar/counts")
-      ]);
+      ];
+      
+      if (user?.role === 'SUPER_ADMIN') {
+        requests.push(api.get("/admin/audit-logs?page=0&size=6&sortBy=timestamp&direction=desc"));
+      }
+
+      const results = await Promise.allSettled(requests);
+      
+      const kpiRes = results[0];
+      const perfRes = results[1];
+      const catRes = results[2];
+      const countsRes = results[3];
+      const logsRes = user?.role === 'SUPER_ADMIN' ? results[4] : { status: 'rejected' };
       if (kpiRes.status === "fulfilled") setKpis(kpiRes.value.data);
       if (perfRes.status === "fulfilled") setNewsPerf(perfRes.value.data);
       if (catRes.status === "fulfilled") setCategoryData(catRes.value.data || []);
@@ -300,7 +310,8 @@ const Dashboard = () => {
           </div>
 
           {/* Activity Logs */}
-          <div className="glass-panel" style={{ padding: "1.5rem" }}>
+          {user?.role === 'SUPER_ADMIN' && (
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Clock size={18} /> Recent Newsroom Activity</h3>
               <NavLink to="/admin/audit-logs" style={{ fontSize: "0.8rem", color: "var(--primary)", textDecoration: "none" }}>View All Logs →</NavLink>
@@ -323,6 +334,7 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+          )}
         </>
       )}
     </div>

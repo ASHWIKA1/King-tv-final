@@ -4,6 +4,8 @@ import com.kingstv.models.Category;
 import com.kingstv.models.SubCategory;
 import com.kingstv.repository.CategoryRepository;
 import com.kingstv.repository.SubCategoryRepository;
+import com.kingstv.security.RequiresPermission;
+import com.kingstv.models.Permission;
 import com.kingstv.services.SlugService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -112,6 +114,7 @@ public class CategoryController {
     }
 
     @PostMapping
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> createCategory(@RequestBody Category category) {
         if (category.getName() == null || category.getNameTa() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Name and Tamil Name are required"));
@@ -149,11 +152,13 @@ public class CategoryController {
     }
 
     @PostMapping("/saveUpdate")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> save(@RequestBody Category entity) {
         return createCategory(entity);
     }
 
     @PutMapping("/saveUpdate")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> update(@RequestBody Category entity) {
         if (entity.getId() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Id is required for update"));
@@ -173,6 +178,7 @@ public class CategoryController {
     }
 
     @PatchMapping("/changeStatus")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> changeStatus(@RequestBody Map<String, Object> request) {
         if (!request.containsKey("id") || !request.containsKey("status")) {
             return ResponseEntity.badRequest().body(Map.of("message", "id and status are required"));
@@ -191,6 +197,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
         Optional<Category> catOpt = categoryRepository.findById(id);
         if (catOpt.isEmpty()) {

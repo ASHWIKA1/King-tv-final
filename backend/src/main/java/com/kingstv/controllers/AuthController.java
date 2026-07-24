@@ -91,6 +91,9 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
+        String location = request.get("location");
+        String interests = request.get("interests");
+
         if (fullName == null || fullName.trim().isEmpty() || email == null || password == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Full Name, Email, and Password are required"));
         }
@@ -116,6 +119,13 @@ public class AuthController {
         user.setIsVerified(false);
         user.setIsActive(true);
         user.setLastLogin(LocalDateTime.now());
+        
+        if (location != null && !location.trim().isEmpty()) {
+            user.setLocation(location.trim());
+        }
+        if (interests != null && !interests.trim().isEmpty()) {
+            user.setInterests(interests.trim());
+        }
 
         User savedUser = userRepository.save(user);
 

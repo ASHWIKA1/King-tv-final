@@ -310,7 +310,7 @@ public class ArticleController {
         
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean isLimitedEditor = auth != null && auth.getAuthorities().stream().anyMatch(a -> 
-            a.getAuthority().equals("ROLE_MOBILE_JOURNALIST") || a.getAuthority().equals("ROLE_INSTITUTION_LOGIN"));
+            a.getAuthority().equals("ROLE_MOBILE_JOURNALIST") || a.getAuthority().equals("ROLE_INSTITUTION_LOGIN") || a.getAuthority().equals("ROLE_DISTRICT_ADMIN"));
             
         if (isLimitedEditor) {
             try {

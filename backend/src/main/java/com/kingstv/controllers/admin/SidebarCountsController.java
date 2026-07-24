@@ -20,7 +20,7 @@ import java.util.Map;
 public class SidebarCountsController {
 
     @Autowired private ArticleRepository articleRepository;
-    @Autowired private UgcSubmissionRepository ugcSubmissionRepository;
+    @Autowired private ReportNewsRepository reportNewsRepository;
     @Autowired private BreakingNewsRepository breakingNewsRepository;
     @Autowired private ProfanityViolationRepository profanityViolationRepository;
 
@@ -32,7 +32,7 @@ public class SidebarCountsController {
         counts.put("pendingArticles", articleRepository.countByStatus("submitted"));
         
         // UGC submissions awaiting moderation
-        counts.put("pendingUgc", ugcSubmissionRepository.countByStatus("PENDING"));
+        counts.put("pendingUgc", reportNewsRepository.countByStatus("pending"));
         
         // Currently active breaking news alerts
         counts.put("activeBreaking", breakingNewsRepository.countByStatus("published"));

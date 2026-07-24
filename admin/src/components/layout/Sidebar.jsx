@@ -107,6 +107,8 @@ const Sidebar = () => {
   const isAdmin = hasAnyRole(['SUPER_ADMIN']);
   const isEditor = hasAnyRole(['SUPER_ADMIN', 'CHIEF_EDITOR']);
   const isJournalist = hasAnyRole(['MOBILE_JOURNALIST', 'INSTITUTION_LOGIN']);
+  const isDistrictAdmin = hasAnyRole(['DISTRICT_ADMIN']);
+  const canManageUsers = hasAnyRole(['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']);
 
   const getNewsSiteUrl = () => {
     const host = window.location.hostname;
@@ -127,7 +129,7 @@ const Sidebar = () => {
         {/* ═══ MAIN ═══ */}
         <SidebarSection id="main" title={t('main')} icon={LayoutDashboard} defaultOpen={true}>
           <SidebarNavLink to="/admin/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
-          {isEditor && (
+          {(isEditor || isDistrictAdmin) && (
             <SidebarNavLink to="/admin/analytics" icon={PieChart} label={t('analytics')} />
           )}
         </SidebarSection>
@@ -199,7 +201,7 @@ const Sidebar = () => {
         )}
 
         {/* ═══ ADMINISTRATION ═══ */}
-        {isAdmin && (
+        {(isAdmin || canManageUsers) && (
           <SidebarSection 
             id="administration" 
             title={t('administration')} 
@@ -207,18 +209,24 @@ const Sidebar = () => {
             defaultOpen={false}
             badge={counts.pendingProfanity}
           >
-            <SidebarNavLink to="/admin/users" icon={Users} label={t('userAccounts')} />
-            <SidebarNavLink to="/admin/roles" icon={Key} label={t('rolesPermissions')} />
-            <SidebarNavLink to="/admin/subscribers" icon={Users} label="Subscribers" />
-            <SidebarNavLink to="/admin/taxonomy" icon={Tags} label={t('taxonomy')} />
-            <SidebarNavLink to="/admin/notifications" icon={BellRing} label="Notifications" />
-            <SidebarNavLink to="/admin/seo" icon={Search} label={t('seoConsole') || 'SEO & Sitemap'} />
-            <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
-            <SidebarNavLink to="/admin/settings" icon={Settings} label={t('settings')} />
-            <SidebarNavLink to="/admin/settings/ai" icon={Sparkles} label="AI Configuration" />
-            <SidebarNavLink to="/admin/settings/language" icon={Languages} label="Language & Fonts" />
-            <SidebarNavLink to="/admin/profanity" icon={AlertTriangle} label={t('profanity')} badge={counts.pendingProfanity} />
-            <SidebarNavLink to="/admin/audit-logs" icon={Activity} label={t('audit')} />
+            {canManageUsers && (
+              <SidebarNavLink to="/admin/users" icon={Users} label={t('userAccounts')} />
+            )}
+            {isAdmin && (
+              <>
+                <SidebarNavLink to="/admin/roles" icon={Key} label={t('rolesPermissions')} />
+                <SidebarNavLink to="/admin/subscribers" icon={Users} label="Subscribers" />
+                <SidebarNavLink to="/admin/taxonomy" icon={Tags} label={t('taxonomy')} />
+                <SidebarNavLink to="/admin/notifications" icon={BellRing} label="Notifications" />
+                <SidebarNavLink to="/admin/seo" icon={Search} label={t('seoConsole') || 'SEO & Sitemap'} />
+                <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
+                <SidebarNavLink to="/admin/settings" icon={Settings} label={t('settings')} />
+                <SidebarNavLink to="/admin/settings/ai" icon={Sparkles} label="AI Configuration" />
+                <SidebarNavLink to="/admin/settings/language" icon={Languages} label="Language & Fonts" />
+                <SidebarNavLink to="/admin/profanity" icon={AlertTriangle} label={t('profanity')} badge={counts.pendingProfanity} />
+                <SidebarNavLink to="/admin/audit-logs" icon={Activity} label={t('audit')} />
+              </>
+            )}
           </SidebarSection>
         )}
 

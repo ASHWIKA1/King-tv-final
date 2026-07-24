@@ -1,11 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
 
 export const authService = {
-  async register(fullName, email, password) {
+  async register(fullName, email, password, location = '', interests = '') {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, email, password })
+      body: JSON.stringify({ fullName, email, password, location, interests })
     });
     if (!res.ok) {
       const err = await res.json();

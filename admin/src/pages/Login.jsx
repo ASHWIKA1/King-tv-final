@@ -25,7 +25,11 @@ const Login = () => {
       if (role === 'MOBILE_JOURNALIST' || role === 'INSTITUTION_LOGIN') {
         navigate('/journalist/posts');
       } else if (role === 'READER') {
-        window.location.href = '/';
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          window.location.href = 'http://localhost:5174/';
+        } else {
+          window.location.href = '/';
+        }
       } else {
         navigate('/admin/dashboard');
       }

@@ -508,7 +508,7 @@ public class DataInitializer {
             savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
             savedPerms.get(Permission.ARTICLE_REVIEW), savedPerms.get(Permission.ARTICLE_PUBLISH), savedPerms.get(Permission.CONTENT_REVIEW),
             savedPerms.get(Permission.UGC_REVIEW), savedPerms.get(Permission.PROFANITY_VIEW_REPORTS), savedPerms.get(Permission.HOME_LAYOUT_DELEGATED),
-            savedPerms.get(Permission.ANALYTICS_VIEW), savedPerms.get(Permission.AI_REWRITER_USE)
+            savedPerms.get(Permission.ANALYTICS_VIEW), savedPerms.get(Permission.AI_REWRITER_USE), savedPerms.get(Permission.PUSH_NOTIFICATION_SEND)
         ));
         roleRepository.save(chiefEditor);
 
