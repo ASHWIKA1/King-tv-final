@@ -25,7 +25,7 @@ public class UptimeController {
 
     private static final Logger LOGGER = Logger.getLogger(UptimeController.class.getName());
 
-    @Value("${UPTIMEROBOT_API_KEY:ur3660911-90952f886ec7872a622aec44}")
+    @Value("${UPTIMEROBOT_API_KEY:}")
     private String apiKey;
 
     @GetMapping({"/api/uptime", "/api/v1/uptime"})

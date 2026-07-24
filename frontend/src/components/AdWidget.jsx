@@ -14,7 +14,7 @@ const AdWidget = ({ placement = 'sidebar' }) => {
           setAd(selectedAd);
           
           // Record impression automatically in background
-          fetch(`${window.location.origin}/api/v1/advertisements/${selectedAd.id}/impression`, {
+          fetchApi(`/advertisements/${selectedAd.id}/impression`, {
             method: 'POST'
           }).catch(() => {});
         }
@@ -24,11 +24,11 @@ const AdWidget = ({ placement = 'sidebar' }) => {
     };
     fetchAd();
   }, [placement]);
-
+ 
   const handleAdClick = () => {
     if (ad) {
       // Record click count in background
-      fetch(`${window.location.origin}/api/v1/advertisements/${ad.id}/click`, {
+      fetchApi(`/advertisements/${ad.id}/click`, {
         method: 'POST'
       }).catch(() => {});
 
