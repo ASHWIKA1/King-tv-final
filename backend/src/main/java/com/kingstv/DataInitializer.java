@@ -554,6 +554,19 @@ public class DataInitializer {
         seedSystemConfig(SystemConfig.TELEGRAM_CHAT_ID, "", "telegram", "Telegram Channel/Chat Target ID");
         seedSystemConfig(SystemConfig.TELEGRAM_ENABLED, "false", "telegram", "Enable or disable automatic Telegram pushes (true/false)");
 
+        // Seed Dynamic Social Media Links & Site Settings
+        seedSystemConfig("site.name", "KING 24x7", "site", "Global website brand name");
+        seedSystemConfig("site.logo_url", "/assets/icons/logo-icon-light.png", "site", "Logo image URL");
+        seedSystemConfig("site.logo_footer", "/assets/icons/logo-icon-light.png", "site", "Footer logo image URL");
+        seedSystemConfig("site.tagline", "Truth. Responsibility. In Tamil.", "site", "Website tagline in English");
+        seedSystemConfig("site.tagline_ta", "உண்மை. பொறுப்புடன். தமிழ்.", "site", "Website tagline in Tamil");
+        seedSystemConfig("site.description", "KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.", "site", "Site description in English");
+        seedSystemConfig("site.description_ta", "KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி, நம்பகமான செய்திகளை வழங்குகிறோம்.", "site", "Site description in Tamil");
+        seedSystemConfig("social.facebook", "https://www.facebook.com/profile.php?id=61551357861905", "social", "Facebook Page URL");
+        seedSystemConfig("social.twitter", "https://x.com/onlinethamizhan", "social", "Twitter Profile URL");
+        seedSystemConfig("social.instagram", "https://www.instagram.com/king24x7/", "social", "Instagram Profile URL");
+        seedSystemConfig("social.youtube", "https://www.youtube.com/@king24x7", "social", "YouTube Channel URL");
+
         // 15. Seed Profanity Words
         System.out.println("Seeding Profanity Words...");
         seedProfanity("abuse");

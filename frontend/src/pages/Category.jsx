@@ -436,15 +436,10 @@ const Category = () => {
     setSelectedSubcat('அனைத்தும்');
     setSelectedFilter('all');
 
-    const fallbackArticles = (currentCat.articles || []).map(art => ({
-      ...art,
-      id: `demo-${art.id}`
-    }));
-
     // Fetch dynamic database articles
     fetchApi('/articles')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, international: 7, world: 7 };
           const targetId = catIdMap[catKey] || 1;
 
@@ -465,16 +460,20 @@ const Category = () => {
             imageUrl: item.imageUrl,
             gradient: 'linear-gradient(135deg, #1E40AF, #3B82F6)'
           }));
-          setArticles(formatted.length > 0 ? formatted : fallbackArticles);
+          setArticles(formatted);
         } else {
-          setArticles(fallbackArticles);
+          setArticles([]);
         }
       })
       .catch(err => {
-        console.warn("Could not fetch categories from database, using mock array", err);
-        setArticles(fallbackArticles);
+        console.warn("Could not fetch categories from database", err);
+        setArticles([]);
       });
   }, [catKey]);
+
+  useEffect(() => {
+    document.title = `${lang === 'en' ? currentCat.titleEn : currentCat.titleTa} - KINGS 24x7`;
+  }, [lang, currentCat]);
 
   useEffect(() => {
     const subcatParam = searchParams.get('subcat');

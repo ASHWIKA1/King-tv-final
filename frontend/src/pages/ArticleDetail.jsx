@@ -582,8 +582,22 @@ const ArticleDetail = () => {
         fetchComments(currentCategoryId);
       });
 
-    // 4. Trending
-    setTrending(fallbackTrending);
+    // 4. Fetch dynamic trending articles
+    fetchApi('/articles/public/trending')
+      .then(tData => {
+        if (Array.isArray(tData)) {
+          setTrending(tData.map((item, index) => ({
+            id: item.id || item.article_id,
+            titleTa: item.titleTa,
+            titleEn: item.titleEn,
+            imageUrl: item.imageUrl,
+            rank: index + 1
+          })));
+        }
+      })
+      .catch(err => {
+        console.warn("Failed to load trending articles", err);
+      });
   };
 
   useEffect(() => {
@@ -709,17 +723,42 @@ const ArticleDetail = () => {
 
   const getTrendingList = () => {
     return trending.map(tItem => {
-      let title = tItem.title;
-      if (lang === 'en') {
-        if (title === 'சென்னை மெட்ரோ புதிய மெட்ரோ ரயில் திட்டம்') {
-          title = 'Chennai Metro new metro rail project';
-        } else if (title === 'தங்கம் விலை அதிரடி வீழ்ச்சி') {
-          title = 'Gold prices plunge sharply';
-        }
-      }
+      const title = lang === 'en' ? (tItem.titleEn || tItem.title) : (tItem.titleTa || tItem.title);
       return { ...tItem, title };
     });
   };
+
+  useEffect(() => {
+    if (article) {
+      document.title = (lang === 'en' ? article.titleEn : article.titleTa) || 'KINGS 24x7';
+      
+      const desc = lang === 'en' ? article.descEn : article.descTa;
+      const keywords = article.tags ? article.tags.join(', ') : 'news, tamil';
+      
+      const updateMetaTag = (name, content) => {
+        if (!content) return;
+        let element = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          if (name.startsWith('og:')) {
+            element.setAttribute('property', name);
+          } else {
+            element.setAttribute('name', name);
+          }
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      updateMetaTag('description', desc);
+      updateMetaTag('keywords', keywords);
+      updateMetaTag('og:title', lang === 'en' ? article.titleEn : article.titleTa);
+      updateMetaTag('og:description', desc);
+      if (article.imageUrl) {
+        updateMetaTag('og:image', article.imageUrl);
+      }
+    }
+  }, [lang, article]);
 
   if (!article) {
     return (

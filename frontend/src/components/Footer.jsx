@@ -1,10 +1,34 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
+import { fetchApi } from '../utils/api';
 
 const Footer = () => {
   const { lang } = useContext(LanguageContext);
   const currentYear = new Date().getFullYear();
+  const [siteSettings, setSiteSettings] = useState({
+    'site.name': 'KING 24x7',
+    'site.logo_url': '/assets/icons/logo-icon-light.png',
+    'site.logo_footer': '/assets/icons/logo-icon-light.png',
+    'site.tagline': 'Truth. Responsibility. In Tamil.',
+    'site.tagline_ta': 'உண்மை. பொறுப்புடன். தமிழ்.',
+    'site.description': 'KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.',
+    'site.description_ta': 'KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி, நம்பகமான செய்திகளை வழங்குகிறோம்.',
+    'social.facebook': 'https://www.facebook.com/profile.php?id=61551357861905',
+    'social.twitter': 'https://x.com/onlinethamizhan',
+    'social.instagram': 'https://www.instagram.com/king24x7/',
+    'social.youtube': 'https://www.youtube.com/@king24x7'
+  });
+
+  useEffect(() => {
+    fetchApi('/public/config/settings')
+      .then(res => {
+        if (res) {
+          setSiteSettings(prev => ({ ...prev, ...res }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <footer className="site-footer">
@@ -12,17 +36,15 @@ const Footer = () => {
         <div className="footer-grid">
           <div className="footer-brand">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src="/assets/icons/logo-icon-light.png" alt="KING 24x7" style={{ height: '40px', width: 'auto' }} className="logo-light-only" />
-              <img src="/assets/icons/logo-icon-dark.png" alt="KING 24x7" style={{ height: '40px', width: 'auto' }} className="logo-dark-only" />
-              <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>KING 24x7</span>
+              <img src={siteSettings['site.logo_url']} alt={siteSettings['site.name']} style={{ height: '40px', width: 'auto' }} className="logo-light-only" />
+              <img src={siteSettings['site.logo_footer'] || siteSettings['site.logo_url']} alt={siteSettings['site.name']} style={{ height: '40px', width: 'auto' }} className="logo-dark-only" />
+              <span style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>{siteSettings['site.name']}</span>
             </div>
             <div className="tagline" style={{ color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
-              {lang === 'en' ? 'Truth. Responsibility. In Tamil.' : 'உண்மை. பொறுப்புடன். தமிழ்.'}
+              {lang === 'en' ? siteSettings['site.tagline'] : siteSettings['site.tagline_ta']}
             </div>
             <p style={{ marginTop: '12px' }}>
-              {lang === 'en'
-                ? 'KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.'
-                : 'KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி, நம்பகமான செய்திகளை வழங்குகிறோம்.'}
+              {lang === 'en' ? siteSettings['site.description'] : siteSettings['site.description_ta']}
             </p>
           </div>
 
@@ -46,16 +68,16 @@ const Footer = () => {
           <div className="footer-col">
             <h5>{lang === 'en' ? 'Followers' : 'பின்தொடர'}</h5>
             <div className="footer-social" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <a href="https://www.facebook.com/profile.php?id=61551357861905" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
-              <a href="https://x.com/onlinethamizhan" target="_blank" rel="noopener noreferrer" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
-              <a href="https://www.instagram.com/king24x7/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
-              <a href="https://www.youtube.com/@king24x7" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="fab fa-youtube"></i></a>
+              <a href={siteSettings['social.facebook']} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+              <a href={siteSettings['social.twitter']} target="_blank" rel="noopener noreferrer" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+              <a href={siteSettings['social.instagram']} target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+              <a href={siteSettings['social.youtube']} target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="fab fa-youtube"></i></a>
             </div>
           </div>
         </div>
 
         <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0' }}>
-          <div>© {currentYear} <strong>KING 24x7</strong> - All Rights Reserved.</div>
+          <div>© {currentYear} <strong>{siteSettings['site.name']}</strong> - All Rights Reserved.</div>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <Link to="/about-us" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', fontSize: '13px' }}>{lang === 'en' ? 'About Us' : 'எங்களைப் பற்றி'}</Link>
             <span style={{ opacity: 0.3 }}>|</span>

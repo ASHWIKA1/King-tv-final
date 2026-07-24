@@ -42,6 +42,7 @@ const RfqMarketplace = () => {
 
   // Submit quote state
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [quoterName, setQuoterName] = useState('');
   const [quotePrice, setQuotePrice] = useState('');
   const [quoteTimeline, setQuoteTimeline] = useState('');
   const [quoteNotes, setQuoteNotes] = useState('');
@@ -147,7 +148,7 @@ const RfqMarketplace = () => {
     fetchApi(`/rfq/${selectedRfq.id}/quotes`, {
       method: 'POST',
       body: JSON.stringify({
-        sellerBusinessId: 1, // Assume first merchant business
+        name: quoterName,
         quotedPrice: Number(quotePrice),
         timelineDays: Number(quoteTimeline),
         notes: quoteNotes,
@@ -156,6 +157,7 @@ const RfqMarketplace = () => {
     })
       .then(() => {
         setShowQuoteForm(false);
+        setQuoterName('');
         setQuotePrice('');
         setQuoteTimeline('');
         setQuoteNotes('');
@@ -171,10 +173,11 @@ const RfqMarketplace = () => {
             notes: quoteNotes,
             status: "pending"
           },
-          seller: { businessName: "My Local Shop", addressLocality: "Chennai" }
+          seller: { businessName: quoterName || "My Local Shop", addressLocality: "Chennai" }
         };
         setQuotesList(prev => [mockQuote, ...prev]);
         setShowQuoteForm(false);
+        setQuoterName('');
         setQuotePrice('');
         setQuoteTimeline('');
         setQuoteNotes('');
@@ -239,11 +242,8 @@ const RfqMarketplace = () => {
               {lang === 'en' ? 'Compare responses, check ratings, and hire the best professionals for your projects.' : 'கட்டண விவரங்களை ஒப்பிட்டு, மதிப்பீடுகளைச் சரிபார்த்து, உங்கள் திட்டங்களுக்கான சிறந்த நிபுணர்களை நியமிக்கவும்.'}
             </p>
             <div className="class-hero-btns">
-              <button className="class-hero-btn-find" style={{ background: '#4f46e5', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => alert("Browsing all open RFQs...")}>
+              <button className="class-hero-btn-find" style={{ background: '#4f46e5', color: 'white', border: '1px solid rgba(255,255,255,0.2)', width: '100%', maxWidth: '240px' }} onClick={() => alert("Browsing all open RFQs...")}>
                 {lang === 'en' ? 'Browse Requests' : 'கோரிக்கைகளை உலாவுக'}
-              </button>
-              <button className="class-hero-btn-post" style={{ color: '#4f46e5' }} onClick={() => setShowRfqModal(true)}>
-                {lang === 'en' ? 'Post a New RFQ' : 'புதிய கோரிக்கையைத் தொடங்கு'}
               </button>
             </div>
           </div>
@@ -506,25 +506,6 @@ const RfqMarketplace = () => {
           {/* Right Column: Widgets */}
           <div className="class-sidebar-right">
             
-            {/* Quick Action card: Post a Request */}
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)', borderRadius: '16px', padding: '24px', color: 'white', textAlign: 'center', marginBottom: '20px' }}>
-              <i className="fas fa-file-invoice" style={{ fontSize: '32px', color: '#fbbf24', marginBottom: '12px' }}></i>
-              <h4 style={{ fontSize: '14px', fontWeight: '800', margin: '0 0 8px 0' }}>{lang === 'en' ? 'Need a Custom Quote?' : 'கட்டண விவரம் தேவையா?'}</h4>
-              <p style={{ fontSize: '11px', opacity: 0.8, margin: '0 0 16px 0', lineHeight: 1.4 }}>{lang === 'en' ? 'Post a Request for Quotation (RFQ) and get quotes from certified suppliers in Chennai.' : 'புதிய கோரிக்கையைத் தொடங்குங்கள், சென்னைக்கு அருகிலுள்ள சரிபார்க்கப்பட்ட விற்பனையாளர்களிடம் சலுகைகளைப் பெறுங்கள்.'}</p>
-              <button 
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    navigate('/login', { state: { from: '/rfq' } });
-                  } else {
-                    setShowRfqModal(true);
-                  }
-                }}
-                style={{ width: '100%', padding: '10px', background: '#fbbf24', color: '#1e1b4b', border: 'none', borderRadius: '10px', fontWeight: '800', fontSize: '12px', cursor: 'pointer' }}
-              >
-                {lang === 'en' ? '+ Post a New RFQ' : '+ புதிய RFQ கோரிக்கை'}
-              </button>
-            </div>
-
             {/* RFQ Stats Widget */}
             <div style={{ background: theme === 'dark' ? '#111827' : '#ffffff', border: theme === 'dark' ? '1px solid #1f2937' : '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', uppercase: true, marginBottom: '16px' }}>{lang === 'en' ? 'Marketplace Stats' : 'சந்தை புள்ளிவிவரங்கள்'}</h3>
@@ -637,29 +618,11 @@ const RfqMarketplace = () => {
                         >
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
                             q.quote.status === 'shortlisted' ? 'bg-amber-600/10 text-amber-500' : 
-                            q.quote.status === 'accepted' ? 'bg-green-600/10 text-green-500' : 'bg-gray-600/10 text-gray-500'
+                            (q.quote.status === 'accepted' || q.quote.status === 'approved') ? 'bg-green-600/10 text-green-500' : 
+                            q.quote.status === 'rejected' ? 'bg-red-600/10 text-red-500' : 'bg-gray-600/10 text-gray-500'
                           }`}>
-                            {q.quote.status}
+                            {q.quote.status === 'accepted' ? 'approved' : q.quote.status}
                           </span>
-                          
-                          <div className="flex flex-wrap gap-2 justify-end">
-                            {q.quote.status === 'pending' && (
-                              <button 
-                                onClick={() => handleQuoteStatusChange(q.quote.id, 'shortlisted')}
-                                className="bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] hover:bg-amber-600 transition cursor-pointer shadow-sm"
-                              >
-                                Shortlist
-                              </button>
-                            )}
-                            {(q.quote.status === 'pending' || q.quote.status === 'shortlisted') && (
-                              <button 
-                                onClick={() => handleQuoteStatusChange(q.quote.id, 'accepted')}
-                                className="bg-green-600 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] hover:bg-green-700 transition cursor-pointer shadow-sm"
-                              >
-                                Accept &amp; Award
-                              </button>
-                            )}
-                          </div>
                         </div>
                       </div>
                     ))
@@ -686,6 +649,10 @@ const RfqMarketplace = () => {
                     </button>
                   ) : (
                     <form onSubmit={handleSubmitQuote} className="space-y-3 text-xs">
+                      <div className="flex flex-col gap-1">
+                        <label className="font-bold">Your Business / Submitter Name *</label>
+                        <input type="text" required placeholder="e.g. Acme Corp or Jane Doe" className="bg-transparent border border-gray-700/30 p-2 rounded focus:outline-none" value={quoterName} onChange={(e)=>setQuoterName(e.target.value)}/>
+                      </div>
                       <div className="flex flex-col gap-1">
                         <label className="font-bold">Quoted Price (₹) *</label>
                         <input type="number" required placeholder="Price" className="bg-transparent border border-gray-700/30 p-2 rounded focus:outline-none" value={quotePrice} onChange={(e)=>setQuotePrice(e.target.value)}/>
@@ -725,61 +692,7 @@ const RfqMarketplace = () => {
         </div>
       )}
 
-      {/* POST RFQ MODAL */}
-      {showRfqModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handlePostRfq} className={`w-full max-w-xl rounded-3xl p-6 md:p-8 shadow-2xl border max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-[#0f172a] text-white border-gray-800' : 'bg-white text-gray-900 border-gray-200'
-          }`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-md font-bold uppercase tracking-wider text-red-500">Post RFQ Requirement</h3>
-              <button type="button" onClick={() => setShowRfqModal(false)} className="text-2xl font-bold">&times;</button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-6">
-              <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label className="font-bold">RFQ Title *</label>
-                <input type="text" required placeholder="e.g. Need 500 Custom T-Shirts" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)}/>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold">Category *</label>
-                <select className={`bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-white'}`} value={newCategory} onChange={(e)=>setNewCategory(e.target.value)}>
-                  <option value="Printing">{lang === 'en' ? 'Printing' : 'அச்சிடுதல்'}</option>
-                  <option value="Construction">{lang === 'en' ? 'Construction' : 'கட்டுமானம்'}</option>
-                  <option value="Fabrication">{lang === 'en' ? 'Fabrication' : 'உலோக தயாரிப்பு'}</option>
-                  <option value="Events">{lang === 'en' ? 'Events' : 'நிகழ்ச்சிகள்'}</option>
-                  <option value="Services">{lang === 'en' ? 'Services' : 'சேவைகள்'}</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold">Quantity Required *</label>
-                <input type="number" required className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newQty} onChange={(e)=>setNewQty(Number(e.target.value))}/>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold">Target Budget (₹) *</label>
-                <input type="text" required placeholder="e.g. 50,000 - 80,000" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newBudget} onChange={(e)=>setNewBudget(e.target.value)}/>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold">Delivery Location *</label>
-                <input type="text" required placeholder="e.g. Chennai, TN" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newLoc} onChange={(e)=>setNewLoc(e.target.value)}/>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold">Bidding Deadline *</label>
-                <input type="date" required className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newDeadline} onChange={(e)=>setNewDeadline(e.target.value)}/>
-              </div>
-              <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label className="font-bold">Detailed Requirements Description *</label>
-                <textarea required rows="4" placeholder="Detail out all specifications, dimensions, material quality details, etc..." className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newDesc} onChange={(e)=>setNewDesc(e.target.value)}></textarea>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowRfqModal(false)} className="px-5 py-2.5 rounded-lg border border-gray-700/30">Cancel</button>
-              <button type="submit" className="bg-red-600 text-white font-bold px-5 py-2.5 rounded-lg hover:bg-red-700 transition">Publish RFQ</button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* POST RFQ MODAL REMOVED */}
     </div>
   );
 };

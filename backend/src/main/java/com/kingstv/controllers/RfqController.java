@@ -220,7 +220,7 @@ public class RfqController {
 
     // --- Quotations Submission & Review ---
     @PostMapping("/{id}/quotes")
-    public ResponseEntity<?> submitQuote(@PathVariable Long id, @RequestBody RfqQuote quote, Principal principal) {
+    public ResponseEntity<?> submitQuote(@PathVariable Long id, @RequestBody Map<String, Object> payload, Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
@@ -234,12 +234,54 @@ public class RfqController {
             return ResponseEntity.badRequest().body(Map.of("message", "RFQ is not open for quotes"));
         }
 
-        if (quote.getQuotedPrice() == null || quote.getTimelineDays() == null || quote.getSellerBusinessId() == null) {
+        Object quotedPriceObj = payload.get("quotedPrice");
+        Object timelineDaysObj = payload.get("timelineDays");
+        if (quotedPriceObj == null || timelineDaysObj == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Required fields are missing"));
         }
 
+        // Resolve or create DirectoryListing for this user (no KYC check required for submission)
+        List<DirectoryListing> listings = directoryRepository.findByCreatedBy((long) userOpt.get().getId());
+        DirectoryListing sellerListing;
+        if (!listings.isEmpty()) {
+            sellerListing = listings.get(0);
+        } else {
+            String name = (String) payload.get("name");
+            if (name == null || name.trim().isEmpty()) {
+                name = userOpt.get().getFullName() + "'s Business";
+            }
+            sellerListing = new DirectoryListing();
+            sellerListing.setBusinessName(name);
+            sellerListing.setCategory(rfqOpt.get().getCategory());
+            sellerListing.setAddressLocality(rfqOpt.get().getLocation());
+            sellerListing.setAddressStreet("Default Address");
+            sellerListing.setPhoneNumber(userOpt.get().getPhoneNumber() != null ? userOpt.get().getPhoneNumber() : "0000000000");
+            sellerListing.setCreatedBy((long) userOpt.get().getId());
+            sellerListing.setKycStatus("pending");
+            sellerListing.setStatus("active");
+            sellerListing = directoryRepository.save(sellerListing);
+        }
+
+        RfqQuote quote = new RfqQuote();
         quote.setRfqId(id);
+        quote.setSellerBusinessId(sellerListing.getId());
+        
+        if (quotedPriceObj instanceof Number) {
+            quote.setQuotedPrice(((Number) quotedPriceObj).doubleValue());
+        } else {
+            quote.setQuotedPrice(Double.parseDouble(quotedPriceObj.toString()));
+        }
+        
+        if (timelineDaysObj instanceof Number) {
+            quote.setTimelineDays(((Number) timelineDaysObj).intValue());
+        } else {
+            quote.setTimelineDays(Integer.parseInt(timelineDaysObj.toString()));
+        }
+        
+        quote.setNotes((String) payload.get("notes"));
+        quote.setProposalUrl((String) payload.get("proposalUrl"));
         quote.setStatus("pending");
+        
         RfqQuote saved = rfqQuoteRepository.save(quote);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -271,32 +313,86 @@ public class RfqController {
     }
 
     @PatchMapping("/quotes/{quoteId}/status")
-    public ResponseEntity<?> changeQuoteStatus(@PathVariable Long quoteId, @RequestBody Map<String, String> request) {
+    public ResponseEntity<?> changeQuoteStatus(@PathVariable Long quoteId, @RequestBody Map<String, String> request, Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
+        }
+        Optional<User> userOpt = userRepository.findByEmail(principal.getName());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
         Optional<RfqQuote> quoteOpt = rfqQuoteRepository.findById(quoteId);
         if (quoteOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Quote not found"));
         }
         
         RfqQuote quote = quoteOpt.get();
+        Optional<Rfq> rfqOpt = rfqRepository.findById(quote.getRfqId());
+        if (rfqOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "RFQ not found"));
+        }
+        Rfq rfq = rfqOpt.get();
+
+        // Security check: Only the buyer who created the RFQ can change the status of this quote
+        if (!rfq.getBuyerId().equals((long) userOpt.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Only the RFQ owner can update the status of this quote"));
+        }
+
         String status = request.get("status");
         if (status == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "status is required"));
         }
         
-        quote.setStatus(status);
+        // Normalize status to lowercase, mapping accepted to approved
+        String normalizedStatus = status.toLowerCase();
+        if ("accepted".equals(normalizedStatus)) {
+            normalizedStatus = "approved";
+        }
+        quote.setStatus(normalizedStatus);
         RfqQuote saved = rfqQuoteRepository.save(quote);
         
-        // If awarded/accepted, update the parent RFQ status
-        if ("accepted".equalsIgnoreCase(status) || "awarded".equalsIgnoreCase(status)) {
-            Optional<Rfq> rfqOpt = rfqRepository.findById(quote.getRfqId());
-            if (rfqOpt.isPresent()) {
-                Rfq rfq = rfqOpt.get();
-                rfq.setStatus("awarded");
-                rfqRepository.save(rfq);
-            }
+        // If approved/accepted/awarded, update the parent RFQ status
+        if ("approved".equals(normalizedStatus) || "accepted".equals(normalizedStatus) || "awarded".equals(normalizedStatus)) {
+            rfq.setStatus("awarded");
+            rfqRepository.save(rfq);
         }
         
         return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping("/my-quotes")
+    public ResponseEntity<?> getMySubmittedQuotes(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
+        }
+        Optional<User> userOpt = userRepository.findByEmail(principal.getName());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
+        List<DirectoryListing> listings = directoryRepository.findByCreatedBy((long) userOpt.get().getId());
+        if (listings.isEmpty()) {
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+
+        List<Map<String, Object>> responseList = new ArrayList<>();
+        for (DirectoryListing listing : listings) {
+            List<RfqQuote> quotes = rfqQuoteRepository.findBySellerBusinessId(listing.getId());
+            for (RfqQuote quote : quotes) {
+                Optional<Rfq> rfqOpt = rfqRepository.findById(quote.getRfqId());
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", quote.getId());
+                map.put("quotedPrice", quote.getQuotedPrice());
+                map.put("timelineDays", quote.getTimelineDays());
+                map.put("notes", quote.getNotes());
+                map.put("status", quote.getStatus());
+                map.put("createdAt", quote.getCreatedAt());
+                map.put("rfqTitle", rfqOpt.map(Rfq::getTitle).orElse("Unknown RFQ"));
+                responseList.add(map);
+            }
+        }
+        return ResponseEntity.ok(responseList);
     }
 
     // --- Merchant Console List ---

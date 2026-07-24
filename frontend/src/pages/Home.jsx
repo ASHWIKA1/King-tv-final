@@ -906,28 +906,7 @@ const Home = () => {
   };
 
   const renderBusinessCase = () => {
-    return (
-      <div className="case-studies-widget" style={{ marginTop: '20px' }}>
-        <div className="case-studies-header">
-          <h4><i className="fas fa-briefcase" style={{ color: '#0057FF' }}></i> {lang === 'en' ? 'Business Case Studies' : 'வணிகக் கேஸ் ஸ்டடிஸ்'}</h4>
-        </div>
-        <div className="case-studies-grid">
-          {caseStudies.map((study, idx) => (
-            <div className="case-study-col" key={study.id || idx}>
-              <div className="company-logo">
-                <i className={study.iconClass || "fas fa-file-pdf"} style={{ color: study.iconColor || "#0057FF" }}></i>{' '}
-                {study.company || (study.titleEn || study.title || '').split(':')[0]}
-              </div>
-              <span className="tag">{study.tag || (lang === 'en' ? 'Document' : 'ஆவணம்')}</span>
-              <h5>{lang === 'en' ? (study.titleEn || study.title) : (study.titleTa || study.title)}</h5>
-              <a href={study.pdfUrl || '#'} className="pdf-btn" target="_blank" rel="noreferrer">
-                <i className="fas fa-file-pdf"></i> PDF
-              </a>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return null;
   };
 
   const renderCrowdReporterWidget = () => {
@@ -1084,7 +1063,7 @@ const Home = () => {
       case 'rss_aggregator': return renderRssAggregatedNews();
       case 'weather': return renderWeather();
       case 'live_tv': return renderLiveTv();
-      case 'business_case': return renderBusinessCase();
+      case 'business_case': return null;
       case 'crowd_reporter': return renderCrowdReporterWidget();
       case 'news_digest': return renderNewsDigest();
       default: return null;

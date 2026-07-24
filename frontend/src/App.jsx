@@ -49,6 +49,7 @@ import Weather from './pages/Weather';
 import BizDirectoryRegister from './pages/BizDirectoryRegister';
 import BizDirectoryDashboard from './pages/BizDirectoryDashboard';
 import MyRfqs from './pages/MyRfqs';
+import MyQuotes from './pages/MyQuotes';
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
@@ -148,6 +149,11 @@ function AppContent() {
           <Route path="/my-rfqs" element={
             <ProtectedRoute>
               <MyRfqs />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-quotes" element={
+            <ProtectedRoute>
+              <MyQuotes />
             </ProtectedRoute>
           } />
            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
