@@ -967,34 +967,36 @@ const Header = () => {
       <div 
         className="header-top-slider-widget"
         style={{ 
-          background: 'rgba(255, 255, 255, 0.09)', 
-          border: '1px solid rgba(255, 255, 255, 0.2)', 
-          borderRadius: '10px', 
-          padding: '7px 16px', 
+          background: 'rgba(255, 255, 255, 0.1)', 
+          border: '1px solid rgba(255, 255, 255, 0.22)', 
+          borderRadius: '12px', 
+          padding: '12px 18px', 
           display: 'flex', 
           flexDirection: 'column', 
-          gap: '4px',
+          justifyContent: 'center',
+          gap: '8px',
           marginRight: '14px',
-          minWidth: '380px',
-          maxWidth: '480px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+          minWidth: '420px',
+          maxWidth: '520px',
+          minHeight: '75px',
+          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', fontWeight: 800, color: '#38BDF8' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px', fontWeight: 800, color: '#38BDF8' }}>
           <span>{lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}</span>
           
           {/* Slider Dots Pagination Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             {Array.from({ length: 8 }).map((_, idx) => (
               <span
                 key={idx}
                 onClick={() => setHeaderSliderIndex(idx)}
                 style={{
                   cursor: 'pointer',
-                  width: (headerSliderIndex % 8) === idx ? '16px' : '5px',
-                  height: '5px',
+                  width: (headerSliderIndex % 8) === idx ? '18px' : '6px',
+                  height: '6px',
                   borderRadius: (headerSliderIndex % 8) === idx ? '4px' : '50%',
-                  background: (headerSliderIndex % 8) === idx ? '#38BDF8' : 'rgba(255, 255, 255, 0.35)',
+                  background: (headerSliderIndex % 8) === idx ? '#38BDF8' : 'rgba(255, 255, 255, 0.4)',
                   display: 'inline-block',
                   transition: 'all 0.3s ease'
                 }}
@@ -1003,9 +1005,9 @@ const Header = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '12px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: '12.5px' }}>
           {activeSlide.items.map((item, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', whiteSpace: 'nowrap' }}>
               <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontWeight: 600 }}>{lang === 'en' ? item.labelEn : item.labelTa}</span>
               <span style={{ color: item.color, fontWeight: 800 }}>{item.val}</span>
             </div>
