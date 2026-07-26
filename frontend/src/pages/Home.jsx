@@ -94,12 +94,12 @@ const Home = () => {
 
     const pArticles = fetchApi('/articles')
       .then(data => {
-        const list = Array.isArray(data) ? data : [];
+        const list = Array.isArray(data) && data.length > 0 ? data : MOCK_ARTICLES;
         setArticles(list);
       })
       .catch(err => {
-        console.warn("Could not load articles from API", err);
-        setArticles([]);
+        console.warn("Could not load articles from API, using default sample news", err);
+        setArticles(MOCK_ARTICLES);
       });
 
     const pBreakingNews = fetchApi('/breaking-news/getAllWeb?size=50')
@@ -191,12 +191,14 @@ const Home = () => {
         console.warn("Could not load YouTube videos for home page, trying fallback", err);
         try {
           const fallbackData = await fetchApi('/videos');
-          if (Array.isArray(fallbackData)) {
+          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
             setVideos(fallbackData);
+          } else {
+            setVideos(MOCK_VIDEOS);
           }
         } catch (fallbackErr) {
           console.error("Local videos fallback failed:", fallbackErr);
-          setVideos([]);
+          setVideos(MOCK_VIDEOS);
         }
       }
     })();
@@ -225,11 +227,13 @@ const Home = () => {
 
     const pTrending = fetchApi('/articles/public/trending')
       .then(data => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setTrendingNews(data);
+        } else {
+          setTrendingNews(MOCK_ARTICLES);
         }
       })
-      .catch(() => {});
+      .catch(() => setTrendingNews(MOCK_ARTICLES));
 
     const pRss = fetchApi('/rss-aggregator/latest?page=0&size=5')
       .then(data => {
