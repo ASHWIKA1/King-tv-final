@@ -67,6 +67,11 @@ def main():
 
     local_root = os.getcwd()
     
+    # 1. Upload React Frontend to REMOTE king-tv root
+    local_frontend_dist = os.path.join(local_root, "frontend", "dist")
+    ROOT_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv"
+    upload_dir_contents(sftp, local_frontend_dist, ROOT_REMOTE_DIR)
+
     # 2. Upload React Admin Dashboard to REMOTE king-tv/admin
     local_admin_dist = os.path.join(local_root, "admin", "dist")
     ADMIN_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv/admin"
@@ -74,9 +79,10 @@ def main():
 
     # Upload local .htaccess rules
     try:
-        sftp.put(os.path.join(local_root, ".htaccess"), FRONTEND_REMOTE_DIR + "/.htaccess")
-        sftp.put(os.path.join(local_root, ".htaccess"), ADMIN_REMOTE_DIR + "/.htaccess")
-        print("Uploaded .htaccess to both subdomains.")
+        if os.path.exists(os.path.join(local_root, ".htaccess")):
+            sftp.put(os.path.join(local_root, ".htaccess"), ROOT_REMOTE_DIR + "/.htaccess")
+            sftp.put(os.path.join(local_root, ".htaccess"), ADMIN_REMOTE_DIR + "/.htaccess")
+            print("Uploaded .htaccess to both subdomains.")
     except Exception as e:
         print("Failed to upload .htaccess", e)
 
