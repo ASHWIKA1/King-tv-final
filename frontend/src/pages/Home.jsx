@@ -466,32 +466,72 @@ const Home = () => {
   ];
 
   const renderCommodityTicker = () => {
+    const activeTickers = tickers.length > 0 ? tickers : defaultTickers;
+    const currentTickerText = activeTickers[tickerIndex % activeTickers.length];
+
     return (
-      <div style={{
-        background: '#1F2937',
-        color: 'white',
-        padding: '10px 0',
-        fontSize: '13px',
-        fontWeight: 600,
-        overflow: 'hidden',
-        borderBottom: '1px solid #374151'
-      }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFD700', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', fontWeight: 800 }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#22C55E', borderRadius: '50%' }}></span>
-            {lang === 'en' ? 'Live Markets' : 'நேரடி சந்தை'}
+      <div className="top-tickers-wrapper" style={{ width: '100%' }}>
+        {/* Real-time Live Market Ticker */}
+        <div style={{
+          background: '#111827',
+          color: 'white',
+          padding: '8px 0',
+          fontSize: '12px',
+          fontWeight: 600,
+          borderBottom: '1px solid #1F2937'
+        }}>
+          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '1px', fontWeight: 800, flexShrink: 0 }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#10B981', borderRadius: '50%', animation: 'pulse-live 1.2s infinite' }}></span>
+              {lang === 'en' ? 'Live Markets' : 'நேரடி சந்தை'}
+            </div>
+            <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', scrollbarWidth: 'none', padding: '0 10px', flex: 1 }}>
+              {commodityPrices.map((item, idx) => {
+                const isUp = item.change.startsWith('+');
+                const isDown = item.change.startsWith('-');
+                return (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>{lang === 'en' ? item.nameEn : item.nameTa}:</span>
+                    <span style={{ color: 'white', fontWeight: 700 }}>{item.price}</span>
+                    <span style={{ color: isUp ? '#10B981' : isDown ? '#EF4444' : '#9CA3AF', fontSize: '11px', fontWeight: 700 }}>{item.change}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', padding: '0 10px', flex: 1 }}>
-            {commodityPrices.map((item, idx) => {
-              const isUp = item.change.startsWith('+');
-              return (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>{lang === 'en' ? item.nameEn : item.nameTa}:</span>
-                  <span style={{ color: 'white', fontWeight: 700 }}>{item.price}</span>
-                  <span style={{ color: isUp ? '#22C55E' : '#EF4444', fontSize: '11px', fontWeight: 700 }}>{item.change}</span>
-                </div>
-              );
-            })}
+        </div>
+
+        {/* Live Admin-Connected Breaking News Ticker */}
+        <div className="breaking-news-bar" style={{ background: '#DC2626', color: '#FFFFFF', padding: '6px 0', borderBottom: '1px solid #B91C1C' }}>
+          <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="breaking-label" style={{ backgroundColor: '#FACC15', color: '#000000', fontWeight: 900, padding: '4px 10px', borderRadius: '4px', fontSize: '11px', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <i className="fas fa-bolt" style={{ color: '#DC2626' }}></i>
+              {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்தி'}
+            </div>
+            <div className="breaking-ticker" style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              <div className="breaking-track" id="breakTrack" style={{ display: 'inline-block' }}>
+                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fas fa-bullhorn" style={{ color: '#FACC15', fontSize: '11px' }}></i>
+                  {currentTickerText}
+                </span>
+              </div>
+            </div>
+            <div className="breaking-controls" style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+              <button 
+                onClick={() => setTickerIndex(prev => (prev - 1 + activeTickers.length) % activeTickers.length)} 
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#FFF', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                title="Previous News"
+              >
+                <i className="fas fa-chevron-left"></i>
+              </button>
+              <button 
+                onClick={() => setTickerIndex(prev => (prev + 1) % activeTickers.length)} 
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#FFF', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                title="Next News"
+              >
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -499,28 +539,7 @@ const Home = () => {
   };
 
   const renderNewsTicker = () => {
-    return (
-      <div className="breaking-news">
-        <div className="container">
-          <div className="breaking-label" style={{ backgroundColor: '#FFD700', color: '#000' }}>
-            <i className="fas fa-bolt"></i> BREAKING NEWS
-          </div>
-          <div className="breaking-ticker">
-            <div className="breaking-track" id="breakTrack">
-              <a href="#">{tickers[tickerIndex]}</a>
-            </div>
-          </div>
-          <div className="breaking-controls">
-            <button onClick={() => setTickerIndex(prev => (prev - 1 + tickers.length) % tickers.length)}>
-              <i className="fas fa-chevron-left"></i>
-            </button>
-            <button onClick={() => setTickerIndex(prev => (prev + 1) % tickers.length)}>
-              <i className="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return null; // Merged cleanly inside renderCommodityTicker above
   };
 
   const renderHero = () => {

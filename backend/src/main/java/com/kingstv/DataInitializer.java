@@ -85,6 +85,9 @@ public class DataInitializer {
     private NfcTapHistoryRepository nfcTapHistoryRepository;
 
     @Autowired
+    private BreakingNewsRepository breakingNewsRepository;
+
+    @Autowired
     private AdvertisementRepository adRepository;
 
     @Autowired
@@ -986,6 +989,33 @@ public class DataInitializer {
             }
         } catch (Exception e) {
             System.err.println("Failed to seed home layout configs: " + e.getMessage());
+        }
+
+        seedBreakingNews();
+    }
+
+    private void seedBreakingNews() {
+        try {
+            if (breakingNewsRepository.count() == 0) {
+                String[][] newsList = {
+                    {"BREAKING: Tamil Nadu Assembly Budget Session 2026 Key Announcements", "தமிழக சட்டமன்ற பட்ஜெட் கூட்டத்தொடர் 2026: முக்கியமான திட்டங்கள் அறிவிப்பு."},
+                    {"Gold Price Drop: Gold drops by Rs 400 per sovereign in Chennai today", "ஆபரணத் தங்கத்தின் விலை சவரனுக்கு ரூ.400 குறைந்தது - இல்லத்தரசிகள் மகிழ்ச்சி."},
+                    {"IPL 2026: Chennai Super Kings qualifies for playoffs with high NRR", "ஐபிஎல் 2026: சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றியுடன் பிளே-ஆஃப் சுற்றுக்கு தகுதி!"},
+                    {"Heavy Rainfall Warning: Red alert issued for 4 coastal districts in Tamil Nadu", "தமிழகத்தில் 4 கடலோர மாவட்டங்களுக்கு அதிபலத்த மழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு."}
+                };
+                for (int i = 0; i < newsList.length; i++) {
+                    BreakingNews bn = new BreakingNews();
+                    bn.setTitle(newsList[i][0]);
+                    bn.setTitleTa(newsList[i][1]);
+                    bn.setStatus("published");
+                    bn.setPriority(i + 1);
+                    bn.setBreaking(true);
+                    bn.setPublishedAt(LocalDateTime.now().minusMinutes(i * 15));
+                    breakingNewsRepository.save(bn);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Could not seed breaking news: " + e.getMessage());
         }
     }
 }
