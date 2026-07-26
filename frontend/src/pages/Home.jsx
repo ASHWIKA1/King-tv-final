@@ -657,22 +657,41 @@ const Home = () => {
   };
 
   const renderNewsTicker = () => {
+    const activeTickers = tickers.length > 0 ? tickers : [
+      "தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு",
+      "இந்தியா - பாகிஸ்தான் கிரிக்கெட் போட்டி இன்று மாலை 3 மணிக்கு தொடக்கம்",
+      "ஆபரணத் தங்கத்தின் விலை சவரனுக்கு ரூ.400 குறைந்தது - இன்றைய நிலவரம்",
+      "சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றியுடன் பிளே-ஆஃப் சுற்றுக்கு தகுதி"
+    ];
+
     return (
-      <div className="breaking-news">
-        <div className="container">
-          <div className="breaking-label" style={{ backgroundColor: '#FFD700', color: '#000' }}>
-            <i className="fas fa-bolt"></i> BREAKING NEWS
+      <div className="breaking-news-wrapper" style={{ background: '#FFFBEB', borderTop: '1px solid #FDE68A', borderBottom: '1px solid #FCD34D' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', height: '42px', overflow: 'hidden' }}>
+          <div style={{ background: '#EF4444', color: '#FFFFFF', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
+            <span style={{ width: '8px', height: '8px', background: '#FFFFFF', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
+            {lang === 'en' ? 'BREAKING' : 'முக்கிய செய்தி'}
           </div>
-          <div className="breaking-ticker">
-            <div className="breaking-track" id="breakTrack">
-              <a href="#">{tickers[tickerIndex]}</a>
+          
+          <div style={{ flex: 1, overflow: 'hidden', padding: '0 16px', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#1F2937' }}>
+              <span style={{ color: '#DC2626' }}>⚡</span>
+              <span>{activeTickers[tickerIndex % activeTickers.length]}</span>
             </div>
           </div>
-          <div className="breaking-controls">
-            <button onClick={() => setTickerIndex(prev => (prev - 1 + tickers.length) % tickers.length)}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '10px', flexShrink: 0 }}>
+            <button 
+              onClick={() => setTickerIndex(prev => (prev - 1 + activeTickers.length) % activeTickers.length)}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              title="Previous"
+            >
               <i className="fas fa-chevron-left"></i>
             </button>
-            <button onClick={() => setTickerIndex(prev => (prev + 1) % tickers.length)}>
+            <button 
+              onClick={() => setTickerIndex(prev => (prev + 1) % activeTickers.length)}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              title="Next"
+            >
               <i className="fas fa-chevron-right"></i>
             </button>
           </div>
@@ -682,65 +701,121 @@ const Home = () => {
   };
 
   const renderHero = () => {
-    if (!featured) return null;
+    const heroFeatured = featured || MOCK_ARTICLES[0];
+    const heroCat = getCategoryDetails(heroFeatured.categoryId);
+    const heroSideItems = sideArticles.length >= 4 ? sideArticles.slice(0, 4) : MOCK_ARTICLES.slice(1, 5);
+
     return (
-      <section className="hero-section" id="section-hero">
+      <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
         <div className="container">
-          <div className="hero-grid">
-            <div className={`featured-card theme-${featuredCat.slug}`}>
-              <div 
-                className="card-img" 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '20px', alignItems: 'stretch' }}>
+            
+            {/* Main Big Featured News Card (Left) */}
+            <div 
+              style={{ 
+                position: 'relative', 
+                borderRadius: '16px', 
+                overflow: 'hidden', 
+                minHeight: '440px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'flex-end',
+                background: heroFeatured.imageUrl 
+                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured.imageUrl)}) center/cover`
+                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`,
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                padding: '30px'
+              }}
+            >
+              <span 
                 style={{ 
-                  background: featured.imageUrl ? `url(${getImageUrl(featured.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)' 
+                  position: 'absolute', 
+                  top: '20px', 
+                  left: '20px', 
+                  background: '#EF4444', 
+                  color: '#FFFFFF', 
+                  padding: '6px 14px', 
+                  borderRadius: '20px', 
+                  fontSize: '12px', 
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
                 }}
-              ></div>
-              <div className="card-overlay">
-                <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
-                  {lang === 'en' ? featuredCat.en : featuredCat.ta}
-                </span>
-                <h2>
-                  <Link to={`/article/${featured.id || featured.article_id}`} style={{ color: 'white', textDecoration: 'none' }}>
-                    {lang === 'en' ? featured.titleEn : featured.titleTa}
-                  </Link>
-                </h2>
-                <p>
-                  {lang === 'en' ? featured.shortDescEn : featured.shortDescTa}
-                </p>
-                <div className="meta">
-                  <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
-                  <span><i className="far fa-clock"></i> {lang === 'en' ? `${featured.readingTime || 1} Min Read` : `${featured.readingTime || 1} நிமிட வாசிப்பு`}</span>
-                </div>
+              >
+                {lang === 'en' ? heroCat.en : heroCat.ta}
+              </span>
+
+              <h1 style={{ color: '#FFFFFF', fontSize: '26px', fontWeight: 800, lineHeight: 1.4, margin: '0 0 12px 0', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`} style={{ color: '#FFFFFF', textDecoration: 'none' }}>
+                  {lang === 'en' ? (heroFeatured.titleEn || heroFeatured.titleTa) : (heroFeatured.titleTa || heroFeatured.titleEn)}
+                </Link>
+              </h1>
+
+              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: 1.5, margin: '0 0 16px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {lang === 'en' ? (heroFeatured.shortDescEn || heroFeatured.shortDescTa) : (heroFeatured.shortDescTa || heroFeatured.shortDescEn)}
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: 600 }}>
+                <span><i className="far fa-user" style={{ marginRight: '6px' }}></i> {heroFeatured.authorName || (lang === 'en' ? 'Selvakumar' : 'செல்வகுமார்')}</span>
+                <span><i className="far fa-clock" style={{ marginRight: '6px' }}></i> {lang === 'en' ? '2 hours ago' : '2 மணி நேரத்திற்கு முன்'}</span>
+                <span><i className="far fa-eye" style={{ marginRight: '6px' }}></i> {heroFeatured.viewsCount ? `${(heroFeatured.viewsCount / 1000).toFixed(1)}K` : '12.5K'}</span>
               </div>
             </div>
 
-            <div className="hero-stack">
-              {sideArticles.map((art, idx) => {
-                const stackCat = getCategoryDetails(art.categoryId);
+            {/* Right Side Stacked Numbered News Items (01, 02, 03, 04) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {heroSideItems.map((art, idx) => {
+                const numberStr = `0${idx + 1}`;
                 return (
-                  <div className={`hero-stack-card theme-${stackCat.slug}`} key={art.id || art.article_id}>
-                    <div className="info">
-                      <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
-                        {lang === 'en' ? stackCat.en : stackCat.ta}
-                      </span>
-                      <h4>
-                        <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                          {lang === 'en' ? art.titleEn : art.titleTa}
-                        </Link>
-                      </h4>
-                      <div className="meta">
-                        <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
-                      </div>
-                    </div>
+                  <div 
+                    key={art.id || art.article_id || idx}
+                    style={{ 
+                      background: '#FFFFFF', 
+                      borderRadius: '12px', 
+                      padding: '12px 16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '14px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                      border: '1px solid #F1F5F9',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {/* Big Faint Number Badge */}
+                    <span style={{ fontSize: '24px', fontWeight: 900, color: '#CBD5E1', fontFamily: 'monospace', minWidth: '32px' }}>
+                      {numberStr}
+                    </span>
+
+                    {/* Gradient / Image Rounded Thumbnail */}
                     <div 
-                      className="thumb" 
                       style={{ 
-                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 1) % gradients.length] 
+                        width: '70px', 
+                        height: '70px', 
+                        borderRadius: '10px', 
+                        flexShrink: 0,
+                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length]
                       }}
                     ></div>
+
+                    {/* News Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 6px 0', lineHeight: 1.4, color: '#0F172A', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <Link to={`/article/${art.id || art.article_id}`} style={{ color: '#0F172A', textDecoration: 'none' }}>
+                          {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
+                        </Link>
+                      </h4>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748B', fontSize: '11px', fontWeight: 600 }}>
+                        <span><i className="far fa-clock" style={{ marginRight: '4px' }}></i> {lang === 'en' ? `${idx + 2} hours ago` : `${idx + 2} மணி நேரம்`}</span>
+                        <span><i className="far fa-eye" style={{ marginRight: '4px' }}></i> {art.viewsCount ? `${(art.viewsCount / 1000).toFixed(1)}K` : `${(8.2 - idx * 0.8).toFixed(1)}K`}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
+
           </div>
         </div>
       </section>
