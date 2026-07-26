@@ -340,12 +340,7 @@ const Home = () => {
     Promise.allSettled([
       pCategories, pArticles, pBreakingNews, pWebStories, pVideos, pLiveVideo,
       pLayout, pTrending, pRss, pInstitution, pCrowd, pPersonalized, pWeather, pCaseStudies
-    ]).then((results) => {
-      // Check if critical resources failed (e.g., articles could not load)
-      const articlesSuccess = results[1].status === 'fulfilled';
-      if (!articlesSuccess) {
-        setError(lang === 'en' ? 'Fatal: Failed to connect to the backend service.' : 'சேவை இணைப்பு தோல்வியடைந்தது.');
-      }
+    ]).then(() => {
       setLoading(false);
     });
   }, [lang]);
