@@ -592,36 +592,48 @@ const Home = () => {
 
   const renderQuickAccess = () => {
     return (
-      <section className="quick-access">
+      <section className="quick-access" style={{ margin: '20px 0' }}>
         <div className="container">
           <div className="quick-grid">
-            <Link to="/category/politics" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-politics"><i className="fas fa-landmark"></i></div>
-              <span>{lang === 'en' ? 'Politics' : 'அரசியல்'}</span>
-            </Link>
-            <Link to="/category/business" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-business"><i className="fas fa-chart-line"></i></div>
-              <span>{lang === 'en' ? 'Business' : 'வணிகம்'}</span>
-            </Link>
-            <Link to="/category/sports" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-sports"><i className="fas fa-trophy"></i></div>
-              <span>{lang === 'en' ? 'Sports' : 'விளையாட்டு'}</span>
-            </Link>
-            <Link to="/category/cinema" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-cinema"><i className="fas fa-film"></i></div>
-              <span>{lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு'}</span>
-            </Link>
-            <Link to="/category/tech" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-technology"><i className="fas fa-microchip"></i></div>
-              <span>{lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்'}</span>
-            </Link>
             <Link to="/directory" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-education"><i className="fas fa-map-marker-alt"></i></div>
+              <div className="icon" style={{ background: '#0057FF' }}><i className="fas fa-map-marker-alt"></i></div>
               <span>{lang === 'en' ? 'Regional' : 'நம்ம ஊர்'}</span>
             </Link>
-            <Link to="/category/international" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-weather"><i className="fas fa-globe"></i></div>
-              <span>{lang === 'en' ? 'International' : 'சர்வதேசம்'}</span>
+            <Link to="/category/politics" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#F97316' }}><i className="fas fa-bullhorn"></i></div>
+              <span>{lang === 'en' ? 'Alerts' : 'அறிவிப்பு'}</span>
+            </Link>
+            <Link to="/deals" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#22C55E' }}><i className="fas fa-exchange-alt"></i></div>
+              <span>{lang === 'en' ? 'Buy & Sell' : 'வாங்க விற்க'}</span>
+            </Link>
+            <Link to="/directory" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#EC4899' }}><i className="fas fa-hand-holding-heart"></i></div>
+              <span>{lang === 'en' ? 'Donations' : 'தானம்'}</span>
+            </Link>
+            <Link to="/wishes" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#A855F7' }}><i className="fas fa-gift"></i></div>
+              <span>{lang === 'en' ? 'Wishes' : 'வாழ்த்து'}</span>
+            </Link>
+            <Link to="/category/business" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#059669' }}><i className="fas fa-chart-bar"></i></div>
+              <span>{lang === 'en' ? 'Business' : 'வணிகம்'}</span>
+            </Link>
+            <Link to="/jobs" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#16A34A' }}><i className="fas fa-briefcase"></i></div>
+              <span>{lang === 'en' ? 'Jobs' : 'வேலை'}</span>
+            </Link>
+            <Link to="/classifieds" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#06B6D4' }}><i className="fas fa-calendar-alt"></i></div>
+              <span>{lang === 'en' ? 'Events' : 'நிகழ்ச்சி'}</span>
+            </Link>
+            <Link to="/submit-report" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#EF4444' }}><i className="fas fa-exclamation-triangle"></i></div>
+              <span>{lang === 'en' ? 'Report' : 'புகார்'}</span>
+            </Link>
+            <Link to="/obituaries" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon" style={{ background: '#64748B' }}><i className="fas fa-pray"></i></div>
+              <span>{lang === 'en' ? 'Obituaries' : 'இரங்கல்'}</span>
             </Link>
           </div>
         </div>

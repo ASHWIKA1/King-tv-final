@@ -6,6 +6,7 @@ import { AuthContext } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
+import HeaderWidgetSlider from './HeaderWidgetSlider';
 
 const subcatEnTranslations = {
   'மாநிலம்': 'State',
