@@ -1536,23 +1536,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* White Logo & Market Slider Header Area */}
-        <div style={{ background: theme === 'dark' ? '#0f172a' : '#ffffff', padding: '14px 0', borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #E2E8F0' }}>
-          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              {renderLogo('large', false)}
-              <div>
-                <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--primary, #0057FF)', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
-                  KING <span style={{ color: '#EF4444' }}>24x7</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)', fontWeight: 600, marginTop: '2px' }}>
-                  {lang === 'en' ? 'Truth. Understanding. In Tamil.' : 'உண்மை. புரிதல். தமிழில்.'}
-                </div>
-              </div>
-            </div>
-            <HeaderWidgetSlider />
-          </div>
-        </div>
+
       </div>
 
       <nav
