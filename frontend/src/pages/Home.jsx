@@ -1119,6 +1119,243 @@ const Home = () => {
     );
   };
 
+  const renderAgriculture = () => {
+    return (
+      <section className="news-section" id="section-agri" style={{ marginTop: '30px' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-seedling" style={{ color: '#16A34A' }}></i> {lang === 'en' ? 'Agriculture & Market Rates' : 'விவசாயம் & சந்தை விலை'}</h2>
+            <Link to="/directory" className="view-all">{lang === 'en' ? 'View All' : 'மேலும் காண'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px' }}>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #22C55E', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🌾 {lang === 'en' ? 'Paddy' : 'நெல்'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹2,280</div>
+              <div style={{ fontSize: '11px', color: '#22C55E', fontWeight: 700, marginTop: '4px' }}>▲ +₹40/qtl</div>
+            </div>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #F59E0B', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🌻 {lang === 'en' ? 'Groundnut' : 'கடலை'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹5,600</div>
+              <div style={{ fontSize: '11px', color: '#22C55E', fontWeight: 700, marginTop: '4px' }}>▲ +₹120/qtl</div>
+            </div>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #EF4444', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🟡 {lang === 'en' ? 'Turmeric' : 'மஞ்சள்'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹12,800</div>
+              <div style={{ fontSize: '11px', color: '#22C55E', fontWeight: 700, marginTop: '4px' }}>▲ +₹350/qtl</div>
+            </div>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #8B5CF6', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🧵 {lang === 'en' ? 'Cotton' : 'பருத்தி'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹7,450</div>
+              <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: 700, marginTop: '4px' }}>▼ -₹180/qtl</div>
+            </div>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #06B6D4', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🫘 {lang === 'en' ? 'Pulse' : 'துவரை'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹8,920</div>
+              <div style={{ fontSize: '11px', color: '#22C55E', fontWeight: 700, marginTop: '4px' }}>▲ +₹65/qtl</div>
+            </div>
+            <div style={{ background: 'var(--white)', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #EC4899', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700 }}>🥥 {lang === 'en' ? 'Coconut' : 'தேங்காய்'}</h4>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)' }}>₹48</div>
+              <div style={{ fontSize: '11px', color: '#22C55E', fontWeight: 700, marginTop: '4px' }}>▲ +₹2/pc</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderBusinessDashboard = () => {
+    return (
+      <section className="business-section" id="section-business" style={{ marginTop: '30px' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-chart-line" style={{ color: '#22C55E' }}></i> {lang === 'en' ? 'Business Dashboard' : 'வணிக டாஷ்போர்டு'}</h2>
+            <Link to="/category/business" className="view-all">{lang === 'en' ? 'Full Details' : 'முழு விபரம்'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', padding: '10px 0', scrollbarWidth: 'none' }}>
+            {[
+              { nameEn: 'Sensex', nameTa: 'சென்செக்ஸ்', price: '82,350.45', change: '▲ +245.60', isUp: true },
+              { nameEn: 'Nifty', nameTa: 'நிஃப்டி', price: '25,120.80', change: '▲ +78.30', isUp: true },
+              { nameEn: 'Bank Nifty', nameTa: 'பேங்க் நிஃப்டி', price: '48,230.10', change: '▼ -120.45', isUp: false },
+              { nameEn: 'USD / INR', nameTa: 'டாலர்/ரூபாய்', price: '₹83.42', change: '▼ -0.18', isUp: false },
+              { nameEn: 'Gold 24K', nameTa: 'தங்கம்', price: '₹71,250', change: '▲ +₹320', isUp: true },
+              { nameEn: 'Silver', nameTa: 'வெள்ளி', price: '₹84,500', change: '▲ +₹410', isUp: true },
+              { nameEn: 'Crude Oil', nameTa: 'கச்சா எண்ணெய்', price: '$78.40', change: '▲ +$1.20', isUp: true }
+            ].map((st, idx) => (
+              <div key={idx} style={{ background: 'var(--white)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', minWidth: '160px', flexShrink: 0 }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>{lang === 'en' ? st.nameEn : st.nameTa}</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, display: 'block', margin: '2px 0' }}>{st.price}</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: st.isUp ? '#22C55E' : '#EF4444' }}>{st.change}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderDistrictNews = () => {
+    const districts = ['சென்னை', 'கோயம்புத்தூர்', 'மதுரை', 'சேலம்', 'திருச்சி', 'திருநெல்வேலி', 'வேலூர்', 'ஈரோடு', 'தஞ்சாவூர்', 'கன்னியாகுமரி'];
+    return (
+      <section className="news-section" id="section-district" style={{ marginTop: '30px' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-map-marked-alt" style={{ color: '#6366F1' }}></i> {lang === 'en' ? 'District News' : 'மாவட்ட செய்திகள்'}</h2>
+            <Link to="/directory" className="view-all">{lang === 'en' ? 'All Districts' : 'அனைத்து மாவட்டங்கள்'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'none' }}>
+            {districts.map((d, idx) => (
+              <button
+                key={idx}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: idx === 0 ? 'none' : '1px solid var(--border-color)',
+                  background: idx === 0 ? 'var(--primary)' : 'var(--white)',
+                  color: idx === 0 ? 'white' : 'var(--text-dark)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+          <div className="news-grid-3">
+            {articles.slice(0, 3).map((art, idx) => (
+              <div className="news-card" key={idx}>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length],
+                    height: '150px'
+                  }}
+                />
+                <div className="card-body">
+                  <h3 style={{ fontSize: '14px', margin: 0 }}>
+                    <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {lang === 'en' ? art.titleEn : art.titleTa}
+                    </Link>
+                  </h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderElectionHub = () => {
+    return (
+      <section className="election-section" id="section-election" style={{ marginTop: '30px' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-vote-yea" style={{ color: '#F97316' }}></i> {lang === 'en' ? 'Election Center 2026' : 'தேர்தல் மையம் 2026'}</h2>
+            <Link to="/category/politics" className="view-all">{lang === 'en' ? 'Full Results' : 'முழு முடிவுகள்'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--white)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#3B82F6' }}>திமுக (DMK)</div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: '#3B82F6', margin: '4px 0' }}>133</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{lang === 'en' ? 'Seats Won' : 'இருக்கைகள்'}</div>
+              <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', margin: '8px 0', overflow: 'hidden' }}>
+                <div style={{ width: '62%', height: '100%', background: '#3B82F6' }}></div>
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 700 }}>{lang === 'en' ? 'Vote Share: 38.2%' : 'வாக்கு சதவீதம்: 38.2%'}</div>
+            </div>
+
+            <div style={{ background: 'var(--white)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#F97316' }}>அதிமுக (AIADMK)</div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: '#F97316', margin: '4px 0' }}>65</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{lang === 'en' ? 'Seats Won' : 'இருக்கைகள்'}</div>
+              <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', margin: '8px 0', overflow: 'hidden' }}>
+                <div style={{ width: '30%', height: '100%', background: '#F97316' }}></div>
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 700 }}>{lang === 'en' ? 'Vote Share: 25.6%' : 'வாக்கு சதவீதம்: 25.6%'}</div>
+            </div>
+
+            <div style={{ background: 'var(--white)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#22C55E' }}>மக்கள் நலன் (Others)</div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: '#22C55E', margin: '4px 0' }}>18</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{lang === 'en' ? 'Seats Won' : 'இருக்கைகள்'}</div>
+              <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', margin: '8px 0', overflow: 'hidden' }}>
+                <div style={{ width: '8%', height: '100%', background: '#22C55E' }}></div>
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 700 }}>{lang === 'en' ? 'Vote Share: 8.4%' : 'வாக்கு சதவீதம்: 8.4%'}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderOpinionPoll = () => {
+    return (
+      <section className="poll-section" id="section-poll" style={{ marginTop: '30px' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-poll" style={{ color: '#8B5CF6' }}></i> {lang === 'en' ? 'Today Opinion Poll' : 'இன்றைய கருத்துக் கணிப்பு'}</h2>
+          </div>
+          <div style={{ background: 'var(--white)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 14px 0' }}>
+              {lang === 'en' ? 'Who will be the next Chief Minister of Tamil Nadu?' : 'தமிழகத்தில் அடுத்த முதலமைச்சர் யார்?'}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
+                  <span>மு.க.ஸ்டாலின்</span>
+                  <span>45%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: '45%', height: '100%', background: 'var(--primary)' }}></div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
+                  <span>எடப்பாடி பழனிசாமி</span>
+                  <span>28%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: '28%', height: '100%', background: '#F59E0B' }}></div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
+                  <span>சீமான்</span>
+                  <span>15%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: '15%', height: '100%', background: '#8B5CF6' }}></div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => alert(lang === 'en' ? 'Thank you for voting!' : 'வாக்களித்தமைக்கு நன்றி!')}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                padding: '10px',
+                background: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {lang === 'en' ? 'Vote Now' : 'வாக்களிக்கவும்'}
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   const getRenderedSection = (key, label, configJson) => {
     switch (key) {
       case 'news_ticker': return renderNewsTicker();
@@ -1136,6 +1373,11 @@ const Home = () => {
       case 'business_case': return renderBusinessCase(label);
       case 'crowd_reporter': return renderCrowdReporterWidget(label);
       case 'news_digest': return renderNewsDigest(label);
+      case 'agri': return renderAgriculture();
+      case 'business': return renderBusinessDashboard();
+      case 'district': return renderDistrictNews();
+      case 'election': return renderElectionHub();
+      case 'poll': return renderOpinionPoll();
       default: return null;
     }
   };
