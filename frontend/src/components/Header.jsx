@@ -59,6 +59,14 @@ const Header = () => {
   const navigate = useNavigate();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const unauthDropdownRef = useRef(null);
+  const [headerSliderIndex, setHeaderSliderIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderSliderIndex(prev => (prev + 1) % 8);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const getSubcatEn = (s) => {
     if (!s) return '';
@@ -909,6 +917,103 @@ const Header = () => {
     </div>
   );
 
+  const renderHeaderTopSlider = () => {
+    const sliderCards = [
+      {
+        titleTa: '🪙 சென்னை தங்கம் விலை',
+        titleEn: '🪙 Chennai Gold Rate',
+        items: [
+          { labelTa: '22K:', labelEn: '22K:', val: '₹8,950/g', color: '#22C55E' },
+          { labelTa: '24K:', labelEn: '24K:', val: '₹9,760/g', color: '#22C55E' },
+          { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: '₹118/g', color: '#FFFFFF' },
+          { labelTa: 'பிளாட்டினம்:', labelEn: 'Platinum:', val: '₹3,420/g', color: '#EF4444' }
+        ]
+      },
+      {
+        titleTa: '📈 பங்குச் சந்தை நிலவரம்',
+        titleEn: '📈 Stock Market Today',
+        items: [
+          { labelTa: 'சென்செக்ஸ்:', labelEn: 'Sensex:', val: '82,450 ▲ (+340)', color: '#22C55E' },
+          { labelTa: 'நிஃப்டி 50:', labelEn: 'Nifty 50:', val: '25,120 ▲ (+110)', color: '#22C55E' },
+          { labelTa: 'பேங்க் நிஃப்டி:', labelEn: 'Bank Nifty:', val: '51,800 ▼ (-45)', color: '#EF4444' },
+          { labelTa: 'ஐடி இன்டெக்ஸ்:', labelEn: 'IT Index:', val: '38,900 ▲ (+220)', color: '#22C55E' }
+        ]
+      },
+      {
+        titleTa: '⛽ சென்னை எரிபொருள் விலை',
+        titleEn: '⛽ Fuel Prices Chennai',
+        items: [
+          { labelTa: 'பெட்ரோல்:', labelEn: 'Petrol:', val: '₹100.75/L', color: '#FFFFFF' },
+          { labelTa: 'டீசல்:', labelEn: 'Diesel:', val: '₹92.34/L', color: '#FFFFFF' },
+          { labelTa: 'எல்பிஜி உருளை:', labelEn: 'LPG Cylinder:', val: '₹818.50', color: '#EF4444' },
+          { labelTa: 'சிஎன்ஜி:', labelEn: 'CNG:', val: '₹85.00/kg', color: '#22C55E' }
+        ]
+      },
+      {
+        titleTa: '🌾 காய்கறி சந்தை விலை',
+        titleEn: '🌾 Vegetable Market Price',
+        items: [
+          { labelTa: 'தக்காளி:', labelEn: 'Tomato:', val: '₹35/kg', color: '#22C55E' },
+          { labelTa: 'வெங்காயம்:', labelEn: 'Onion:', val: '₹42/kg', color: '#EF4444' },
+          { labelTa: 'உருளைக்கிழங்கு:', labelEn: 'Potato:', val: '₹28/kg', color: '#22C55E' },
+          { labelTa: 'பூண்டு:', labelEn: 'Garlic:', val: '₹180/kg', color: '#FFFFFF' }
+        ]
+      }
+    ];
+
+    const activeSlide = sliderCards[headerSliderIndex % sliderCards.length];
+
+    return (
+      <div 
+        className="header-top-slider-widget"
+        style={{ 
+          background: 'rgba(255, 255, 255, 0.08)', 
+          border: '1px solid rgba(255, 255, 255, 0.15)', 
+          borderRadius: '8px', 
+          padding: '4px 10px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '2px',
+          marginRight: '12px',
+          minWidth: '290px',
+          maxWidth: '360px'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: 800, color: '#38BDF8' }}>
+          <span>{lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}</span>
+          
+          {/* Slider Dots Pagination Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <span
+                key={idx}
+                onClick={() => setHeaderSliderIndex(idx)}
+                style={{
+                  cursor: 'pointer',
+                  width: (headerSliderIndex % 8) === idx ? '12px' : '4px',
+                  height: '4px',
+                  borderRadius: (headerSliderIndex % 8) === idx ? '3px' : '50%',
+                  background: (headerSliderIndex % 8) === idx ? '#38BDF8' : 'rgba(255, 255, 255, 0.3)',
+                  display: 'inline-block',
+                  transition: 'all 0.3s ease'
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '11px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {activeSlide.items.map((item, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.65)', fontWeight: 600 }}>{lang === 'en' ? item.labelEn : item.labelTa}</span>
+              <span style={{ color: item.color, fontWeight: 800 }}>{item.val}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderSocials = () => (
     <div style={{ display: 'flex', gap: '8px' }}>
       <a href="https://www.facebook.com/profile.php?id=61551357861905" className="social-icon" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
@@ -1289,6 +1394,7 @@ const Header = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {renderHeaderTopSlider()}
             <button
               onClick={() => setIsSearchOpen(true)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px' }}

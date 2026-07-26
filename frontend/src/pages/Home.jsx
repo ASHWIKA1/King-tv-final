@@ -1507,9 +1507,6 @@ const Home = () => {
       {/* COMMODITY TICKER */}
       {renderCommodityTicker()}
 
-      {/* TOP RIGHT HERO COMMODITY RATES SLIDER CARD (1-to-1 matching Reference Screenshot) */}
-      {renderTopCommoditySlider()}
-
       {/* BREAKING NEWS TICKER (Always rendered directly below Commodity Ticker) */}
       {renderNewsTicker()}
 
