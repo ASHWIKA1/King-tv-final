@@ -524,59 +524,74 @@ const Home = () => {
   };
 
   const renderHero = () => {
-    if (!featured) return null;
+    const heroFeatured = featured || MOCK_ARTICLES[0];
+    const heroCat = getCategoryDetails(heroFeatured.categoryId);
+    const heroSideItems = articles.length >= 5 ? articles.slice(1, 5) : MOCK_ARTICLES.slice(1, 5);
+
+    const gradientsMap = [
+      'linear-gradient(135deg, #FF512F, #DD2476)',
+      'linear-gradient(135deg, #8E2DE2, #4A00E0)',
+      'linear-gradient(135deg, #11998e, #38ef7d)',
+      'linear-gradient(135deg, #FF0844, #FFB199)'
+    ];
+
     return (
       <section className="hero-section" id="section-hero">
         <div className="container">
           <div className="hero-grid">
-            <div className={`featured-card theme-${featuredCat.slug}`}>
+            <div className={`featured-card theme-${heroCat.slug}`}>
               <div 
                 className="card-img" 
                 style={{ 
-                  background: featured.imageUrl ? `url(${getImageUrl(featured.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)' 
+                  background: heroFeatured.imageUrl ? `url(${getImageUrl(heroFeatured.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+                  height: '420px'
                 }}
               ></div>
               <div className="card-overlay">
                 <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
-                  {lang === 'en' ? featuredCat.en : featuredCat.ta}
+                  {lang === 'en' ? heroCat.en : heroCat.ta}
                 </span>
-                <h2>
-                  <Link to={`/article/${featured.id || featured.article_id}`} style={{ color: 'white', textDecoration: 'none' }}>
-                    {lang === 'en' ? featured.titleEn : featured.titleTa}
+                <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '8px 0', lineHeight: '1.3' }}>
+                  <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`} style={{ color: 'white', textDecoration: 'none' }}>
+                    {lang === 'en' ? heroFeatured.titleEn : heroFeatured.titleTa}
                   </Link>
                 </h2>
-                <p>
-                  {lang === 'en' ? featured.shortDescEn : featured.shortDescTa}
+                <p style={{ fontSize: '13px', opacity: 0.9, marginBottom: '12px' }}>
+                  {lang === 'en' ? heroFeatured.shortDescEn : heroFeatured.shortDescTa}
                 </p>
-                <div className="meta">
-                  <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
-                  <span><i className="far fa-clock"></i> {lang === 'en' ? `${featured.readingTime || 1} Min Read` : `${featured.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                <div className="meta" style={{ display: 'flex', gap: '14px', fontSize: '12px', opacity: 0.85 }}>
+                  <span><i className="far fa-user"></i> {lang === 'en' ? 'Selvakumar' : 'செல்வகுமார்'}</span>
+                  <span><i className="far fa-clock"></i> {lang === 'en' ? '2 hours ago' : '2 மணி நேரத்திற்கு முன்'}</span>
+                  <span><i className="far fa-eye"></i> {heroFeatured.viewsCount ? `${(heroFeatured.viewsCount / 1000).toFixed(1)}K` : '12.5K'}</span>
+                  <span><i className="far fa-comment"></i> 245</span>
                 </div>
               </div>
             </div>
 
-            <div className="hero-stack">
-              {sideArticles.map((art, idx) => {
-                const stackCat = getCategoryDetails(art.categoryId);
+            <div className="hero-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'space-between' }}>
+              {heroSideItems.map((art, idx) => {
+                const numStr = `0${idx + 1}`;
                 return (
-                  <div className={`hero-stack-card theme-${stackCat.slug}`} key={art.id || art.article_id}>
-                    <div className="info">
-                      <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
-                        {lang === 'en' ? stackCat.en : stackCat.ta}
-                      </span>
-                      <h4>
+                  <div key={art.id || art.article_id || idx} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: 'var(--white)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                    <span style={{ fontSize: '22px', fontWeight: 900, color: 'rgba(0,0,0,0.12)', width: '28px', flexShrink: 0 }}>{numStr}</span>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 700, lineHeight: '1.3' }}>
                         <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                           {lang === 'en' ? art.titleEn : art.titleTa}
                         </Link>
                       </h4>
-                      <div className="meta">
-                        <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '12px' }}>
+                        <span><i className="far fa-clock"></i> {lang === 'en' ? `${(idx + 1) * 2} hours ago` : `${(idx + 1) * 2} மணி நேரம்`}</span>
+                        <span><i className="far fa-eye"></i> {art.viewsCount ? `${(art.viewsCount / 1000).toFixed(1)}K` : `${(8 + idx * 4).toFixed(1)}K`}</span>
                       </div>
                     </div>
                     <div 
-                      className="thumb" 
                       style={{ 
-                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 1) % gradients.length] 
+                        width: '56px', 
+                        height: '56px', 
+                        borderRadius: '10px', 
+                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradientsMap[idx % gradientsMap.length], 
+                        flexShrink: 0 
                       }}
                     ></div>
                   </div>
