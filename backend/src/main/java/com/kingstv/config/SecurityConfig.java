@@ -48,6 +48,7 @@ public class SecurityConfig {
                     "/uploads/**",
                     "/api/v1/health", 
                     "/api/v1/breaking-news", "/api/v1/breaking-news/**",
+                    "/api/v1/hero-slider", "/api/v1/hero-slider/**",
                     "/api/v1/articles", "/api/v1/articles/**",
                     "/api/v1/categories", "/api/v1/categories/**",
                     "/api/v1/subcategories", "/api/v1/subcategories/**",

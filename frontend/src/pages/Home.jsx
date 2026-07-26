@@ -48,6 +48,8 @@ const Home = () => {
   const [trendingNews, setTrendingNews] = useState([]);
   const [aggregatedNews, setAggregatedNews] = useState([]);
   const [caseStudies, setCaseStudies] = useState([]);
+  const [heroSlides, setHeroSlides] = useState([]);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
   // Crowd Reporter States
   const [showReportModal, setShowReportModal] = useState(false);
@@ -255,6 +257,14 @@ const Home = () => {
       })
       .catch(() => {});
 
+    const pHeroSlider = fetchApi('/hero-slider/getAllWeb')
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setHeroSlides(data);
+        }
+      })
+      .catch(err => console.warn("Could not load hero slider from API", err));
+
     // Geolocation Personalized Articles
     const selectedDistId = localStorage.getItem('selectedDistrictId');
     let newsUrl = '/public/news?limit=12';
@@ -404,6 +414,14 @@ const Home = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHeroIndex(prev => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
+
   const getSortedSections = (keys) => {
     if (!layoutSections || layoutSections.length === 0) {
       return keys.map((key, idx) => ({ sectionKey: key, sectionLabel: '', displayOrder: idx + 1 }));
@@ -525,36 +543,97 @@ const Home = () => {
   };
 
   const renderHero = () => {
-    if (!featured) return null;
+    const activeHeroSlide = heroSlides.length > 0 ? heroSlides[currentHeroIndex % heroSlides.length] : null;
+    if (!activeHeroSlide && !featured) return null;
+
     return (
       <section className="hero-section" id="section-hero">
         <div className="container">
           <div className="hero-grid">
-            <div className={`featured-card theme-${featuredCat.slug}`}>
-              <div 
-                className="card-img" 
-                style={{ 
-                  background: featured.imageUrl ? `url(${getImageUrl(featured.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)' 
-                }}
-              ></div>
-              <div className="card-overlay">
-                <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
-                  {lang === 'en' ? featuredCat.en : featuredCat.ta}
-                </span>
-                <h2>
-                  <Link to={`/article/${featured.id || featured.article_id}`} style={{ color: 'white', textDecoration: 'none' }}>
-                    {lang === 'en' ? featured.titleEn : featured.titleTa}
-                  </Link>
-                </h2>
-                <p>
-                  {lang === 'en' ? featured.shortDescEn : featured.shortDescTa}
-                </p>
-                <div className="meta">
-                  <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
-                  <span><i className="far fa-clock"></i> {lang === 'en' ? `${featured.readingTime || 1} Min Read` : `${featured.readingTime || 1} நிமிட வாசிப்பு`}</span>
+            {activeHeroSlide ? (
+              <div className="featured-card" style={{ position: 'relative', overflow: 'hidden' }}>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: activeHeroSlide.imageUrl ? `url(${getImageUrl(activeHeroSlide.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+                    transition: 'background 0.5s ease-in-out'
+                  }}
+                ></div>
+                <div className="card-overlay" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '8px' }}>
+                    <span className="category-badge" style={{ background: '#DC2626', color: '#FFF' }}>
+                      {activeHeroSlide.categoryTag || (lang === 'en' ? 'Featured' : 'சிறப்புசெய்தி')}
+                    </span>
+                    {heroSlides.length > 1 && (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {heroSlides.map((_, idx) => (
+                          <span 
+                            key={idx} 
+                            onClick={() => setCurrentHeroIndex(idx)}
+                            style={{
+                              width: idx === (currentHeroIndex % heroSlides.length) ? '20px' : '8px',
+                              height: '8px',
+                              borderRadius: '4px',
+                              background: idx === (currentHeroIndex % heroSlides.length) ? '#FFD700' : 'rgba(255,255,255,0.5)',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease'
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0 0 8px 0', color: '#FFFFFF' }}>
+                    {activeHeroSlide.headline}
+                  </h2>
+                  {activeHeroSlide.description && (
+                    <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {activeHeroSlide.description}
+                    </p>
+                  )}
+                  {activeHeroSlide.buttonLink && (
+                    <a 
+                      href={activeHeroSlide.buttonLink} 
+                      className="btn" 
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        background: '#FFD700', color: '#000', padding: '6px 14px',
+                        borderRadius: '6px', fontWeight: 700, fontSize: '0.85rem',
+                        textDecoration: 'none', width: 'fit-content', marginTop: '4px'
+                      }}
+                    >
+                      {activeHeroSlide.buttonText || (lang === 'en' ? 'Read More' : 'மேலும் படிக்க')} &rarr;
+                    </a>
+                  )}
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className={`featured-card theme-${featuredCat.slug}`}>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: featured.imageUrl ? `url(${getImageUrl(featured.imageUrl)}) center/cover` : 'linear-gradient(135deg, #1E40AF, #3B82F6)' 
+                  }}
+                ></div>
+                <div className="card-overlay">
+                  <span className="category-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
+                    {lang === 'en' ? featuredCat.en : featuredCat.ta}
+                  </span>
+                  <h2>
+                    <Link to={`/article/${featured.id || featured.article_id}`} style={{ color: 'white', textDecoration: 'none' }}>
+                      {lang === 'en' ? featured.titleEn : featured.titleTa}
+                    </Link>
+                  </h2>
+                  <p>
+                    {lang === 'en' ? featured.shortDescEn : featured.shortDescTa}
+                  </p>
+                  <div className="meta">
+                    <span><i className="far fa-calendar-alt"></i> 20 May 2025</span>
+                    <span><i className="far fa-clock"></i> {lang === 'en' ? `${featured.readingTime || 1} Min Read` : `${featured.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="hero-stack">
               {sideArticles.map((art, idx) => {

@@ -41,6 +41,7 @@ import CommunityModules from './pages/admin/CommunityModules';
 import LanguageFontSettings from './pages/admin/LanguageFontSettings';
 import EmployersManagement from './pages/admin/EmployersManagement';
 import CandidatesManagement from './pages/admin/CandidatesManagement';
+import HeroSlider from './pages/admin/HeroSlider';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -198,6 +199,12 @@ function App() {
           <Route path="/admin/news" element={
             <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
               <NewsManagement />
+            </ProtectedLayout>
+          } />
+
+          <Route path="/admin/slider" element={
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+              <HeroSlider />
             </ProtectedLayout>
           } />
 

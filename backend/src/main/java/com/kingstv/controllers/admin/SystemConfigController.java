@@ -287,6 +287,50 @@ public class SystemConfigController {
         return ResponseEntity.ok(Map.of("message", "Telegram config updated"));
     }
 
+    // --- Social Media Config ---
+    @PutMapping("/social")
+    public ResponseEntity<?> updateSocialConfig(@RequestBody Map<String, String> request) {
+        Long userId = getCallerId();
+        setConfigsIfPresent(request, new String[][]{
+            {"social.facebook", "facebook"},
+            {"social.twitter", "twitter"},
+            {"social.instagram", "instagram"},
+            {"social.youtube", "youtube"}
+        }, "social", userId);
+        return ResponseEntity.ok(Map.of("message", "Social config updated"));
+    }
+
+    // --- Branding Assets Config ---
+    @PutMapping("/branding_assets")
+    public ResponseEntity<?> updateBrandingAssetsConfig(@RequestBody Map<String, String> request) {
+        Long userId = getCallerId();
+        setConfigsIfPresent(request, new String[][]{
+            {"branding.logo_url", "logoUrl"},
+            {"branding.favicon_url", "faviconUrl"}
+        }, "branding", userId);
+        return ResponseEntity.ok(Map.of("message", "Branding assets config updated"));
+    }
+
+    // --- Analytics Config ---
+    @PutMapping("/analytics")
+    public ResponseEntity<?> updateAnalyticsConfig(@RequestBody Map<String, String> request) {
+        Long userId = getCallerId();
+        setConfigsIfPresent(request, new String[][]{
+            {"analytics.google_id", "googleId"}
+        }, "analytics", userId);
+        return ResponseEntity.ok(Map.of("message", "Analytics config updated"));
+    }
+
+    // --- Footer Config ---
+    @PutMapping("/footer")
+    public ResponseEntity<?> updateFooterConfig(@RequestBody Map<String, String> request) {
+        Long userId = getCallerId();
+        setConfigsIfPresent(request, new String[][]{
+            {"footer.text", "text"}
+        }, "footer", userId);
+        return ResponseEntity.ok(Map.of("message", "Footer config updated"));
+    }
+
     @PostMapping("/db-cleanup")
     public ResponseEntity<?> runManualDbCleanup() {
         dbCleanupService.executeCleanup();

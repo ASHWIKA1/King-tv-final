@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Image as ImageIcon, Film, FileText, Download, Copy, Trash2, Search, Filter,
-  Grid, List, Upload, X, ChevronLeft, ChevronRight, Eye, Check, AlertTriangle
+  Grid, List, Upload, X, ChevronLeft, ChevronRight, Eye, Check, AlertTriangle, Link2, ChevronDown
 } from 'lucide-react';
 import api from '../../api';
 
@@ -65,38 +65,43 @@ const CategoryIcon = ({ category, size = 36 }) => {
 const MediaCard = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) => {
   const isImage = item.category === 'image';
   const isVideo = item.category === 'video';
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
       style={{
         background: 'var(--bg-card)',
         borderRadius: '10px',
-        border: `2px solid ${selected ? 'var(--primary)' : 'var(--border-color)'}`,
+        border: `1px solid ${selected ? 'var(--primary)' : 'var(--border-color)'}`,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
-        boxShadow: selected ? '0 0 0 3px var(--primary-glow)' : 'none',
+        transition: 'all 0.2s',
+        boxShadow: selected ? '0 0 0 2px var(--primary)' : '0 2px 4px rgba(0,0,0,0.05)',
         cursor: 'pointer',
       }}
       onClick={() => onSelect(item)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Selection checkbox */}
-      <div
-        style={{
-          position: 'absolute', top: '8px', left: '8px', zIndex: 2,
-          width: '20px', height: '20px', borderRadius: '4px',
-          background: selected ? 'var(--primary)' : 'rgba(0,0,0,0.4)',
-          border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-        onClick={(e) => { e.stopPropagation(); onSelect(item); }}
-      >
-        {selected && <Check size={12} color="#fff" strokeWidth={3} />}
-      </div>
+      {/* Selection checkbox (optional, kept for functionality if needed) */}
+      {selected && (
+        <div
+          style={{
+            position: 'absolute', top: '8px', left: '8px', zIndex: 3,
+            width: '20px', height: '20px', borderRadius: '4px',
+            background: 'var(--primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={(e) => { e.stopPropagation(); onSelect(item); }}
+        >
+          <Check size={14} color="#fff" strokeWidth={3} />
+        </div>
+      )}
 
       {/* Preview area */}
-      <div style={{ height: '140px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ height: '160px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
         {isImage ? (
           <img
             src={getPreviewUrl(item.url)}
@@ -113,59 +118,47 @@ const MediaCard = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) =>
         ) : (
           <CategoryIcon category={item.category} size={48} />
         )}
-        {/* Action buttons */}
-        <div style={{ position: 'absolute', bottom: '6px', right: '6px', display: 'flex', gap: '4px' }}>
-          {(isImage || isVideo || item.name?.toLowerCase().endsWith('.pdf')) ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); onPreview(item); }}
-              style={{
-                background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '6px',
-                padding: '4px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem',
-              }}
-            >
-              <Eye size={12} /> Preview
-            </button>
-          ) : (
-            <a
-              href={getPreviewUrl(item.url)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              style={{
-                background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '6px',
-                padding: '4px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', textDecoration: 'none'
-              }}
-            >
-              <Download size={12} /> Download
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Meta */}
-      <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <div
-          style={{ fontWeight: 600, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}
-          title={item.name}
-        >{item.name}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-          <span style={{ background: 'var(--bg-secondary)', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.category}</span>
-          <span>{formatBytes(item.size)}</span>
-        </div>
-        <div style={{ display: 'flex', gap: '0.35rem' }}>
+        
+        {/* Hover Overlay Actions */}
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+          opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s', zIndex: 2
+        }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onPreview(item); }}
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
+            title="Preview"
+          >
+            <Eye size={18} />
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); onCopy(item.url); }}
-            className="btn btn-secondary"
-            style={{ flex: 1, padding: '4px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
+            title="Copy URL"
           >
-            <Copy size={11} /> Copy URL
+            <Link2 size={18} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(item); }}
-            style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center' }}
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#EF4444', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
+            title="Delete"
           >
-            <Trash2 size={12} />
+            <Trash2 size={18} />
           </button>
+        </div>
+      </div>
+
+      {/* Meta (Name, Size, Date) */}
+      <div style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', background: 'var(--bg-card)' }}>
+        <div
+          style={{ fontWeight: 600, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}
+          title={item.name}
+        >
+          {item.name}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          {formatBytes(item.size)} - {item.uploadedAt ? new Date(item.uploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown date'}
         </div>
       </div>
     </div>
@@ -390,36 +383,13 @@ const MediaLibrary = () => {
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-            <ImageIcon size={24} color="var(--primary)" /> Media Library
-          </h1>
-          <p className="text-secondary">Upload and manage images, videos, documents, and more across your portal.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {selected.size > 0 && (
-            <button onClick={deleteSelected} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
-              <Trash2 size={14} /> Delete ({selected.size})
-            </button>
-          )}
-          <label
-            htmlFor="media-lib-upload"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'var(--primary)', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-          >
-            <Upload size={16} /> Upload Files
-          </label>
-          <input
-            id="media-lib-upload"
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={ACCEPT_MAP[filterCategory] || ACCEPT_MAP.all}
-            style={{ display: 'none' }}
-            onChange={(e) => uploadFiles(e.target.files)}
-          />
-        </div>
+      {/* Header (Optional actions if selected) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1rem', minHeight: '32px' }}>
+        {selected.size > 0 && (
+          <button onClick={deleteSelected} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
+            <Trash2 size={14} /> Delete ({selected.size})
+          </button>
+        )}
       </div>
 
       {/* Toast */}
@@ -459,76 +429,104 @@ const MediaLibrary = () => {
         </div>
       )}
 
-      {/* Drag-drop overlay */}
-      {isDragging && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(var(--primary-rgb),0.15)',
-          border: '4px dashed var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(4px)', pointerEvents: 'none',
-        }}>
-          <div style={{ textAlign: 'center', color: 'var(--primary)' }}>
-            <Upload size={48} style={{ marginBottom: '1rem' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>Drop files to upload</div>
-            <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>Images · Videos · Documents</div>
-          </div>
-        </div>
-      )}
-
-      {/* Category folder tabs + search row */}
-      <div className="glass-panel" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
-        {/* Category tabs */}
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          {['all','image','video','audio','document'].map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilterCategory(cat)}
-              style={{
-                padding: '0.3rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)',
-                background: filterCategory === cat ? 'var(--primary)' : 'var(--bg-secondary)',
-                color: filterCategory === cat ? '#fff' : 'var(--text-secondary)',
-                cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'all 0.15s',
-              }}
-            >
-              {cat === 'image' && <ImageIcon size={12} />}
-              {cat === 'video' && <Film size={12} />}
-              {cat === 'document' && <FileText size={12} />}
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              <span style={{ opacity: 0.7, fontSize: '0.7rem' }}>({categoryCounts[cat] || 0})</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Search + view toggle */}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search files..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.25rem', fontSize: '0.85rem', minWidth: '200px' }}
-            />
-          </div>
-          <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border-color)' }}>
-            {['grid','list'].map(v => (
-              <button key={v} onClick={() => setViewMode(v)}
-                style={{ padding: '5px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', background: viewMode === v ? 'var(--primary)' : 'transparent', color: viewMode === v ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', transition: 'all 0.1s' }}>
-                {v === 'grid' ? <Grid size={15} /> : <List size={15} />}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Static Upload Area (Always visible) */}
+      <div 
+        style={{
+          border: '2px dashed var(--border-color)',
+          borderRadius: '12px',
+          padding: '2.5rem',
+          textAlign: 'center',
+          background: isDragging ? 'rgba(var(--primary-rgb),0.05)' : 'transparent',
+          marginBottom: '1.5rem',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          position: 'relative'
+        }}
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); e.currentTarget.style.borderColor = 'var(--primary)'; }}
+        onDragLeave={(e) => { setIsDragging(false); e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          e.currentTarget.style.borderColor = 'var(--border-color)';
+          uploadFiles(e.dataTransfer.files);
+        }}
+      >
+        <Upload size={36} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>Drop files here to upload</h3>
+        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          Supports JPG, PNG, WebP, GIF, SVG, PDF - Max 10MB per file
+        </p>
+        <input
+          id="media-lib-upload-static"
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ACCEPT_MAP[filterCategory] || ACCEPT_MAP.all}
+          style={{ display: 'none' }}
+          onChange={(e) => uploadFiles(e.target.files)}
+        />
       </div>
 
-      {/* File size limits info */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        {Object.entries(SIZE_LABELS).map(([cat, label]) => (
-          <span key={cat} style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-            {cat.charAt(0).toUpperCase() + cat.slice(1)} max: {label}
+      {/* Filter and Search Bar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '300px' }}>
+          {/* Search */}
+          <div style={{ position: 'relative', flex: 1, maxWidth: '280px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search media files..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '0.65rem 0.85rem 0.65rem 2.5rem', borderRadius: '8px',
+                border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '0.85rem', outline: 'none', color: 'var(--text-primary)', boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          {/* Filters */}
+          <div style={{ position: 'relative' }}>
+            <select 
+              value={filterCategory} 
+              onChange={(e) => setFilterCategory(e.target.value)}
+              style={{ padding: '0.65rem 2.5rem 0.65rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '0.85rem', outline: 'none', appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
+            >
+              <option value="all">All Types</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+              <option value="document">Documents</option>
+            </select>
+            <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <select 
+              style={{ padding: '0.65rem 2.5rem 0.65rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '0.85rem', outline: 'none', appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
+            >
+              <option value="all">All Folders</option>
+            </select>
+            <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+          </div>
+        </div>
+
+        {/* View Toggle and Count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <button onClick={() => setViewMode('grid')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: viewMode === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              <Grid size={18} />
+            </button>
+            <button onClick={() => setViewMode('list')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: viewMode === 'list' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              <List size={18} />
+            </button>
+          </div>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+            {filtered.length} files
           </span>
-        ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -559,74 +557,41 @@ const MediaLibrary = () => {
       ) : (
         <>
           {/* Results info */}
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span>{filtered.length} file{filtered.length !== 1 ? 's' : ''} {search ? `matching "${search}"` : ''}</span>
-            {selected.size > 0 && <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{selected.size} selected</span>}
-          </div>
+          {selected.size > 0 && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{selected.size} selected</span>
+            </div>
+          )}
 
           {/* Grid or List */}
-          {filterCategory === 'all' && !search ? (
+          {viewMode === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              {['image', 'video', 'document', 'audio'].map(cat => (
-                <div
-                  key={cat}
-                  onClick={() => setFilterCategory(cat)}
-                  style={{
-                    background: 'var(--bg-card)',
-                    borderRadius: '10px',
-                    border: '2px solid var(--border-color)',
-                    padding: '2rem 1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
-                >
-                  <CategoryIcon category={cat} size={48} />
-                  <div style={{ marginTop: '1rem', fontWeight: 600, fontSize: '1.1rem', textTransform: 'capitalize' }}>
-                    {cat}s
-                  </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                    {categoryCounts[cat] || 0} files
-                  </div>
-                </div>
+              {pageItems.map(item => (
+                <MediaCard
+                  key={item.id}
+                  item={item}
+                  onCopy={copyUrl}
+                  onDelete={deleteItem}
+                  onPreview={setPreviewItem}
+                  selected={selected.has(item.id)}
+                  onSelect={toggleSelect}
+                />
               ))}
             </div>
           ) : (
-            viewMode === 'grid' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                {pageItems.map(item => (
-                  <MediaCard
-                    key={item.id}
-                    item={item}
-                    onCopy={copyUrl}
-                    onDelete={deleteItem}
-                    onPreview={setPreviewItem}
-                    selected={selected.has(item.id)}
-                    onSelect={toggleSelect}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                {pageItems.map(item => (
-                  <MediaRow
-                    key={item.id}
-                    item={item}
-                    onCopy={copyUrl}
-                    onDelete={deleteItem}
-                    onPreview={setPreviewItem}
-                    selected={selected.has(item.id)}
-                    onSelect={toggleSelect}
-                  />
-                ))}
-              </div>
-            )
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              {pageItems.map(item => (
+                <MediaRow
+                  key={item.id}
+                  item={item}
+                  onCopy={copyUrl}
+                  onDelete={deleteItem}
+                  onPreview={setPreviewItem}
+                  selected={selected.has(item.id)}
+                  onSelect={toggleSelect}
+                />
+              ))}
+            </div>
           )}
 
           {/* Pagination */}

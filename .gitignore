@@ -9,3 +9,6 @@ node_modules/
 dist/
 target/
 backend/uploads/backups/
+backend/maven-extracted/
+backend/maven.zip
+backend/*.log

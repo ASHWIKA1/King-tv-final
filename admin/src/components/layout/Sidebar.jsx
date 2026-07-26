@@ -27,6 +27,7 @@ import {
   User,
   MessageSquare,
   Image as ImageIcon,
+  Images,
   Search,
   Sparkles,
   Building2,
@@ -145,6 +146,7 @@ const Sidebar = () => {
           >
             <SidebarNavLink to="/admin/editorial-calendar" icon={Calendar} label={t('editorialCalendar')} />
             <SidebarNavLink to="/admin/news" icon={FileText} label={t('newsManagement')} />
+            <SidebarNavLink to="/admin/slider" icon={Images} label="Hero Slider" />
             <SidebarNavLink to="/admin/news/create" icon={Edit3} label={t('createArticle')} />
             <SidebarNavLink to="/admin/media" icon={ImageIcon} label={t('mediaLibrary') || 'Media Library'} />
             <SidebarNavLink to="/admin/ugc-queue" icon={Users} label={t('ugcQueue')} badge={counts.pendingUgc} />
