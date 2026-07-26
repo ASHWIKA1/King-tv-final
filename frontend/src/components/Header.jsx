@@ -1506,6 +1506,55 @@ const Header = () => {
           }
         }
       `}</style>
+      {/* Desktop Main Top Header (Blue Top Bar + Logo Header + Right Market/Dam Widget Slider) */}
+      <div className="header-desktop-wrapper" style={{ display: 'block' }}>
+        {/* Blue Top Bar */}
+        <div style={{ background: '#0040B8', color: '#ffffff', fontSize: '12px', padding: '6px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span><i className="far fa-calendar-alt"></i> {new Date().toLocaleDateString(lang === 'ta' ? 'ta-IN' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span><i className="far fa-clock"></i> {new Date().toLocaleTimeString(lang === 'ta' ? 'ta-IN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <i className="fas fa-map-marker-alt"></i> {renderDistrictSelector(true)}
+              </span>
+              <span><i className="fas fa-thermometer-half"></i> 30°C</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-facebook-f"></i></a>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-twitter"></i></a>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-instagram"></i></a>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-youtube"></i></a>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-whatsapp"></i></a>
+              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-telegram"></i></a>
+              <button onClick={toggleTheme} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
+                <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'}></i> {theme === 'light' ? 'இருள்' : 'ஒளி'}
+              </button>
+              <button onClick={() => setLang(lang === 'en' ? 'ta' : 'en')} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
+                {lang === 'en' ? 'தமிழ்' : 'English'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* White Logo & Market Slider Header Area */}
+        <div style={{ background: theme === 'dark' ? '#0f172a' : '#ffffff', padding: '14px 0', borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #E2E8F0' }}>
+          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {renderLogo('large', false)}
+              <div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--primary, #0057FF)', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
+                  KING <span style={{ color: '#EF4444' }}>24x7</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)', fontWeight: 600, marginTop: '2px' }}>
+                  {lang === 'en' ? 'Truth. Understanding. In Tamil.' : 'உண்மை. புரிதல். தமிழில்.'}
+                </div>
+              </div>
+            </div>
+            <HeaderWidgetSlider />
+          </div>
+        </div>
+      </div>
+
       <nav
         className={`main-nav ${isRegionalPage ? 'regional-theme' : ''}`}
         style={{
