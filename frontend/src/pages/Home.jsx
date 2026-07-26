@@ -71,8 +71,8 @@ const MOCK_ARTICLES = [
 const MOCK_VIDEOS = [
   {
     id: 1,
-    title: 'சென்னை பட்ஜெட் 2026 நேரலை செய்திகள்',
-    videoUrl: 'https://www.youtube.com/embed/live_stream?channel=UCking24x7',
+    title: 'சென்னை பட்ஜெட் 2026 நேரலை செய்திகள் - சிறப்பு விவாதம்',
+    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
     thumbnailUrl: null,
     duration: '15:20',
     publishedAt: '2026-07-26T10:00:00Z',
@@ -81,12 +81,89 @@ const MOCK_VIDEOS = [
   },
   {
     id: 2,
-    title: 'விவசாயம் & சந்தை நிலவரம் - சிறப்பு அலசல்',
-    videoUrl: 'https://www.youtube.com/embed/live_stream?channel=UCking24x7',
+    title: 'விவசாயம் & சந்தை நிலவரம் - நேரடி செய்தி அறிக்கை',
+    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
     thumbnailUrl: null,
     duration: '08:45',
     publishedAt: '2026-07-26T08:30:00Z',
     isLive: false,
+    categoryId: 2
+  },
+  {
+    id: 3,
+    title: 'ஐபிஎல் 2026: சிஎஸ்கே அணி வெற்றி கொண்டாட்டம்',
+    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
+    thumbnailUrl: null,
+    duration: '06:12',
+    publishedAt: '2026-07-26T07:15:00Z',
+    isLive: false,
+    categoryId: 3
+  },
+  {
+    id: 4,
+    title: 'புதிய தொழில்நுட்ப கண்டுபிடிப்புகள் - 2026 ஸ்பெஷல்',
+    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
+    thumbnailUrl: null,
+    duration: '12:00',
+    publishedAt: '2026-07-26T05:00:00Z',
+    isLive: false,
+    categoryId: 5
+  }
+];
+
+const MOCK_CROWD = [
+  {
+    id: 1,
+    reporterName: 'கார்த்திக்',
+    location: 'வேளச்சேரி, சென்னை',
+    title: 'வேளச்சேரி மெயின் ரோட்டில் மழைநீர் வடிகால் பணி நிறைவு',
+    details: 'நீண்ட நாட்களாக நிலுவையில் இருந்த மழைநீர் வடிகால் அமைக்கும் பணி தற்போது நிறைவடைந்துள்ளது.'
+  },
+  {
+    id: 2,
+    reporterName: 'சுரேஷ்',
+    location: 'காந்திபுரம், கோவை',
+    title: 'கோவை மாநகராட்சியில் புதிய பூங்கா திறப்பு',
+    details: 'பொதுமக்கள் பயன்பாட்டிற்காக புதிய பூங்கா அமைக்கப்பட்டு மேயர் துவக்கி வைத்தார்.'
+  },
+  {
+    id: 3,
+    reporterName: 'அருண்',
+    location: 'ஆரப்பாளையம், மதுரை',
+    title: 'மதுரையில் குடிநீர் விநியோகம் சீரமைப்பு பணி',
+    details: 'குடிநீர் குழாய் அடைப்புகளை நீக்கும் பணிகளை மாநகராட்சி ஊழியர்கள் தீவிரமாக மேற்கொண்டு வருகின்றனர்.'
+  }
+];
+
+const MOCK_INSTITUTION = [
+  {
+    id: 1,
+    article_id: 101,
+    authorName: 'அண்ணா பல்கலைக்கழகம்',
+    titleTa: 'அண்ணா பல்கலைக்கழக மாணவர்களுக்கான புதிய ஆராய்ச்சி நிதி உதவி திட்டம்',
+    titleEn: 'Anna University Announces New Research Fellowship Scheme',
+    shortDescTa: 'இளநிலை மற்றும் முதுநிலை மாணவர்களுக்கான புதிய ஆராய்ச்சி நிதி உதவித் திட்டம் அறிவிப்பு.',
+    shortDescEn: 'New research fellowship scheme announced for undergraduate and postgraduate students.',
+    categoryId: 5
+  },
+  {
+    id: 2,
+    article_id: 102,
+    authorName: 'தமிழ்நாடு அறிவியல் நகரம்',
+    titleTa: 'மாநில அளவிலான அறிவியல் கண்காட்சி - மாணவர்கள் விண்ணப்பிக்க அழைப்பு',
+    titleEn: 'State Level Science Exhibition - Call for Student Applications',
+    shortDescTa: 'பள்ளி மாணவர்களின் அறிவியல் படைப்புகளை காட்சிப்படுத்த சிறப்பு கண்காட்சி ஏற்பாடு.',
+    shortDescEn: 'Special exhibition organized to display school students scientific projects.',
+    categoryId: 5
+  },
+  {
+    id: 3,
+    article_id: 103,
+    authorName: 'வேளாண்மைப் பல்கலைக்கழகம்',
+    titleTa: 'கோயம்பேடு வேளாண் சந்தையில் புதிய விளைபொருள் பாதுகாப்பு மையம்',
+    titleEn: 'New Produce Preservation Center in Koyambedu Market',
+    shortDescTa: 'விவசாயிகள் கொண்டு வரும் விளைபொருட்களை நீண்ட நாள் பாதுகாப்பாக வைக்க புதிய வசதி.',
+    shortDescEn: 'New facility introduced for farmers to preserve produce for longer days.',
     categoryId: 2
   }
 ];
@@ -527,10 +604,15 @@ const Home = () => {
     });
   };
 
-  const featured = articles.length > 0 ? articles[0] : null;
-  const featuredCat = featured ? getCategoryDetails(featured.categoryId) : null;
-  const sideArticles = articles.slice(1, 4);
-  const latestGrid = articles.slice(0, 6);
+  const displayArticles = (articles && articles.length > 0) ? articles : MOCK_ARTICLES;
+  const displayVideos = (videos && videos.length > 0) ? videos : MOCK_VIDEOS;
+  const displayCrowd = (crowdReports && crowdReports.length > 0) ? crowdReports : MOCK_CROWD;
+  const displayInstitution = (institutionNews && institutionNews.length > 0) ? institutionNews : MOCK_INSTITUTION;
+
+  const featured = displayArticles[0];
+  const featuredCat = getCategoryDetails(featured.categoryId);
+  const sideArticles = displayArticles.slice(1, 5);
+  const latestGrid = displayArticles.slice(0, 6);
 
   const gradients = [
     "linear-gradient(135deg, #1E40AF, #3B82F6)",
@@ -705,21 +787,18 @@ const Home = () => {
   };
 
   const renderLatestNews = () => {
+    const activeGrid = (latestGrid && latestGrid.length > 0) ? latestGrid : MOCK_ARTICLES.slice(0, 6);
+
     return (
       <section className="news-section">
         <div className="section-title">
           <h2><i className="fas fa-newspaper"></i> {lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்'}</h2>
         </div>
         <div className="news-grid-3" id="newsGrid">
-          {latestGrid.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748B' }}>
-              <i className="fas fa-inbox fa-3x" style={{ marginBottom: '15px', opacity: 0.5 }}></i>
-              <h3>{lang === 'en' ? 'No news published yet' : 'இன்னும் செய்திகள் வெளியிடப்படவில்லை'}</h3>
-            </div>
-          ) : latestGrid.map((art, idx) => {
+          {activeGrid.map((art, idx) => {
             const gridCat = getCategoryDetails(art.categoryId);
             return (
-              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id}>
+              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id || idx}>
                 <div 
                   className="card-img" 
                   style={{ 
@@ -733,11 +812,11 @@ const Home = () => {
                 <div className="card-body">
                   <h3>
                     <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {lang === 'en' ? art.titleEn : art.titleTa}
+                      {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
                     </Link>
                   </h3>
                   <p>
-                    {lang === 'en' ? art.shortDescEn : art.shortDescTa}
+                    {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
                   </p>
                   <div className="card-meta">
                     <span><i className="far fa-clock"></i> 1 Hr Ago</span>
@@ -769,20 +848,16 @@ const Home = () => {
       ? videos
       : videos.filter(vid => vid.categoryId === homeCatIdMap[videoTab]);
 
+    const activeVideos = (filteredHomeVideos && filteredHomeVideos.length > 0) ? filteredHomeVideos : MOCK_VIDEOS;
+
     return (
       <section className="video-section" id="section-video">
         <div className="section-title">
           <h2><i className="fas fa-video" style={{ color: '#EF4444' }}></i> {lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்'}</h2>
           <Link to="/videos" className="view-all">{lang === 'en' ? 'More Videos' : 'மேலும் வீடியோக்கள்'} <i className="fas fa-arrow-right"></i></Link>
         </div>
-        {/* Video categories tabs removed */}
         <div className="video-grid-4">
-          {filteredHomeVideos.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748B' }}>
-              <i className="fas fa-video-slash fa-3x" style={{ marginBottom: '15px', opacity: 0.5 }}></i>
-              <h3>{lang === 'en' ? 'No videos published yet' : 'இன்னும் வீடியோக்கள் வெளியிடப்படவில்லை'}</h3>
-            </div>
-          ) : filteredHomeVideos.slice(0, 4).map((vid, idx) => (
+          {activeVideos.slice(0, 4).map((vid, idx) => (
             <Link 
               to="/videos" 
               state={{ selectVideoId: vid.id }} 
@@ -809,7 +884,7 @@ const Home = () => {
                   {vid.isLive ? (
                     <span style={{ color: '#EF4444', fontWeight: 700 }}><i className="fas fa-circle" style={{ fontSize: '8px', animation: 'pulse-live 1.5s infinite' }}></i> Live Now</span>
                   ) : (
-                    <span><i className="far fa-calendar-alt"></i> {new Date(vid.publishedAt).toLocaleDateString()}</span>
+                    <span><i className="far fa-calendar-alt"></i> {vid.publishedAt ? new Date(vid.publishedAt).toLocaleDateString() : '26 Jul 2026'}</span>
                   )}
                 </div>
               </div>
@@ -964,26 +1039,24 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
+    const liveStreamUrl = (liveVideo && liveVideo.videoUrl)
+      ? liveVideo.videoUrl
+      : 'https://www.youtube.com/embed/5qap5aO4i9A';
+
     return (
       <div className="weather-widget" style={{ marginTop: '20px' }}>
         <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <i className="fas fa-tv" style={{ color: '#EF4444' }}></i>{' '}
           {lang === 'en' ? 'Live Broadcast' : 'நேரலை ஒளிபரப்பு'}
         </h4>
-        <div style={{ width: '100%', height: '180px', background: 'black', borderRadius: '8px', overflow: 'hidden' }}>
-          {liveVideo ? (
-            <iframe 
-              src={liveVideo.videoUrl} 
-              title="Live Stream" 
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              allowFullScreen
-            />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', fontSize: '13px', flexDirection: 'column', gap: '8px' }}>
-              <i className="fas fa-play-circle fa-2x"></i>
-              <span>{lang === 'en' ? '[ LIVE TV STREAM WINDOW ]' : '[ நேரலை டிவி ஒளிபரப்பு ]'}</span>
-            </div>
-          )}
+        <div style={{ width: '100%', height: '210px', background: '#000000', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <iframe 
+            src={liveStreamUrl} 
+            title="Live Stream" 
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
         </div>
       </div>
     );
@@ -1014,6 +1087,8 @@ const Home = () => {
   };
 
   const renderCrowdReporterHighlight = () => {
+    const activeCrowd = (crowdReports && crowdReports.length > 0) ? crowdReports : MOCK_CROWD;
+
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
         <div className="section-title">
@@ -1021,11 +1096,7 @@ const Home = () => {
           <Link to="/submit-report" className="view-all">{lang === 'en' ? 'Submit Report' : 'செய்தி அனுப்ப'} <i className="fas fa-arrow-right"></i></Link>
         </div>
         <div className="news-grid-3">
-          {crowdReports.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              {lang === 'en' ? 'No crowd reports approved yet.' : 'மக்கள் செய்தியாளர் பதிவுகள் இன்னும் இல்லை.'}
-            </div>
-          ) : crowdReports.slice(0, 3).map((report, idx) => (
+          {activeCrowd.slice(0, 3).map((report, idx) => (
             <div 
               className="news-card" 
               key={report.id || idx}
@@ -1060,20 +1131,18 @@ const Home = () => {
   };
 
   const renderInstitutionNews = () => {
+    const activeInstitution = (institutionNews && institutionNews.length > 0) ? institutionNews : MOCK_INSTITUTION;
+
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
         <div className="section-title">
           <h2><i className="fas fa-university" style={{ color: '#1E40AF' }}></i> {lang === 'en' ? 'Institution & Press Releases' : 'நிறுவனங்களின் செய்திகள்'}</h2>
         </div>
         <div className="news-grid-3">
-          {institutionNews.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              {lang === 'en' ? 'No institutional announcements published yet.' : 'நிறுவனங்களின் செய்திகள் இன்னும் இல்லை.'}
-            </div>
-          ) : institutionNews.slice(0, 3).map((art, idx) => {
+          {activeInstitution.slice(0, 3).map((art, idx) => {
             const gridCat = getCategoryDetails(art.categoryId);
             return (
-              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id}>
+              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id || idx}>
                 <div 
                   className="card-img" 
                   style={{ 
@@ -1090,11 +1159,11 @@ const Home = () => {
                   </span>
                   <h3>
                     <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {lang === 'en' ? art.titleEn : art.titleTa}
+                      {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
                     </Link>
                   </h3>
                   <p>
-                    {lang === 'en' ? art.shortDescEn : art.shortDescTa}
+                    {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
                   </p>
                 </div>
               </div>
