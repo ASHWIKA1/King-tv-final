@@ -8,6 +8,50 @@ const Footer = () => {
 
   return (
     <footer className="site-footer">
+      {/* Newsletter Subscription Bar */}
+      <div style={{ background: '#0057FF', padding: '24px 0', marginBottom: '40px' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h3 style={{ color: '#ffffff', margin: 0, fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className="fas fa-envelope-open-text"></i> {lang === 'en' ? 'News Newsletter' : 'செய்தி மடல்'}
+            </h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.85)', margin: '4px 0 0 0', fontSize: '13px' }}>
+              {lang === 'en' ? 'Get daily important news delivered straight to your inbox!' : 'தினசரி முக்கிய செய்திகள் உங்கள் மின்னஞ்சலில் நேரடியாக!'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '400px' }}>
+            <input
+              type="email"
+              placeholder={lang === 'en' ? 'Enter your email address...' : 'உங்கள் மின்னஞ்சல் முகவரி...'}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                outline: 'none',
+                fontSize: '13px'
+              }}
+            />
+            <button
+              onClick={() => alert(lang === 'en' ? 'Subscribed successfully!' : 'வெற்றிகரமாக பதிவு செய்யப்பட்டது!')}
+              style={{
+                padding: '10px 18px',
+                background: '#000000',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {lang === 'en' ? 'Subscribe' : 'பதிவு செய்க'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
