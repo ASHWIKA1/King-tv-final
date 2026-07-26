@@ -1,0 +1,627 @@
+/* ==========================================================================
+   POLISHED UI RFQ MARKETPLACE STYLING (RfqMarketplace.css)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.rfq-module-container {
+  font-family: 'Inter', sans-serif !important;
+  color: var(--text-dark, #1e293b) !important;
+}
+
+/* Sidebar & Main Grid Layout */
+.rfq-layout-grid {
+  display: grid !important;
+  grid-template-columns: 240px 1fr !important;
+  gap: 32px !important;
+  margin-top: 2rem !important;
+}
+
+@media (max-width: 900px) {
+  .rfq-layout-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* Three Column Content Grid inside Main Section */
+.rfq-content-columns-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 340px !important;
+  gap: 32px !important;
+}
+
+@media (max-width: 1100px) {
+  .rfq-content-columns-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* Sidebar Navigation menu */
+.rfq-sidebar-nav {
+  background: #0f172a !important;
+  border-radius: 20px !important;
+  padding: 24px 16px !important;
+  color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.rfq-sidebar-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 14px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.rfq-sidebar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.rfq-sidebar-menu-item.active {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+}
+
+.rfq-sidebar-menu-item-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.rfq-sidebar-menu-item-left i {
+  width: 16px !important;
+  text-align: center !important;
+}
+
+.rfq-sidebar-badge {
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+}
+
+.rfq-sidebar-badge.purple {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+.rfq-sidebar-badge.green {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+/* Dark Blue RFQ Hero Banner */
+.rfq-hero-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%) !important;
+  border-radius: 20px !important;
+  padding: 36px !important;
+  color: #ffffff !important;
+  position: relative !important;
+  overflow: hidden !important;
+  margin-bottom: 28px !important;
+  box-shadow: 0 8px 24px rgba(31, 27, 75, 0.1) !important;
+}
+
+.rfq-hero-left {
+  max-width: 62% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  z-index: 10 !important;
+}
+
+.rfq-hero-title {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+.rfq-hero-subtitle {
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  line-height: 1.5 !important;
+}
+
+.rfq-hero-pills {
+  display: flex !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 10px !important;
+}
+
+.rfq-hero-pill-badge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 11px !important;
+  color: #cbd5e1 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  padding: 5px 12px !important;
+  border-radius: 20px !important;
+}
+
+.rfq-hero-pill-badge i {
+  color: #34d399 !important;
+}
+
+/* Quote Graphic Illustration overlay */
+.rfq-hero-graphic-wrap {
+  position: absolute !important;
+  right: 40px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 260px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  z-index: 5 !important;
+}
+
+.rfq-hero-graphic-card {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 11px !important;
+  color: #ffffff !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center;
+}
+
+.rfq-hero-graphic-card.best {
+  background: #ffffff !important;
+  border-color: #6366f1 !important;
+  color: #1e293b !important;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3) !important;
+  transform: scale(1.03) !important;
+}
+
+@media (max-width: 900px) {
+  .rfq-hero-left {
+    max-width: 100% !important;
+  }
+  .rfq-hero-graphic-wrap {
+    display: none !important;
+  }
+}
+
+/* Filter Card layout */
+.rfq-filter-bar-card {
+  background: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.01) !important;
+  margin-top: -32px !important;
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+.rfq-filter-grid {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 768px) {
+  .rfq-filter-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.rfq-search-input-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 16px !important;
+  background-color: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.rfq-search-input-wrapper:focus-within {
+  border-color: #6366f1 !important;
+}
+
+.rfq-search-input-wrapper input {
+  width: 100% !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 10px 0 !important;
+  font-size: 12.5px !important;
+  color: var(--text-dark, #1e293b) !important;
+}
+
+.rfq-select-custom {
+  width: 100% !important;
+  padding: 10px 36px 10px 16px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  background-color: var(--bg-secondary, #ffffff) !important;
+  color: var(--text-dark, #1e293b) !important;
+  font-size: 12.5px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.rfq-select-custom:focus {
+  border-color: #6366f1 !important;
+}
+
+/* Quick Categories buttons below Hero */
+.rfq-quick-cats-cards-row {
+  display: flex !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  padding: 10px 2px !important;
+  margin-bottom: 24px !important;
+  scrollbar-width: none !important;
+}
+
+.rfq-quick-cats-cards-row::-webkit-scrollbar {
+  display: none !important;
+}
+
+.rfq-quick-cat-card-btn {
+  background: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 14px !important;
+  padding: 12px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+.rfq-quick-cat-card-btn:hover {
+  border-color: #6366f1 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.05) !important;
+}
+
+.rfq-quick-cat-card-btn.active {
+  border-color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+}
+
+.rfq-quick-cat-card-icon-box {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #f1f5f9 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6366f1 !important;
+  flex-shrink: 0 !important;
+}
+
+.rfq-quick-cat-card-name {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--text-dark, #1e293b) !important;
+  margin: 0 !important;
+}
+
+.rfq-quick-cat-card-count {
+  font-size: 11px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+}
+
+/* Custom Clean Tabs Navigation */
+.rfq-tabs-container {
+  display: flex !important;
+  gap: 24px !important;
+  border-bottom: 1px solid var(--border-color, #e2e8f0) !important;
+  width: 100% !important;
+  margin-top: 16px !important;
+}
+
+.rfq-tab-btn {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: #64748b !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 12px 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: -1px !important;
+}
+
+.rfq-tab-btn:hover {
+  color: #6366f1 !important;
+}
+
+.rfq-tab-btn.active {
+  color: #6366f1 !important;
+  border-bottom-color: #6366f1 !important;
+  font-weight: 700 !important;
+}
+
+/* RFQ Listing Row Card */
+.rfq-listing-row-card {
+  background: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 16px !important;
+  padding: 20px 24px !important;
+  display: flex !important;
+  gap: 20px !important;
+  margin-bottom: 16px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01) !important;
+}
+
+.rfq-listing-row-card:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.05) !important;
+  transform: translateY(-1px) !important;
+}
+
+.rfq-listing-row-img {
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 10px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  flex-shrink: 0 !important;
+}
+
+.rfq-listing-row-details {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rfq-listing-row-header-badge {
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  padding: 3px 9px !important;
+  border-radius: 4px !important;
+  align-self: flex-start !important;
+  text-transform: uppercase !important;
+}
+
+.rfq-listing-row-header-badge.printing {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+}
+
+.rfq-listing-row-header-badge.interior {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+.rfq-listing-row-header-badge.services {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+.rfq-listing-row-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--text-dark, #1e293b) !important;
+  margin: 8px 0 4px 0 !important;
+}
+
+.rfq-listing-row-desc {
+  font-size: 13px !important;
+  color: #64748b !important;
+  margin: 0 0 12px 0 !important;
+  line-height: 1.45 !important;
+}
+
+.rfq-listing-row-tags {
+  display: flex !important;
+  gap: 16px !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  flex-wrap: wrap !important;
+}
+
+.rfq-listing-row-tags span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* Quick Actions Right Columns cards */
+.rfq-quick-action-link-card {
+  width: 100% !important;
+  border: none !important;
+  outline: none !important;
+  text-align: left !important;
+  padding: 20px 24px !important;
+  border-radius: 18px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin-bottom: 4px !important;
+}
+
+.rfq-quick-action-link-card.primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.25) !important;
+}
+
+.rfq-quick-action-link-card.primary:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35) !important;
+}
+
+.rfq-quick-action-link-card.secondary {
+  background: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  color: var(--text-dark, #1e293b) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.rfq-quick-action-link-card.secondary:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08) !important;
+}
+
+/* RFQ Stats grid widgets */
+.rfq-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+  margin: 14px 0 !important;
+}
+
+.rfq-stat-badge-box {
+  background: var(--bg-secondary, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.rfq-stat-badge-num {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: #6366f1 !important;
+  margin: 0 !important;
+}
+
+.rfq-stat-badge-lbl {
+  font-size: 11px !important;
+  color: #64748b !important;
+  margin: 4px 0 0 0 !important;
+}
+
+/* Premium Pill Search Bar Look */
+.rfq-search-bar-pill {
+  background: var(--bg-secondary, #ffffff) !important;
+  padding: 8px 12px !important;
+  border-radius: 50px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin: -24px 0 28px 0 !important;
+  position: relative !important;
+  z-index: 20 !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  gap: 4px !important;
+}
+
+@media (max-width: 900px) {
+  .rfq-search-bar-pill {
+    flex-direction: column !important;
+    border-radius: 20px !important;
+    padding: 16px !important;
+    margin: -20px 16px 20px 16px !important;
+    width: auto !important;
+    gap: 12px !important;
+  }
+}
+
+.rfq-search-field-pill {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  padding: 0 16px !important;
+  position: relative !important;
+}
+
+.rfq-search-field-pill:not(:last-of-type) {
+  border-right: 1px solid var(--border-color, #e2e8f0) !important;
+}
+
+@media (max-width: 900px) {
+  .rfq-search-field-pill:not(:last-of-type) {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-color, #e2e8f0) !important;
+    padding-bottom: 10px !important;
+    width: 100% !important;
+  }
+}
+
+.rfq-search-field-pill i {
+  color: #94a3b8 !important;
+  margin-right: 10px !important;
+  font-size: 14px !important;
+}
+
+.rfq-search-field-pill input {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 8px 0 !important;
+  font-size: 13px !important;
+  color: var(--text-dark, #1e293b) !important;
+  outline: none !important;
+}
+
+.rfq-search-field-pill select {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 8px 0 !important;
+  font-size: 13px !important;
+  color: var(--text-dark, #1e293b) !important;
+  outline: none !important;
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.rfq-search-btn-pill {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 10px 28px !important;
+  border-radius: 30px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+}
+
+.rfq-search-btn-pill:hover {
+  background: #4f46e5 !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+}
+
+

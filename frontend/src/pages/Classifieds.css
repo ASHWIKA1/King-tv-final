@@ -1,0 +1,470 @@
+/* ==========================================================================
+   EXACT UI CLASSIFIEDS MODULE STYLING (Classifieds.css)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.class-module-container {
+  font-family: 'Inter', sans-serif !important;
+  color: #1e293b !important;
+}
+
+/* Premium Hero Section */
+.class-hero-banner {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 50%, #3730a3 100%) !important;
+  border-radius: 20px !important;
+  padding: 40px !important;
+  color: #ffffff !important;
+  position: relative !important;
+  overflow: hidden !important;
+  margin-bottom: 30px !important;
+}
+
+.class-hero-left {
+  flex: 1.2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  z-index: 10 !important;
+}
+
+.class-hero-title {
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.class-hero-subtitle {
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  line-height: 1.5 !important;
+}
+
+.class-hero-btns {
+  display: flex !important;
+  gap: 12px !important;
+  margin-top: 10px !important;
+}
+
+.class-hero-btn-find {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 10px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+
+.class-hero-btn-post {
+  background: #ffffff !important;
+  color: #4338ca !important;
+  border: none !important;
+  padding: 10px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+
+/* Float Stat badges overlay */
+.class-stat-badge-float {
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  position: absolute !important;
+  color: #ffffff !important;
+}
+
+.class-stat-badge-float.active-ads {
+  top: 40px !important;
+  right: 280px !important;
+}
+
+.class-stat-badge-float.verified-users {
+  bottom: 40px !important;
+  right: 320px !important;
+}
+
+.class-stat-badge-float i {
+  font-size: 18px !important;
+  color: #fbbf24 !important;
+}
+
+.class-stat-number {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+.class-stat-label {
+  font-size: 10px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Banner Illustration overlay */
+.class-banner-illustration {
+  position: absolute !important;
+  right: 40px !important;
+  top: 40px !important;
+  bottom: 40px !important;
+  width: 240px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  border-radius: 16px !important;
+}
+
+@media (max-width: 900px) {
+  .class-stat-badge-float {
+    display: none !important;
+  }
+  .class-banner-illustration {
+    display: none !important;
+  }
+}
+
+/* Three Column Layout */
+.class-main-layout {
+  display: grid !important;
+  grid-template-columns: 1.2fr 3.2fr 1.4fr !important;
+  gap: 24px !important;
+  margin-bottom: 45px !important;
+}
+
+@media (max-width: 1200px) {
+  .class-main-layout {
+    grid-template-columns: 1fr 2fr !important;
+  }
+  .class-main-layout > *:last-child {
+    grid-column: span 2 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .class-main-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .class-main-layout > *:last-child {
+    grid-column: span 1 !important;
+  }
+}
+
+/* Search Controls Filters block */
+.class-filter-panel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  margin-bottom: 24px !important;
+}
+
+.class-filter-row {
+  display: flex !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.class-filter-input-wrap {
+  flex: 1 !important;
+  min-width: 180px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+
+.class-filter-input-wrap i {
+  color: #94a3b8 !important;
+}
+
+.class-filter-input-wrap input,
+.class-filter-input-wrap select {
+  border: none !important;
+  outline: none !important;
+  background: none !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  width: 100% !important;
+  font-family: inherit !important;
+}
+
+.class-search-action-btn {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  cursor: pointer !important;
+}
+
+/* Quick categories circle buttons row */
+.class-quick-cats-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  padding: 10px 0 !important;
+  margin-bottom: 20px !important;
+}
+
+.class-quick-cat-btn {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 10px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  color: #475569 !important;
+}
+
+.class-quick-cat-btn.active {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #2563eb !important;
+}
+
+.class-quick-cat-btn i {
+  color: #4f46e5 !important;
+}
+
+/* Sidebar Browse Category styling */
+.class-category-sidebar-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+}
+
+.class-category-sidebar-item:hover {
+  background: #f1f5f9 !important;
+}
+
+.class-category-sidebar-item-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.class-category-sidebar-item-left i {
+  color: #4f46e5 !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+
+.class-category-sidebar-item-right {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+}
+
+/* Featured Ads grid list */
+.featured-ads-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 16px !important;
+  margin-bottom: 30px !important;
+}
+
+.featured-ad-card {
+  background: #ffffff !important;
+  border: 1.5px solid #f1f5f9 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01) !important;
+  cursor: pointer !important;
+}
+
+.featured-ad-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.03) !important;
+}
+
+.featured-ad-img-box {
+  height: 120px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  position: relative !important;
+}
+
+.featured-ad-badge {
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.featured-ad-heart {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+}
+
+.featured-ad-body {
+  padding: 12px !important;
+}
+
+.featured-ad-title {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.featured-ad-price {
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  color: #4f46e5 !important;
+  margin: 6px 0 !important;
+}
+
+.featured-ad-loc {
+  font-size: 10.5px !important;
+  color: #94a3b8 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* Latest Ads vertical rows list */
+.latest-ads-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.latest-ad-row {
+  background: #ffffff !important;
+  border: 1.5px solid #f1f5f9 !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  cursor: pointer !important;
+}
+
+.latest-ad-row:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.latest-ad-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.latest-ad-img {
+  width: 70px !important;
+  height: 70px !important;
+  border-radius: 8px !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+.latest-ad-details {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.latest-ad-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.latest-ad-price-lbl {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #4f46e5 !important;
+}
+
+.latest-ad-negotiable-badge {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+}
+
+.latest-ad-pills-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 6px !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+}
+
+/* Hot Deals timer countdown widgets */
+.hot-deal-timer-row {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.hot-deal-timer-box {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  border-radius: 6px !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.hot-deal-timer-num {
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+}
+
+.hot-deal-timer-lbl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - NewsCMS Pro</title>
+  <meta name="description" content="News Magazine CMS Admin Dashboard">
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3 z-3"></div>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <!-- ============================================================
+       Wrapper
+       ============================================================ -->
+  <div class="wrapper">
+
+    <!-- ============================================================
+         Sidebar
+         ============================================================ -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-newspaper"></i>
+        </div>
+        <span class="brand-text">NewsCMS Pro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item">
+            <a href="index.html" class="nav-link active">
+              <i class="nav-icon bi bi-grid-1x2-fill"></i>
+              <span class="nav-text">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="news.html" class="nav-link">
+              <i class="nav-icon bi bi-file-text"></i>
+              <span class="nav-text">News</span>
+              <span class="nav-badge badge bg-danger rounded-pill">12</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="add-news.html" class="nav-link">
+              <i class="nav-icon bi bi-plus-circle"></i>
+              <span class="nav-text">Add News</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-label">Content</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item">
+            <a href="categories.html" class="nav-link">
+              <i class="nav-icon bi bi-collection"></i>
+              <span class="nav-text">Categories</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="hero-slider.html" class="nav-link">
+              <i class="nav-icon bi bi-images"></i>
+              <span class="nav-text">Hero Slider</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="media.html" class="nav-link">
+              <i class="nav-icon bi bi-folder"></i>
+              <span class="nav-text">Media Library</span>
+              <span class="nav-badge badge bg-primary rounded-pill">48</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="comments.html" class="nav-link">
+              <i class="nav-icon bi bi-chat-dots"></i>
+              <span class="nav-text">Comments</span>
+              <span class="nav-badge badge bg-warning rounded-pill">7</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-label">Monetization</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item">
+            <a href="advertisements.html" class="nav-link">
+              <i class="nav-icon bi bi-megaphone"></i>
+              <span class="nav-text">Advertisements</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-label">SEO</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item">
+            <a href="seo.html" class="nav-link">
+              <i class="nav-icon bi bi-search-heart"></i>
+              <span class="nav-text">SEO</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-label">Administration</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item">
+            <a href="users.html" class="nav-link">
+              <i class="nav-icon bi bi-people"></i>
+              <span class="nav-text">Users</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="settings.html" class="nav-link">
+              <i class="nav-icon bi bi-gear"></i>
+              <span class="nav-text">Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="#" class="nav-link btn-logout">
+          <i class="nav-icon bi bi-box-arrow-left"></i>
+          <span class="nav-text">Logout</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ============================================================
+         Main Content
+         ============================================================ -->
+    <div class="main-content">
+
+      <!-- ============================================================
+           Header
+           ============================================================ -->
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+            <i class="bi bi-list"></i>
+          </button>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+            </ol>
+          </nav>
+        </div>
+
+        <div class="header-right">
+          <!-- Search -->
+          <div class="header-search d-none d-md-block">
+            <i class="bi bi-search search-icon"></i>
+            <input type="search" class="form-control" placeholder="Search... (Ctrl+K)" aria-label="Search">
+          </div>
+
+          <!-- Theme Toggle -->
+          <div class="theme-switch">
+            <input type="checkbox" id="themeToggle" aria-label="Toggle dark mode">
+            <span class="slider"></span>
+          </div>
+
+          <!-- Notifications -->
+          <div class="dropdown">
+            <button class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+              <i class="bi bi-bell"></i>
+              <span class="badge-dot"></span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+              <div class="dropdown-header d-flex justify-content-between align-items-center">
+                <span>Notifications</span>
+                <span class="badge bg-primary rounded-pill">3</span>
+              </div>
+              <div class="notif-item">
+                <div class="notif-icon bg-soft-primary text-primary">
+                  <i class="bi bi-file-text"></i>
+                </div>
+                <div class="notif-content">
+                  <div class="notif-title">New article published</div>
+                  <div class="notif-text">"Breaking: Tech Innovation 2026" has been published.</div>
+                  <div class="notif-time">2 minutes ago</div>
+                </div>
+              </div>
+              <div class="notif-item">
+                <div class="notif-icon bg-soft-warning text-warning">
+                  <i class="bi bi-chat-dots"></i>
+                </div>
+                <div class="notif-content">
+                  <div class="notif-title">Pending comment review</div>
+                  <div class="notif-text">3 comments awaiting moderation.</div>
+                  <div class="notif-time">15 minutes ago</div>
+                </div>
+              </div>
+              <div class="notif-item">
+                <div class="notif-icon bg-soft-success text-success">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div class="notif-content">
+                  <div class="notif-title">New subscriber</div>
+                  <div class="notif-text">Sarah Johnson subscribed to your newsletter.</div>
+                  <div class="notif-time">1 hour ago</div>
+                </div>
+              </div>
+              <a href="#" class="dropdown-item text-center py-2 border-top small">View all notifications</a>
+            </div>
+          </div>
+
+          <!-- User Profile -->
+          <div class="dropdown">
+            <div class="user-profile" data-bs-toggle="dropdown" aria-expanded="false" role="button">
+              <div class="avatar">JD</div>
+              <div class="user-info">
+                <div class="user-name">John Doe</div>
+                <div class="user-role">Senior Editor</div>
+              </div>
+              <i class="bi bi-chevron-down text-muted" style="font-size: 12px;"></i>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-person dropdown-icon"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear dropdown-icon"></i> Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item btn-logout" href="#"><i class="bi bi-box-arrow-left dropdown-icon"></i> Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <!-- ============================================================
+           Page Content
+           ============================================================ -->
+      <div class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h4>Dashboard</h4>
+            <p>Welcome back, John. Here's what's happening today.</p>
+          </div>
+          <div class="page-actions d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-download me-1"></i> Export
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i> New Article
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-primary text-primary">
+                <i class="bi bi-file-text"></i>
+              </div>
+              <div class="stat-label">Today's News</div>
+              <div class="stat-value" data-target="18">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 12% from yesterday</div>
+              <i class="bi bi-newspaper stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-success text-success">
+                <i class="bi bi-check-circle"></i>
+              </div>
+              <div class="stat-label">Published</div>
+              <div class="stat-value" data-target="2456">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 5.2% increase</div>
+              <i class="bi bi-check-circle-fill stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-warning text-warning">
+                <i class="bi bi-pencil"></i>
+              </div>
+              <div class="stat-label">Pending Review</div>
+              <div class="stat-value" data-target="23">0</div>
+              <div class="stat-change down"><i class="bi bi-arrow-down"></i> 2 from yesterday</div>
+              <i class="bi bi-pencil-square stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-danger text-danger">
+                <i class="bi bi-lightning"></i>
+              </div>
+              <div class="stat-label">Breaking News</div>
+              <div class="stat-value" data-target="4">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 1 new update</div>
+              <i class="bi bi-lightning-fill stat-bg-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Stats Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-primary text-primary">
+                <i class="bi bi-eye"></i>
+              </div>
+              <div class="stat-label">Visitors</div>
+              <div class="stat-value" data-target="28642">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 8.3% increase</div>
+              <i class="bi bi-people stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-success text-success">
+                <i class="bi bi-bar-chart"></i>
+              </div>
+              <div class="stat-label">Page Views</div>
+              <div class="stat-value" data-target="51236">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 15.7% increase</div>
+              <i class="bi bi-graph-up-arrow stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-warning text-warning">
+                <i class="bi bi-chat"></i>
+              </div>
+              <div class="stat-label">Comments</div>
+              <div class="stat-value" data-target="342">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 23 today</div>
+              <i class="bi bi-chat-dots stat-bg-icon"></i>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-info text-info">
+                <i class="bi bi-envelope"></i>
+              </div>
+              <div class="stat-label">Subscribers</div>
+              <div class="stat-value" data-target="8668">0</div>
+              <div class="stat-change up"><i class="bi bi-arrow-up"></i> 89 new</div>
+              <i class="bi bi-envelope-fill stat-bg-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-8 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Traffic Overview</span>
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                    This Week <i class="bi bi-chevron-down ms-1"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Today</a></li>
+                    <li><a class="dropdown-item" href="#">This Week</a></li>
+                    <li><a class="dropdown-item" href="#">This Month</a></li>
+                    <li><a class="dropdown-item" href="#">This Year</a></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="chart-container" style="height: 280px;">
+                  <canvas id="trafficChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-4 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Subscribers</span>
+              </div>
+              <div class="card-body text-center">
+                <div class="chart-container-sm" style="height: 200px;">
+                  <canvas id="subscribersChart"></canvas>
+                </div>
+                <div class="mt-3">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="fs-13 text-secondary">Total Subscribers</span>
+                    <span class="fw-700">8,668</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-primary" style="width: 75%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions & Views Chart -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-4 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Quick Actions</span>
+              </div>
+              <div class="card-body">
+                <div class="quick-actions">
+                  <a href="add-news.html" class="quick-action-item">
+                    <i class="bi bi-plus-circle qa-icon"></i>
+                    <span class="qa-label">New Article</span>
+                  </a>
+                  <a href="media.html" class="quick-action-item">
+                    <i class="bi bi-upload qa-icon"></i>
+                    <span class="qa-label">Upload Media</span>
+                  </a>
+                  <a href="comments.html" class="quick-action-item">
+                    <i class="bi bi-chat qa-icon"></i>
+                    <span class="qa-label">Moderate</span>
+                  </a>
+                  <a href="categories.html" class="quick-action-item">
+                    <i class="bi bi-plus-square qa-icon"></i>
+                    <span class="qa-label">Add Category</span>
+                  </a>
+                  <a href="users.html" class="quick-action-item">
+                    <i class="bi bi-person-plus qa-icon"></i>
+                    <span class="qa-label">Add User</span>
+                  </a>
+                  <a href="seo.html" class="quick-action-item">
+                    <i class="bi bi-search qa-icon"></i>
+                    <span class="qa-label">SEO Audit</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-8 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Views by Category</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-container" style="height: 240px;">
+                  <canvas id="viewsChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Articles & Recent Activities -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-8 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Recent Articles</span>
+                <a href="news.html" class="btn btn-sm btn-soft-primary">View All</a>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive-custom">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 50px;"></th>
+                        <th>Headline</th>
+                        <th>Category</th>
+                        <th>Author</th>
+                        <th>Views</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><img src="https://placehold.co/40x28/2563EB/FFFFFF?text=N" class="table-thumb" alt="News"></td>
+                        <td class="fw-600">Global Markets Rally on Tech Earnings</td>
+                        <td><span class="badge bg-primary-soft">Business</span></td>
+                        <td>Sarah Chen</td>
+                        <td>12.4K</td>
+                        <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                        <td class="text-secondary">2 hours ago</td>
+                      </tr>
+                      <tr>
+                        <td><img src="https://placehold.co/40x28/16A34A/FFFFFF?text=T" class="table-thumb" alt="News"></td>
+                        <td class="fw-600">New AI Breakthrough Announced at Conference</td>
+                        <td><span class="badge bg-success-soft">Technology</span></td>
+                        <td>Mike Torres</td>
+                        <td>18.7K</td>
+                        <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                        <td class="text-secondary">4 hours ago</td>
+                      </tr>
+                      <tr>
+                        <td><img src="https://placehold.co/40x28/F59E0B/FFFFFF?text=S" class="table-thumb" alt="News"></td>
+                        <td class="fw-600">Championship Finals: Underdogs Take the Win</td>
+                        <td><span class="badge bg-warning-soft">Sports</span></td>
+                        <td>James Wilson</td>
+                        <td>22.1K</td>
+                        <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                        <td class="text-secondary">6 hours ago</td>
+                      </tr>
+                      <tr>
+                        <td><img src="https://placehold.co/40x28/DC2626/FFFFFF?text=B" class="table-thumb" alt="News"></td>
+                        <td class="fw-600">Breaking: Earthquake Hits Coastal Region</td>
+                        <td><span class="badge bg-danger-soft">Breaking</span></td>
+                        <td>Emma Davis</td>
+                        <td>45.3K</td>
+                        <td><span class="status-indicator"><span class="status-dot breaking"></span> Breaking</span></td>
+                        <td class="text-secondary">10 hours ago</td>
+                      </tr>
+                      <tr>
+                        <td><img src="https://placehold.co/40x28/0891B2/FFFFFF?text=H" class="table-thumb" alt="News"></td>
+                        <td class="fw-600">New Study Reveals Health Benefits of Meditation</td>
+                        <td><span class="badge bg-info-soft">Health</span></td>
+                        <td>Dr. Lisa Park</td>
+                        <td>8.9K</td>
+                        <td><span class="status-indicator"><span class="status-dot pending"></span> Pending</span></td>
+                        <td class="text-secondary">12 hours ago</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-4 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Recent Activities</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-title">Article Published</div>
+                      <div class="timeline-text">"Global Markets Rally" by Sarah Chen</div>
+                      <div class="timeline-time">2 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot success"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-title">Media Uploaded</div>
+                      <div class="timeline-text">12 new images added to Media Library</div>
+                      <div class="timeline-time">3 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot warning"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-title">Comment Moderated</div>
+                      <div class="timeline-text">5 comments approved by John Doe</div>
+                      <div class="timeline-time">5 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-title">User Registered</div>
+                      <div class="timeline-text">New author account: Alex Rivera</div>
+                      <div class="timeline-time">8 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot danger"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-title">Breaking News Alert</div>
+                      <div class="timeline-text">"Earthquake Hits Coastal Region" published</div>
+                      <div class="timeline-time">10 hours ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Categories & Recent Comments -->
+        <div class="row g-3 mb-4">
+          <div class="col-xl-6 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Top Categories</span>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <span class="category-color bg-primary me-2"></span>
+                  <span class="flex-grow-1 fw-500">Technology</span>
+                  <span class="fw-700">12,450</span>
+                  <span class="text-secondary ms-2 fs-12">articles</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px;">
+                  <div class="progress-bar bg-primary" style="width: 100%"></div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <span class="category-color bg-success me-2"></span>
+                  <span class="flex-grow-1 fw-500">Politics</span>
+                  <span class="fw-700">10,820</span>
+                  <span class="text-secondary ms-2 fs-12">articles</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px;">
+                  <div class="progress-bar bg-success" style="width: 87%"></div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <span class="category-color bg-warning me-2"></span>
+                  <span class="flex-grow-1 fw-500">Business</span>
+                  <span class="fw-700">8,340</span>
+                  <span class="text-secondary ms-2 fs-12">articles</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px;">
+                  <div class="progress-bar bg-warning" style="width: 67%"></div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <span class="category-color bg-danger me-2"></span>
+                  <span class="flex-grow-1 fw-500">Sports</span>
+                  <span class="fw-700">6,780</span>
+                  <span class="text-secondary ms-2 fs-12">articles</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px;">
+                  <div class="progress-bar bg-danger" style="width: 54%"></div>
+                </div>
+                <div class="d-flex align-items-center">
+                  <span class="category-color bg-info me-2"></span>
+                  <span class="flex-grow-1 fw-500">Health</span>
+                  <span class="fw-700">4,210</span>
+                  <span class="text-secondary ms-2 fs-12">articles</span>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                  <div class="progress-bar bg-info" style="width: 34%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-6 col-lg-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Recent Comments</span>
+                <a href="comments.html" class="btn btn-sm btn-soft-primary">View All</a>
+              </div>
+              <div class="card-body p-0">
+                <div class="comment-item d-flex gap-3">
+                  <img src="https://placehold.co/40x40/2563EB/FFFFFF?text=A" class="comment-avatar" alt="Avatar">
+                  <div class="comment-body">
+                    <div class="comment-author">Alex Rivera</div>
+                    <div class="comment-text">Great article! The analysis on market trends was very insightful.</div>
+                    <div class="comment-meta">on "Global Markets Rally" - 2 hours ago</div>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                    <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                  </div>
+                </div>
+                <div class="comment-item d-flex gap-3">
+                  <img src="https://placehold.co/40x40/16A34A/FFFFFF?text=M" class="comment-avatar" alt="Avatar">
+                  <div class="comment-body">
+                    <div class="comment-author">Maria Santos</div>
+                    <div class="comment-text">This is exactly what I needed to read today. Thank you for this perspective.</div>
+                    <div class="comment-meta">on "Health Benefits of Meditation" - 5 hours ago</div>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                    <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                  </div>
+                </div>
+                <div class="comment-item d-flex gap-3">
+                  <img src="https://placehold.co/40x40/F59E0B/FFFFFF?text=K" class="comment-avatar" alt="Avatar">
+                  <div class="comment-body">
+                    <div class="comment-author">Kevin O'Brien</div>
+                    <div class="comment-text">I disagree with some points made in this article. The data shows a different trend.</div>
+                    <div class="comment-meta">on "Tech Innovation 2026" - 8 hours ago</div>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                    <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popular Articles -->
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Popular Articles</span>
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                    This Month <i class="bi bi-chevron-down ms-1"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Today</a></li>
+                    <li><a class="dropdown-item" href="#">This Week</a></li>
+                    <li><a class="dropdown-item" href="#">This Month</a></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-lg-4 col-md-6">
+                    <div class="d-flex gap-3 align-items-start p-3 border rounded-3">
+                      <img src="https://placehold.co/60x60/2563EB/FFFFFF?text=1" class="rounded-3" alt="Popular">
+                      <div>
+                        <h6 class="fw-700 mb-1">Earthquake Hits Coastal Region</h6>
+                        <p class="fs-12 text-secondary mb-1">Breaking News - 45.3K views</p>
+                        <span class="badge bg-danger-soft">Trending</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-lg-4 col-md-6">
+                    <div class="d-flex gap-3 align-items-start p-3 border rounded-3">
+                      <img src="https://placehold.co/60x60/16A34A/FFFFFF?text=2" class="rounded-3" alt="Popular">
+                      <div>
+                        <h6 class="fw-700 mb-1">AI Breakthrough 2026</h6>
+                        <p class="fs-12 text-secondary mb-1">Technology - 22.1K views</p>
+                        <span class="badge bg-primary-soft">Popular</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-lg-4 col-md-6">
+                    <div class="d-flex gap-3 align-items-start p-3 border rounded-3">
+                      <img src="https://placehold.co/60x60/F59E0B/FFFFFF?text=3" class="rounded-3" alt="Popular">
+                      <div>
+                        <h6 class="fw-700 mb-1">Championship Finals Recap</h6>
+                        <p class="fs-12 text-secondary mb-1">Sports - 18.7K views</p>
+                        <span class="badge bg-warning-soft">Rising</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           Footer
+           ============================================================ -->
+      <footer class="footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>&copy; <span id="currentYear"></span> NewsCMS Pro. All rights reserved.</span>
+          <span class="d-flex gap-3">
+            <a href="#" class="text-muted">Privacy Policy</a>
+            <a href="#" class="text-muted">Terms of Service</a>
+            <a href="#" class="text-muted">Support</a>
+          </span>
+        </div>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <!-- Bootstrap 5.3 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Custom App JS -->
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

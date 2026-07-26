@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ta" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>நம்ம ஊர் வணிகக் கோப்பகம் - KING 24x7 | Local Business Directory</title>
+  <meta name="description"
+    content="உள்ளூர் வணிகங்கள், அவசர உதவிகள், மருத்துவமனைகள், பிளம்பர்கள் மற்றும் சேவை வழங்குநர்களின் தொடர்பு விபரங்கள் தமிழில்.">
+  <meta name="keywords"
+    content="local directory, tamil nadu business listing, local services, plumbers list, hospitals tamil nadu">
+  <link rel="canonical" href="https://king24x7.com/directory.html">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="நம்ம ஊர் வணிகக் கோப்பகம் - KING 24x7">
+  <meta property="og:description" content="உள்ளூர் வணிகங்கள் மற்றும் சேவை வழங்குநர்களின் முழுமையான விபரங்கள்">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://king24x7.com/directory.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0057FF">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-light.png" id="favicon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css?v=8">
+
+  <!-- Respective Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemPage",
+    "mainEntity": {
+      "@type": "ItemList",
+      "name": "Local Business Directory",
+      "description": "Local services and business directory for small towns in Tamil Nadu",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@type": "LocalBusiness",
+            "name": "அப்பல்லோ கிளினிக்",
+            "image": "https://king24x7.com/assets/images/apollo.jpg",
+            "telephone": "+91 44 2829 0200",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "அண்ணா நகர்",
+              "addressLocality": "சென்னை",
+              "addressRegion": "TN",
+              "postalCode": "600040",
+              "addressCountry": "IN"
+            }
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@type": "LocalBusiness",
+            "name": "ராஜா எலக்ட்ரிக்கல்ஸ் & பிளம்பிங்",
+            "telephone": "+91 98456 12345",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "காந்தி வீதி",
+              "addressLocality": "கோயம்புத்தூர்",
+              "addressRegion": "TN",
+              "postalCode": "641001",
+              "addressCountry": "IN"
+            }
+          }
+        }
+      ]
+    }
+  }
+  </script>
+
+  <style>
+    /* Directory Page Specific Premium CSS */
+    .directory-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 40px 0;
+      border-radius: var(--radius-lg);
+      margin: 20px 0;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .directory-hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .directory-hero p {
+      font-size: 15px;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+
+    .search-wrapper {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      padding: 0 20px;
+    }
+
+    .search-wrapper input {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 30px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-dark);
+      font-size: 14px;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .search-wrapper button {
+      padding: 12px 28px;
+      border-radius: 30px;
+      background: var(--white);
+      color: var(--primary);
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .search-wrapper button:hover {
+      transform: scale(1.05);
+      background: var(--primary-light);
+    }
+
+    .category-filter-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px 0;
+      margin-bottom: 24px;
+      scrollbar-width: none;
+    }
+
+    .category-filter-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pill {
+      padding: 8px 18px;
+      border-radius: 20px;
+      background: var(--white);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    .filter-pill:hover,
+    .filter-pill.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .directory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .directory-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .directory-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary);
+    }
+
+    .directory-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .biz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .biz-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: white;
+    }
+
+    .biz-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 8px 0 4px;
+    }
+
+    .biz-rating {
+      color: #F59E0B;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .biz-details {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .biz-details p {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .biz-details i {
+      color: var(--primary);
+      width: 16px;
+    }
+
+    .biz-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .biz-btn {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .biz-btn.call-btn {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .biz-btn.call-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .biz-btn.map-btn {
+      background: #F1F5F9;
+      color: var(--text-dark);
+      border: 1px solid #E2E8F0;
+    }
+
+    .biz-btn.map-btn:hover {
+      background: #E2E8F0;
+    }
+
+    .add-listing-banner {
+      background: var(--white);
+      border: 2px dashed var(--primary);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .add-listing-banner h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .add-listing-banner button {
+      margin-top: 14px;
+      padding: 10px 24px;
+      border-radius: 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .add-listing-banner button:hover {
+      background: var(--primary-dark);
+      transform: scale(1.03);
+    }
+
+    /* Modal Form Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: zoomIn 0.3s ease;
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #E2E8F0;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .submit-btn:hover {
+      background: var(--primary-dark);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-bar-left">
+        <span><i class="far fa-calendar-alt"></i> <span id="tamilDate"></span></span>
+        <span><i class="far fa-clock"></i> <span id="currentTime"></span></span>
+        <span><i class="fas fa-map-marker-alt"></i> <select id="districtSelector" class="district-select-top"
+            aria-label="District">
+            <option value="சென்னை" selected>சென்னை</option>
+            <option value="கோயம்புத்தூர்">கோயம்புத்தூர்</option>
+            <option value="மதுரை">மதுரை</option>
+            <option value="சேலம்">சேலம்</option>
+            <option value="திருச்சி">திருச்சி</option>
+            <option value="திருநெல்வேலி">திருநெல்வேலி</option>
+            <option value="வேலூர்">வேலூர்</option>
+            <option value="ஈரோடு">ஈரோடு</option>
+            <option value="தஞ்சாவூர்">தஞ்சாவூர்</option>
+            <option value="கன்னியாகுமரி">கன்னியாகுமரி</option>
+          </select></span>
+        <span><i class="fas fa-thermometer-half"></i> <span id="topTemp">32°C</span></span>
+      </div>
+      <div class="top-bar-right">
+        <a href="#" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-icon" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="#" class="social-icon" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        <a href="#" class="social-icon" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+        <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode"><i class="fas fa-moon"></i>
+          இருள்</button>
+        <select class="lang-switcher" aria-label="Language">
+          <option value="ta" selected>தமிழ்</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+        <!-- HEADER MAIN -->
+  <header class="header-main">
+    <div class="container">
+      <div class="header-left">
+        <a href="index.html" class="logo-link">
+          <img src="assets/images/logo-banner-light.png" alt="KING 24x7" class="main-logo-img logo-light-only">
+          <img src="assets/images/logo-banner-dark.png" alt="KING 24x7" class="main-logo-img logo-dark-only">
+          <span class="logo-sub-text">LIVE • TRUE • TAMIL</span>
+        </a>
+      </div>
+      <div class="header-center"></div>
+      <div class="header-right">
+        <a href="index.html#section-livetv" class="livetv-btn">
+          <i class="fas fa-play-circle"></i> LIVE TV WATCH NOW
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="main-nav" id="mainNav">
+    <div class="container">
+      <div class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <i class="fas fa-bars"></i>
+      </div>
+            <ul class="nav-menu" id="navMenu">
+        <li class="nav-item"><a href="index.html" class="nav-link">முகப்பு</a></li>
+        <li class="nav-item active"><a href="directory.html" class="nav-link">நம்ம ஊர்</a></li>
+        <li class="nav-item"><a href="index.html" class="nav-link">செய்திகள்</a></li>
+        <li class="nav-item"><a href="wishes.html" class="nav-link">வாழ்த்து</a></li>
+        <li class="nav-item"><a href="obituaries.html" class="nav-link">இரங்கல்</a></li>
+        <li class="nav-item"><a href="business-studies.html" class="nav-link">வணிகம்</a></li>
+        <li class="nav-item"><a href="jobs.html" class="nav-link">வேலை</a></li>
+        <li class="nav-item"><a href="classifieds.html" class="nav-link">தள்ளுபடி</a></li>
+      </ul>
+      <div class="nav-search" id="searchToggle" aria-label="Search"><i class="fas fa-search"></i></div>
+    </div>
+  </nav>
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="container">
+
+    <!-- HERO / SEARCH -->
+    <section class="directory-hero">
+      <h1>நம்ம ஊர் வணிகக் கோப்பகம்</h1>
+      <p>உள்ளூர் கடைகள், அவசர சேவைகள் மற்றும் தொழில் வல்லுநர்களை உடனடியாகக் கண்டறியுங்கள்</p>
+      <div class="search-wrapper">
+        <input type="text" id="dirSearch" placeholder="மருத்துவமனை, பிளம்பர், கடை..." aria-label="Search Directory">
+        <button id="dirSearchBtn">தேடுக</button>
+      </div>
+    </section>
+
+    <!-- FILTERS -->
+    <div class="category-filter-row">
+      <button class="filter-pill active" data-cat="all">அனைத்து சேவைகள்</button>
+      <button class="filter-pill" data-cat="hospital">மருத்துவமனை</button>
+      <button class="filter-pill" data-cat="plumber">பிளம்பர்</button>
+      <button class="filter-pill" data-cat="electrician">மின் பணியாளர்</button>
+      <button class="filter-pill" data-cat="restaurant">உணவகம்</button>
+      <button class="filter-pill" data-cat="store">கடைகள்</button>
+    </div>
+
+    <!-- DIRECTORY GRID -->
+    <section class="directory-grid" id="directoryGrid">
+      
+      <!-- Card 1 -->
+      <div class="directory-card" data-category="hospital">
+        <div>
+          <div class="biz-header">
+            <span class="biz-type cat-politics">மருத்துவமனை</span>
+            <div class="biz-rating"><i class="fas fa-star"></i> 4.5 (82)</div>
+          </div>
+          <h2 class="biz-title">அப்பல்லோ கிளினிக்</h2>
+          <div class="biz-details">
+            <p><i class="fas fa-map-marker-alt"></i> அண்ணா நகர், சென்னை</p>
+            <p><i class="fas fa-clock"></i> 24 மணி நேர சேவை</p>
+            <p><i class="fas fa-phone-alt"></i> +91 44 2829 0200</p>
+          </div>
+        </div>
+        <div class="biz-actions">
+          <a href="tel:+914428290200" class="biz-btn call-btn">அழைக்க</a>
+          <button class="biz-btn map-btn">வரைபடம்</button>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="directory-card" data-category="plumber">
+        <div>
+          <div class="biz-header">
+            <span class="biz-type cat-business">பிளம்பர்</span>
+            <div class="biz-rating"><i class="fas fa-star"></i> 4.8 (12)</div>
+          </div>
+          <h2 class="biz-title">ராஜா எலக்ட்ரிக்கல்ஸ் & பிளம்பிங்</h2>
+          <div class="biz-details">
+            <p><i class="fas fa-map-marker-alt"></i> காந்தி வீதி, கோயம்புத்தூர்</p>
+            <p><i class="fas fa-clock"></i> காலை 9:00 - மாலை 7:00</p>
+            <p><i class="fas fa-phone-alt"></i> +91 98456 12345</p>
+          </div>
+        </div>
+        <div class="biz-actions">
+          <a href="tel:+919845612345" class="biz-btn call-btn">அழைக்க</a>
+          <button class="biz-btn map-btn">வரைபடம்</button>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="directory-card" data-category="electrician">
+        <div>
+          <div class="biz-header">
+            <span class="biz-type cat-technology">மின் பணியாளர்</span>
+            <div class="biz-rating"><i class="fas fa-star"></i> 4.2 (28)</div>
+          </div>
+          <h2 class="biz-title">செல்வம் வயரிங் சர்வீஸ்</h2>
+          <div class="biz-details">
+            <p><i class="fas fa-map-marker-alt"></i> பஸ் ஸ்டாண்ட் ரோடு, மதுரை</p>
+            <p><i class="fas fa-clock"></i> காலை 8:00 - இரவு 8:00</p>
+            <p><i class="fas fa-phone-alt"></i> +91 98765 43210</p>
+          </div>
+        </div>
+        <div class="biz-actions">
+          <a href="tel:+919876543210" class="biz-btn call-btn">அழைக்க</a>
+          <button class="biz-btn map-btn">வரைபடம்</button>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="directory-card" data-category="restaurant">
+        <div>
+          <div class="biz-header">
+            <span class="biz-type cat-sports">உணவகம்</span>
+            <div class="biz-rating"><i class="fas fa-star"></i> 4.6 (140)</div>
+          </div>
+          <h2 class="biz-title">ஹோட்டல் சரவண பவன்</h2>
+          <div class="biz-details">
+            <p><i class="fas fa-map-marker-alt"></i> மெயின் ரோடு, சேலம்</p>
+            <p><i class="fas fa-clock"></i> காலை 7:00 - இரவு 10:30</p>
+            <p><i class="fas fa-phone-alt"></i> +91 427 244 5566</p>
+          </div>
+        </div>
+        <div class="biz-actions">
+          <a href="tel:+914272445566" class="biz-btn call-btn">அழைக்க</a>
+          <button class="biz-btn map-btn">வரைபடம்</button>
+        </div>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="directory-card" data-category="store">
+        <div>
+          <div class="biz-header">
+            <span class="biz-type cat-cinema">கடைகள்</span>
+            <div class="biz-rating"><i class="fas fa-star"></i> 4.4 (48)</div>
+          </div>
+          <h2 class="biz-title">வசந்த் & கோ</h2>
+          <div class="biz-details">
+            <p><i class="fas fa-map-marker-alt"></i> தில்லை நகர், திருச்சி</p>
+            <p><i class="fas fa-clock"></i> காலை 9:30 - இரவு 9:00</p>
+            <p><i class="fas fa-phone-alt"></i> +91 431 277 8899</p>
+          </div>
+        </div>
+        <div class="biz-actions">
+          <a href="tel:+914312778899" class="biz-btn call-btn">அழைக்க</a>
+          <button class="biz-btn map-btn">வரைபடம்</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- BANNER TO ADD BUSINESS -->
+    <section class="add-listing-banner">
+      <h3>உங்கள் உள்ளூர் வணிகம் அல்லது சேவையை இங்கே விளம்பரப்படுத்த விருப்பமா?</h3>
+      <p>மிகக் குறைந்த விலையில் ஆயிரக்கணக்கான உள்ளூர் மக்களைச் சென்றடையுங்கள்.</p>
+      <button id="addListingBtn">உங்கள் வணிகத்தை சேர்க்கவும்</button>
+    </section>
+
+  </main>
+
+  <!-- ADD LISTING MODAL -->
+  <div class="modal" id="addListingModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>புதிய வணிகத்தை சேர்க்கவும்</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addListingForm">
+          <div class="form-group">
+            <label for="bizName">வணிகப் பெயர் *</label>
+            <input type="text" id="bizName" required placeholder="எ.கா: கண்ணன் ஸ்டோர்ஸ்">
+          </div>
+          <div class="form-group">
+            <label for="bizCat">வகை *</label>
+            <select id="bizCat" required>
+              <option value="hospital">மருத்துவமனை</option>
+              <option value="plumber">பிளம்பர்</option>
+              <option value="electrician">மின் பணியாளர்</option>
+              <option value="restaurant">உணவகம்</option>
+              <option value="store">கடைகள்</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="bizLoc">முகவரி / இடம் *</label>
+            <input type="text" id="bizLoc" required placeholder="எ.கா: ராஜாஜி வீதி, மதுரை">
+          </div>
+          <div class="form-group">
+            <label for="bizHours">வேலை நேரம்</label>
+            <input type="text" id="bizHours" placeholder="எ.கா: காலை 9 - இரவு 9">
+          </div>
+          <div class="form-group">
+            <label for="bizPhone">தொலைபேசி எண் *</label>
+            <input type="tel" id="bizPhone" required placeholder="எ.கா: +91 9876543210">
+          </div>
+          <button type="submit" class="submit-btn">சமர்ப்பிக்க</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMIZATION PANEL (Included to match all other pages) -->
+  <div class="panel-backdrop" id="panelBackdrop"></div>
+  <button class="customize-toggle" id="customizeToggle" aria-label="Customize"><i class="fas fa-sliders-h"></i></button>
+  <div class="customize-panel" id="customizePanel">
+    <div class="panel-header">
+      <h3><i class="fas fa-palette"></i> தனிப்பயனாக்கு</h3>
+      <button class="close-panel" id="closePanel" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="customize-group">
+        <h4>⭐ தீம்</h4>
+        <div class="customize-row">
+          <div><label>இருண்ட பயன்முறை</label>
+            <div class="custom-desc">இருண்ட தீமுக்கு மாற்றவும்</div>
+          </div>
+          <label class="custom-switch"><input type="checkbox" id="ctrlDarkMode"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🎨 முதன்மை நிறம்</h4>
+        <div class="color-picker-row">
+          <span class="color-swatch active" data-color="#0057FF" style="background:#0057FF"
+            title="நீலம் (இயல்புநிலை)"><input type="color" value="#0057FF"></span>
+          <span class="color-swatch" data-color="#DC2626" style="background:#DC2626" title="சிவப்பு"><input type="color"
+              value="#DC2626"></span>
+          <span class="color-swatch" data-color="#059669" style="background:#059669" title="பச்சை"><input type="color"
+              value="#059669"></span>
+          <span class="color-swatch" data-color="#7C3AED" style="background:#7C3AED" title="ஊதா"><input type="color"
+              value="#7C3AED"></span>
+          <span class="color-swatch" data-color="#D97706" style="background:#D97706" title="ஆரஞ்சு"><input type="color"
+              value="#D97706"></span>
+          <span class="color-swatch" data-color="#EC4899" style="background:#EC4899" title="இளஞ்சிவப்பு"><input
+              type="color" value="#EC4899"></span>
+          <span class="color-swatch" data-color="#06B6D4" style="background:#06B6D4" title="சியான்"><input type="color"
+              value="#06B6D4"></span>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🔤 எழுத்து அளவு</h4>
+        <div class="customize-row">
+          <button class="font-size-btn" data-size="small">சிறியது</button>
+          <button class="font-size-btn active" data-size="medium">நடுத்தரம்</button>
+          <button class="font-size-btn" data-size="large">பெரியது</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <button class="reset-btn" id="resetCustomize">மீட்டமை</button>
+      <button class="apply-btn" id="applyCustomize">பயன்படுத்து</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="assets/icons/logo-icon-light.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-light-only">
+            <img src="assets/icons/logo-icon-dark.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-dark-only">
+            <span style="font-size:24px; font-weight:800; color:white;">KING 24x7</span>
+          </div>
+          <div class="tagline" style="color:rgba(255,255,255,0.5); margin-top:8px;">உண்மை. பொறுப்புடன். தமிழ்.</div>
+          <p>KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி,
+            நம்பகமான செய்திகளை வழங்குகிறோம்.</p>
+        </div>
+<div class="footer-col">
+          <h5>செய்திகள்</h5>
+          <a href="#">அரசியல்</a>
+          <a href="#">தமிழ்நாடு</a>
+          <a href="#">இந்தியா</a>
+          <a href="#">உலகம்</a>
+          <a href="#">வணிகம்</a>
+          <a href="#">விளையாட்டு</a>
+          <a href="#">சினிமா</a>
+        </div>
+        <div class="footer-col">
+          <h5>கூடுதல்</h5>
+          <a href="#">வீдеоக்கள்</a>
+          <a href="#">லைவ் டிவி</a>
+          <a href="#">பாட்காஸ்ட்கள்</a>
+          <a href="#">வெப் ஸ்டோரிஸ்</a>
+          <a href="#">வானிலை</a>
+          <a href="#">தேர்தல் மையம்</a>
+          <a href="#">சந்தை விலை</a>
+        </div>
+        <div class="footer-col">
+          <h5>தகவல்</h5>
+          <a href="#">எங்களைப் பற்றி</a>
+          <a href="#">தொடர்புக்கு</a>
+          <a href="#">விளம்பரம்</a>
+          <a href="#">வேலைவாய்ப்பு</a>
+          <a href="#">தனியுரிமைக் கொள்கை</a>
+          <a href="#">பயன்பாட்டு விதிமுறைகள்</a>
+        </div>
+        <div class="footer-col">
+          <h5>பதிவிறக்கம்</h5>
+          <a href="#"><i class="fab fa-google-play"></i> Google Play</a>
+          <a href="#"><i class="fab fa-apple"></i> App Store</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2025 <strong>KING 24x7</strong> - All Rights Reserved.</div>
+        <div>
+          <a href="#">RSS Feeds</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Sitemap</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Accessibility</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BACK TO TOP -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top"><i class="fas fa-arrow-up"></i></button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+  <script src="js/main.js?v=4" charset="UTF-8"></script>
+
+  <!-- Interactive Logic for Directory Page -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      // Category filtering
+      const filterPills = document.querySelectorAll('.filter-pill');
+      const cards = document.querySelectorAll('.directory-card');
+      
+      function filterCategory(cat) {
+        cards.forEach(card => {
+          if (cat === 'all' || card.dataset.category === cat) {
+            card.style.display = '';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+
+      filterPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          filterPills.forEach(p => p.classList.remove('active'));
+          this.classList.add('active');
+          filterCategory(this.dataset.cat);
+        });
+      });
+
+      // Search directory
+      const searchInput = document.getElementById('dirSearch');
+      const searchBtn = document.getElementById('dirSearchBtn');
+
+      function performSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        cards.forEach(card => {
+          const title = card.querySelector('.biz-title').textContent.toLowerCase();
+          const details = card.querySelector('.biz-details').textContent.toLowerCase();
+          const type = card.querySelector('.biz-type').textContent.toLowerCase();
+          
+          if (title.includes(query) || details.includes(query) || type.includes(query)) {
+            card.style.display = '';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+
+      searchBtn.addEventListener('click', performSearch);
+      searchInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') performSearch();
+      });
+
+      // Listing Modal Toggle
+      const addBtn = document.getElementById('addListingBtn');
+      const modal = document.getElementById('addListingModal');
+      const closeBtn = document.getElementById('modalClose');
+
+      if(addBtn) addBtn.addEventListener('click', () => modal.classList.add('open'));
+      if(closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+      window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+
+      // Form submission
+      const form = document.getElementById('addListingForm');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const name = document.getElementById('bizName').value;
+          const cat = document.getElementById('bizCat').value;
+          const loc = document.getElementById('bizLoc').value;
+          const phone = document.getElementById('bizPhone').value;
+          const hours = document.getElementById('bizHours').value || 'இல்லை';
+
+          // Add dynamically created card to grid
+          const grid = document.getElementById('directoryGrid');
+          const card = document.createElement('div');
+          card.className = 'directory-card';
+          card.dataset.category = cat;
+          
+          let catText = 'கடை';
+          let catClass = 'cat-cinema';
+          if (cat === 'hospital') { catText = 'மருத்துவமனை'; catClass = 'cat-politics'; }
+          else if (cat === 'plumber') { catText = 'பிளம்பர்'; catClass = 'cat-business'; }
+          else if (cat === 'electrician') { catText = 'மின் பணியாளர்'; catClass = 'cat-technology'; }
+          else if (cat === 'restaurant') { catText = 'உணவகம்'; catClass = 'cat-sports'; }
+
+          card.innerHTML = `
+            <div>
+              <div class="biz-header">
+                <span class="biz-type ${catClass}">${catText}</span>
+                <div class="biz-rating"><i class="fas fa-star"></i> புதியது</div>
+              </div>
+              <h2 class="biz-title">${name}</h2>
+              <div class="biz-details">
+                <p><i class="fas fa-map-marker-alt"></i> ${loc}</p>
+                <p><i class="fas fa-clock"></i> ${hours}</p>
+                <p><i class="fas fa-phone-alt"></i> ${phone}</p>
+              </div>
+            </div>
+            <div class="biz-actions">
+              <a href="tel:${phone}" class="biz-btn call-btn">அழைக்க</a>
+              <button class="biz-btn map-btn">வரைபடம்</button>
+            </div>
+          `;
+          
+          grid.prepend(card);
+          modal.classList.remove('open');
+          form.reset();
+          alert('உங்கள் வணிக விபரம் வெற்றிகரமாக சேமிக்கப்பட்டது மற்றும் சரிபார்ப்புக்குப் பின் வெளியிடப்படும்!');
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+scratch/
+.vercel/
+*.tar.gz
+node_modules/
+dist/
+target/
+backend/uploads/backups/

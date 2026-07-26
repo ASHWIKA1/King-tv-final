@@ -1,0 +1,16 @@
+{
+  "name": "KING 24x7 - தமிழ் செய்திகள்",
+  "short_name": "KING 24x7",
+  "description": "உண்மை. புரிதல். தமிழில். முழுமையான தமிழ் செய்திகள் போர்டல்",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FF",
+  "theme_color": "#0057FF",
+  "orientation": "portrait-primary",
+  "lang": "ta",
+  "scope": "/",
+  "icons": [
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230057FF' rx='32'/%3E%3Ctext x='96' y='140' font-size='120' text-anchor='middle' fill='white' font-family='serif'%3E👑%3C/text%3E%3C/svg%3E", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230057FF' rx='64'/%3E%3Ctext x='256' y='360' font-size='280' text-anchor='middle' fill='white' font-family='serif'%3E👑%3C/text%3E%3C/svg%3E", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

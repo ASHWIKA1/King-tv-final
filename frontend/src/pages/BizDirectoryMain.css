@@ -1,0 +1,401 @@
+/* ==========================================================================
+   EXACT UI BUSINESS DIRECTORY STYLING (BizDirectoryMain.css)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Mukta+Malar:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+.biz-module-container {
+  font-family: 'Mukta Malar', 'Outfit', sans-serif !important;
+  color: #1e293b !important;
+}
+
+/* Premium Hero Section */
+.biz-hero-banner {
+  background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.8)), 
+              url("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  color: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 40px !important;
+  margin-bottom: 30px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+.biz-hero-title {
+  font-size: 32px !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.biz-hero-subtitle {
+  font-size: 14.5px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin: 0 0 24px 0 !important;
+}
+
+/* Search bar inline form */
+.biz-search-bar {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 10px 16px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  max-width: 720px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+@media (max-width: 600px) {
+  .biz-search-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+.biz-search-field {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+}
+
+.biz-search-field i {
+  color: #94a3b8 !important;
+}
+
+.biz-search-field input {
+  border: none !important;
+  outline: none !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  width: 100% !important;
+  font-family: inherit !important;
+}
+
+.biz-search-btn {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+
+.biz-search-btn:hover {
+  background: #dc2626 !important;
+}
+
+/* Feature tags highlights under search */
+.biz-highlights-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  max-width: 720px !important;
+  margin: 20px auto 0 auto !important;
+}
+
+@media (max-width: 768px) {
+  .biz-highlights-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+.biz-highlight-badge {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.biz-highlight-badge i {
+  color: #fbbf24 !important;
+}
+
+/* Categories Slider Grid */
+.biz-cat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 30px !important;
+}
+
+.biz-cat-card-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.biz-cat-card-btn:hover {
+  border-color: #ef4444 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05) !important;
+}
+
+.biz-cat-card-btn.active {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+}
+
+.biz-cat-icon-circle {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 15px !important;
+  margin-bottom: 8px !important;
+}
+
+.biz-cat-title-lbl {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+}
+
+/* Premium Business Listing Card */
+.biz-listings-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 20px !important;
+}
+
+.biz-listing-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01) !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.biz-listing-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04) !important;
+}
+
+.biz-card-image-cover {
+  height: 150px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  position: relative !important;
+}
+
+.biz-card-tag {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+}
+
+.biz-card-kyc-badge {
+  position: absolute !important;
+  bottom: 12px !important;
+  left: 12px !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  padding: 3px 8px !important;
+  border-radius: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.biz-card-body {
+  padding: 16px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.biz-card-category {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: #ef4444 !important;
+  text-transform: uppercase !important;
+}
+
+.biz-card-rating {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #fbbf24 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.biz-card-name {
+  font-size: 15.5px !important;
+  font-weight: 850 !important;
+  color: #1e293b !important;
+  margin: 6px 0 !important;
+}
+
+.biz-card-info-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+  margin-bottom: 6px !important;
+}
+
+.biz-card-info-row i {
+  color: #94a3b8 !important;
+}
+
+.biz-card-footer {
+  border-top: 1px solid #f1f5f9 !important;
+  padding-top: 12px !important;
+  margin-top: 10px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-size: 11px !important;
+}
+
+.biz-status-online {
+  color: #10b981 !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.biz-status-online span {
+  width: 6px !important;
+  height: 6px !important;
+  background: #10b981 !important;
+  border-radius: 50% !important;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Horizontal slider for categories */
+  .biz-cat-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding-bottom: 8px !important;
+  }
+  
+  .biz-cat-card-btn {
+    flex: 0 0 110px !important;
+  }
+
+  /* Hide scrollbars for a cleaner look while maintaining scroll functionality */
+  .biz-cat-grid::-webkit-scrollbar,
+  .biz-listings-grid::-webkit-scrollbar {
+    height: 4px !important;
+  }
+  
+  .biz-cat-grid::-webkit-scrollbar-thumb,
+  .biz-listings-grid::-webkit-scrollbar-thumb {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-radius: 2px !important;
+  }
+
+  /* 2. Horizontal slider for featured business card listings */
+  .biz-listings-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 16px !important;
+    padding-bottom: 12px !important;
+  }
+  
+  .biz-listing-card {
+    flex: 0 0 270px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 3. Minimize search box layout */
+  .biz-search-bar {
+    flex-direction: row !important; /* Keep horizontal to prevent vertical height stacking */
+    gap: 6px !important;
+    padding: 6px 8px !important;
+    border-radius: 8px !important;
+  }
+  
+  .biz-search-field {
+    padding: 5px 8px !important;
+    border-radius: 6px !important;
+  }
+  
+  .biz-search-field i {
+    font-size: 11px !important;
+  }
+  
+  .biz-search-field input {
+    font-size: 11px !important;
+  }
+  
+  /* Location field takes slightly less width to prioritize main query field */
+  .biz-search-bar > .biz-search-field:nth-child(2) {
+    flex: 0.75 !important;
+  }
+  
+  .biz-search-btn {
+    padding: 6px 12px !important;
+    font-size: 11.5px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Reduce padding on the hero banner itself to minimize space */
+  .biz-hero-banner {
+    padding: 24px 16px !important;
+    border-radius: 12px !important;
+  }
+  
+  .biz-hero-title {
+    font-size: 20px !important;
+  }
+  
+  .biz-hero-subtitle {
+    font-size: 12px !important;
+    margin-bottom: 16px !important;
+  }
+}

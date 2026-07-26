@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Management - NewsCMS Pro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3 z-3"></div>
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <div class="wrapper">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><i class="bi bi-newspaper"></i></div>
+        <span class="brand-text">NewsCMS Pro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-grid-1x2-fill"></i><span class="nav-text">Dashboard</span></a></li>
+          <li class="nav-item"><a href="news.html" class="nav-link active"><i class="nav-icon bi bi-file-text"></i><span class="nav-text">News</span><span class="nav-badge badge bg-danger rounded-pill">12</span></a></li>
+          <li class="nav-item"><a href="add-news.html" class="nav-link"><i class="nav-icon bi bi-plus-circle"></i><span class="nav-text">Add News</span></a></li>
+        </ul>
+        <div class="nav-label">Content</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="categories.html" class="nav-link"><i class="nav-icon bi bi-collection"></i><span class="nav-text">Categories</span></a></li>
+          <li class="nav-item"><a href="hero-slider.html" class="nav-link"><i class="nav-icon bi bi-images"></i><span class="nav-text">Hero Slider</span></a></li>
+          <li class="nav-item"><a href="media.html" class="nav-link"><i class="nav-icon bi bi-folder"></i><span class="nav-text">Media Library</span><span class="nav-badge badge bg-primary rounded-pill">48</span></a></li>
+          <li class="nav-item"><a href="comments.html" class="nav-link"><i class="nav-icon bi bi-chat-dots"></i><span class="nav-text">Comments</span><span class="nav-badge badge bg-warning rounded-pill">7</span></a></li>
+        </ul>
+        <div class="nav-label">Monetization</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="advertisements.html" class="nav-link"><i class="nav-icon bi bi-megaphone"></i><span class="nav-text">Advertisements</span></a></li>
+        </ul>
+        <div class="nav-label">SEO</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="seo.html" class="nav-link"><i class="nav-icon bi bi-search-heart"></i><span class="nav-text">SEO</span></a></li>
+        </ul>
+        <div class="nav-label">Administration</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><span class="nav-text">Users</span></a></li>
+          <li class="nav-item"><a href="settings.html" class="nav-link"><i class="nav-icon bi bi-gear"></i><span class="nav-text">Settings</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="nav-link btn-logout"><i class="nav-icon bi bi-box-arrow-left"></i><span class="nav-text">Logout</span></a>
+      </div>
+    </aside>
+
+    <div class="main-content">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active">News</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="header-right">
+          <div class="theme-switch">
+            <input type="checkbox" id="themeToggle" aria-label="Toggle dark mode"><span class="slider"></span>
+          </div>
+          <div class="dropdown">
+            <button class="btn-icon" data-bs-toggle="dropdown" aria-label="Notifications"><i class="bi bi-bell"></i><span class="badge-dot"></span></button>
+            <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+              <div class="dropdown-header d-flex justify-content-between align-items-center"><span>Notifications</span><span class="badge bg-primary rounded-pill">3</span></div>
+              <div class="notif-item"><div class="notif-icon bg-soft-primary text-primary"><i class="bi bi-file-text"></i></div><div class="notif-content"><div class="notif-title">New article published</div><div class="notif-text">"Breaking: Tech Innovation 2026" has been published.</div><div class="notif-time">2 minutes ago</div></div></div>
+              <div class="notif-item"><div class="notif-icon bg-soft-warning text-warning"><i class="bi bi-chat-dots"></i></div><div class="notif-content"><div class="notif-title">Pending comment review</div><div class="notif-text">3 comments awaiting moderation.</div><div class="notif-time">15 minutes ago</div></div></div>
+              <a href="#" class="dropdown-item text-center py-2 border-top small">View all notifications</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <div class="user-profile" data-bs-toggle="dropdown" role="button">
+              <div class="avatar">JD</div>
+              <div class="user-info"><div class="user-name">John Doe</div><div class="user-role">Senior Editor</div></div>
+              <i class="bi bi-chevron-down text-muted" style="font-size: 12px;"></i>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-person dropdown-icon"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear dropdown-icon"></i> Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item btn-logout" href="#"><i class="bi bi-box-arrow-left dropdown-icon"></i> Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h4>News Management</h4>
+            <p>Manage all news articles across your publication.</p>
+          </div>
+          <div class="page-actions d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i> Export</button>
+            <a href="add-news.html" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i> Add News</a>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-lg-3 col-md-6">
+                <label class="form-label">Search</label>
+                <input type="search" class="form-control table-search" placeholder="Search articles...">
+              </div>
+              <div class="col-lg-2 col-md-6">
+                <label class="form-label">Category</label>
+                <select class="form-select table-filter" data-column="2">
+                  <option value="">All Categories</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Politics">Politics</option>
+                  <option value="Business">Business</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Health">Health</option>
+                  <option value="Breaking">Breaking</option>
+                </select>
+              </div>
+              <div class="col-lg-2 col-md-6">
+                <label class="form-label">Status</label>
+                <select class="form-select table-filter" data-column="5">
+                  <option value="">All Status</option>
+                  <option value="Published">Published</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Breaking">Breaking</option>
+                </select>
+              </div>
+              <div class="col-lg-2 col-md-6">
+                <label class="form-label">Author</label>
+                <select class="form-select">
+                  <option value="">All Authors</option>
+                  <option>Sarah Chen</option>
+                  <option>Mike Torres</option>
+                  <option>James Wilson</option>
+                  <option>Emma Davis</option>
+                  <option>Lisa Park</option>
+                </select>
+              </div>
+              <div class="col-lg-3 col-md-12">
+                <div class="d-flex gap-2">
+                  <button class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Apply Filters</button>
+                  <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="selectAll">
+            <label class="form-check-label" for="selectAll">Select All</label>
+          </div>
+          <div class="dropdown">
+            <button id="bulkActionBtn" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Bulk Actions</button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-check-lg dropdown-icon"></i> Publish</a></li>
+              <li><a class="dropdown-item" href="#"><i class="bi bi-archive dropdown-icon"></i> Move to Draft</a></li>
+              <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash dropdown-icon"></i> Delete</a></li>
+            </ul>
+          </div>
+          <span class="text-secondary fs-12 ms-auto">Showing 1-10 of 124 articles</span>
+        </div>
+
+        <!-- News Table -->
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive-custom">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;"><input class="form-check-input" type="checkbox" disabled></th>
+                    <th style="width: 50px;"></th>
+                    <th>Headline</th>
+                    <th>Category</th>
+                    <th>Author</th>
+                    <th>Views</th>
+                    <th>Status</th>
+                    <th>Published Date</th>
+                    <th style="width: 100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/DC2626/FFFFFF?text=EQ" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Earthquake Hits Coastal Region: 7.2 Magnitude</td>
+                    <td><span class="badge bg-danger-soft">Breaking</span></td>
+                    <td>Emma Davis</td>
+                    <td>45.3K</td>
+                    <td><span class="status-indicator"><span class="status-dot breaking"></span> Breaking</span></td>
+                    <td class="text-secondary">Jul 19, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/2563EB/FFFFFF?text=GM" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Global Markets Rally on Strong Tech Earnings</td>
+                    <td><span class="badge bg-primary-soft">Business</span></td>
+                    <td>Sarah Chen</td>
+                    <td>12.4K</td>
+                    <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                    <td class="text-secondary">Jul 18, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/16A34A/FFFFFF?text=AI" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">New AI Breakthrough Promises Revolutionary Change</td>
+                    <td><span class="badge bg-success-soft">Technology</span></td>
+                    <td>Mike Torres</td>
+                    <td>18.7K</td>
+                    <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                    <td class="text-secondary">Jul 18, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/F59E0B/FFFFFF?text=CF" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Championship Finals: Underdogs Claim Victory</td>
+                    <td><span class="badge bg-warning-soft">Sports</span></td>
+                    <td>James Wilson</td>
+                    <td>22.1K</td>
+                    <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                    <td class="text-secondary">Jul 17, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/0891B2/FFFFFF?text=HB" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Study Reveals Key Health Benefits of Meditation</td>
+                    <td><span class="badge bg-info-soft">Health</span></td>
+                    <td>Dr. Lisa Park</td>
+                    <td>8.9K</td>
+                    <td><span class="status-indicator"><span class="status-dot pending"></span> Pending</span></td>
+                    <td class="text-secondary">Jul 17, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/2563EB/FFFFFF?text=PI" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Political Summit: World Leaders Discuss Climate</td>
+                    <td><span class="badge bg-primary-soft">Politics</span></td>
+                    <td>Sarah Chen</td>
+                    <td>15.2K</td>
+                    <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                    <td class="text-secondary">Jul 16, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/F59E0B/FFFFFF?text=SP" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">SpaceX Successfully Launches Satellite Constellation</td>
+                    <td><span class="badge bg-warning-soft">Technology</span></td>
+                    <td>Mike Torres</td>
+                    <td>33.8K</td>
+                    <td><span class="status-indicator"><span class="status-dot published"></span> Published</span></td>
+                    <td class="text-secondary">Jul 16, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/DC2626/FFFFFF?text=MP" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Market Plunge: Dow Drops 800 Points in Trading</td>
+                    <td><span class="badge bg-danger-soft">Breaking</span></td>
+                    <td>Emma Davis</td>
+                    <td>52.1K</td>
+                    <td><span class="status-indicator"><span class="status-dot breaking"></span> Breaking</span></td>
+                    <td class="text-secondary">Jul 15, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/0891B2/FFFFFF?text=WC" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">World Cup 2026: Host Cities Prepare for Tournament</td>
+                    <td><span class="badge bg-info-soft">Sports</span></td>
+                    <td>James Wilson</td>
+                    <td>28.5K</td>
+                    <td><span class="status-indicator"><span class="status-dot draft"></span> Draft</span></td>
+                    <td class="text-secondary">Jul 14, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input class="form-check-input table-checkbox" type="checkbox"></td>
+                    <td><img src="https://placehold.co/40x28/16A34A/FFFFFF?text=EV" class="table-thumb" alt="News"></td>
+                    <td class="fw-600">Electric Vehicle Sales Surge Past Expectations</td>
+                    <td><span class="badge bg-success-soft">Business</span></td>
+                    <td>Sarah Chen</td>
+                    <td>9.7K</td>
+                    <td><span class="status-indicator"><span class="status-dot draft"></span> Draft</span></td>
+                    <td class="text-secondary">Jul 14, 2026</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-soft-primary btn-icon-only" data-bs-toggle="tooltip" title="Preview"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-soft-danger btn-icon-only btn-delete" data-bs-toggle="tooltip" title="Delete"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="text-secondary fs-12">Showing 1-10 of 124 articles</span>
+            <nav>
+              <ul class="pagination mb-0">
+                <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">...</a></li>
+                <li class="page-item"><a class="page-link" href="#">13</a></li>
+                <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>&copy; <span id="currentYear"></span> NewsCMS Pro. All rights reserved.</span>
+          <span class="d-flex gap-3">
+            <a href="#" class="text-muted">Privacy Policy</a>
+            <a href="#" class="text-muted">Terms of Service</a>
+            <a href="#" class="text-muted">Support</a>
+          </span>
+        </div>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

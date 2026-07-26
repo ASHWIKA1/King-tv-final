@@ -1,0 +1,109 @@
+.error-boundary-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 2rem;
+  background: var(--bg-light);
+}
+
+.error-card {
+  max-width: 500px;
+  width: 100%;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 3rem 2rem;
+  text-align: center;
+  border: 1px solid var(--glass-border);
+}
+
+.error-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  animation: wobble 1.5s ease-in-out infinite;
+}
+
+.error-card h2 {
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.error-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.error-card .actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.error-card .btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.error-card .btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 12px var(--primary-light);
+}
+
+.error-card .btn-secondary {
+  background: transparent;
+  color: var(--text-dark);
+  border: 1px solid var(--text-muted);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.error-card .btn-secondary:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.error-details {
+  text-align: left;
+  background: var(--bg-light);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.error-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  outline: none;
+}
+
+.error-details pre {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #ef4444;
+}
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(-8deg); }
+  30% { transform: rotate(6deg); }
+  45% { transform: rotate(-4deg); }
+  60% { transform: rotate(2deg); }
+  75% { transform: rotate(-1deg); }
+}

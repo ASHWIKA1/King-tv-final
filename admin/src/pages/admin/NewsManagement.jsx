@@ -1,0 +1,349 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import api from '../../api';
+import {
+  Plus, Search, Filter, Edit3, Eye, Trash2, CheckCircle,
+  XCircle, RefreshCw, ChevronLeft, ChevronRight, Radio,
+  FileText, Clock, Archive
+} from 'lucide-react';
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Status' },
+  { value: 'published', label: '✅ Published' },
+  { value: 'draft', label: '📝 Draft' },
+  { value: 'pending', label: '⏳ Pending Review' },
+  { value: 'rejected', label: '❌ Rejected' },
+  { value: 'archived', label: '📦 Archived' },
+];
+
+const STATUS_BADGE = {
+  published: { bg: 'rgba(16,185,129,0.15)', color: '#10B981', label: 'Published' },
+  draft: { bg: 'rgba(156,163,175,0.2)', color: '#9CA3AF', label: 'Draft' },
+  pending: { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', label: 'Pending' },
+  rejected: { bg: 'rgba(239,68,68,0.15)', color: '#EF4444', label: 'Rejected' },
+  archived: { bg: 'rgba(107,114,128,0.15)', color: '#6B7280', label: 'Archived' },
+  deleted: { bg: 'rgba(239,68,68,0.1)', color: '#EF4444', label: 'Deleted' },
+};
+
+const NewsManagement = () => {
+  const navigate = useNavigate();
+  const [articles, setArticles] = useState([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [actionMsg, setActionMsg] = useState(null);
+
+  useEffect(() => {
+    api.get('/categories').then(res => setCategories(res.data || [])).catch(() => {});
+  }, []);
+
+  const fetchArticles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page,
+        size: 12,
+        sortBy: 'publishedAt',
+        direction: 'desc',
+      });
+      if (search) params.set('search', search);
+      if (statusFilter) params.set('status', statusFilter);
+      if (categoryFilter) params.set('categoryId', categoryFilter);
+      if (startDateFilter) params.set('startDateStr', startDateFilter);
+      if (endDateFilter) params.set('endDateStr', endDateFilter);
+
+      const res = await api.get(`/articles/getAll?${params}`);
+      const data = res.data;
+      setArticles(data.content || []);
+      setTotalPages(data.totalPages || 0);
+      setTotalElements(data.totalElements || 0);
+    } catch (err) {
+      console.error('Failed to fetch articles:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, statusFilter, categoryFilter, startDateFilter, endDateFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(fetchArticles, search ? 400 : 0);
+    return () => clearTimeout(t);
+  }, [fetchArticles]);
+
+  const showMsg = (msg, isError = false) => {
+    setActionMsg({ msg, isError });
+    setTimeout(() => setActionMsg(null), 3000);
+  };
+
+  const changeStatus = async (id, status) => {
+    try {
+      await api.patch('/articles/changeStatus', { id, status });
+      showMsg(`Article ${status} successfully.`);
+      fetchArticles();
+    } catch (err) {
+      showMsg('Failed to update status.', true);
+    }
+  };
+
+  const deleteArticle = async (id) => {
+    if (!confirm('Soft-delete this article?')) return;
+    try {
+      await api.delete(`/articles/${id}`);
+      showMsg('Article deleted.');
+      fetchArticles();
+    } catch (err) {
+      showMsg('Failed to delete article.', true);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    const s = new Set(selected);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setSelected(s);
+  };
+
+  const selectAll = () => {
+    if (selected.size === articles.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(articles.map(a => a.id)));
+    }
+  };
+
+  const bulkAction = async (status) => {
+    if (selected.size === 0) return;
+    try {
+      await Promise.all([...selected].map(id => api.patch('/articles/changeStatus', { id, status })));
+      showMsg(`${selected.size} articles updated to ${status}.`);
+      setSelected(new Set());
+      fetchArticles();
+    } catch {
+      showMsg('Bulk action failed.', true);
+    }
+  };
+
+  const badge = (status) => {
+    const s = STATUS_BADGE[status] || STATUS_BADGE.draft;
+    return (
+      <span style={{
+        background: s.bg, color: s.color,
+        padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600
+      }}>{s.label}</span>
+    );
+  };
+
+  return (
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.25rem' }}>📰 News Management</h1>
+          <p className="text-secondary">{totalElements.toLocaleString()} total articles</p>
+        </div>
+        <NavLink to="/admin/news/create" className="btn btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+          <Plus size={16} /> Create Article
+        </NavLink>
+      </div>
+
+      {/* Action Message */}
+      {actionMsg && (
+        <div style={{
+          padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: 'var(--radius-sm)',
+          background: actionMsg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+          color: actionMsg.isError ? '#EF4444' : '#10B981',
+          border: `1px solid ${actionMsg.isError ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+          fontSize: '0.875rem', fontWeight: 600
+        }}>{actionMsg.msg}</div>
+      )}
+
+      {/* Filters */}
+      <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 250px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            className="form-control"
+            style={{ paddingLeft: '36px' }}
+            placeholder="Search articles by title or author…"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(0); }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+          <select className="form-control" style={{ minWidth: '140px' }}
+            value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(0); }}>
+            <option value="">All Categories</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.nameTa ? `${c.nameTa} / ${c.name}` : c.name}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <select className="form-control" style={{ minWidth: '130px' }}
+            value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
+            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <input type="date" className="form-control" style={{ maxWidth: '130px' }} title="Start Date"
+            value={startDateFilter} onChange={e => { setStartDateFilter(e.target.value); setPage(0); }} />
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
+          <input type="date" className="form-control" style={{ maxWidth: '130px' }} title="End Date"
+            value={endDateFilter} onChange={e => { setEndDateFilter(e.target.value); setPage(0); }} />
+        </div>
+        <button onClick={fetchArticles} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <RefreshCw size={14} /> Refresh
+        </button>
+
+        {selected.size > 0 && (
+          <>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{selected.size} selected</span>
+            <button onClick={() => bulkAction('published')} className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}>
+              Publish All
+            </button>
+            <button onClick={() => bulkAction('draft')} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}>
+              Move to Draft
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="glass-panel" style={{ overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <RefreshCw size={28} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 1rem', display: 'block', opacity: 0.4 }} />
+            Loading articles…
+          </div>
+        ) : articles.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <FileText size={40} style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }} />
+            No articles found. <NavLink to="/admin/news/create" style={{ color: 'var(--primary)' }}>Create one →</NavLink>
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+                <th style={{ padding: '0.75rem 1rem', width: '36px' }}>
+                  <input type="checkbox" checked={selected.size === articles.length && articles.length > 0}
+                    onChange={selectAll} style={{ cursor: 'pointer' }} />
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>TITLE</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '100px' }}>STATUS</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '110px' }}>AUTHOR</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '70px' }}>VIEWS</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '70px' }}>PRIORITY</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '130px' }}>PUBLISHED</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '160px' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {articles.map(art => (
+                <tr key={art.id} style={{
+                  borderBottom: '1px solid var(--border)',
+                  background: selected.has(art.id) ? 'var(--primary-glow)' : 'transparent',
+                  transition: 'background 0.15s'
+                }}>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <input type="checkbox" checked={selected.has(art.id)}
+                      onChange={() => toggleSelect(art.id)} style={{ cursor: 'pointer' }} />
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', lineClamp: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
+                      {art.titleEn || art.titleTa || '(No title)'}
+                    </div>
+                    {art.titleTa && art.titleEn && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
+                        {art.titleTa}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.5rem' }}>{badge(art.status)}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {art.authorName || 'Unknown'}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {(art.viewsCount ?? 0).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {(art.priorityScore ?? 0.0).toFixed(1)}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {art.publishedAt ? new Date(art.publishedAt).toLocaleDateString() : '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                      <button title="Edit" onClick={() => navigate(`/admin/news/${art.id}/edit`)}
+                        style={{ background: 'var(--primary-glow)', border: 'none', color: 'var(--primary)', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <Edit3 size={13} />
+                      </button>
+                      {art.status !== 'published' && (
+                        <button title="Publish" onClick={() => changeStatus(art.id, 'published')}
+                          style={{ background: 'rgba(16,185,129,0.1)', border: 'none', color: '#10B981', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <CheckCircle size={13} />
+                        </button>
+                      )}
+                      {art.status === 'published' && (
+                        <button title="Move to Draft" onClick={() => changeStatus(art.id, 'draft')}
+                          style={{ background: 'rgba(245,158,11,0.1)', border: 'none', color: '#F59E0B', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <Clock size={13} />
+                        </button>
+                      )}
+                      <button title="Archive" onClick={() => changeStatus(art.id, 'archived')}
+                        style={{ background: 'rgba(107,114,128,0.1)', border: 'none', color: '#6B7280', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <Archive size={13} />
+                      </button>
+                      <button title="Delete" onClick={() => deleteArticle(art.id)}
+                        style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '1rem 1.5rem', borderTop: '1px solid var(--border)'
+          }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Page {page + 1} of {totalPages} ({totalElements.toLocaleString()} articles)
+            </span>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem' }}
+                disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft size={14} />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const p = page < 4 ? i : page - 3 + i;
+                if (p >= totalPages) return null;
+                return (
+                  <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '0.4rem 0.65rem', minWidth: '32px' }}
+                    onClick={() => setPage(p)}>{p + 1}</button>
+                );
+              })}
+              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem' }}
+                disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default NewsManagement;

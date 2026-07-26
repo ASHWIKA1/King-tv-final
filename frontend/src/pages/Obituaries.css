@@ -1,0 +1,504 @@
+/* ==========================================================================
+   EXACT UI OBITUARIES STYLING (Obituaries.css)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Mukta+Malar:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+.obits-module-container {
+  font-family: 'Mukta Malar', 'Outfit', sans-serif !important;
+  color: #1e293b !important;
+}
+
+/* Hero Banner Layout */
+.obits-hero-banner {
+  background: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.85)), 
+              url("https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=1200") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  color: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 30px 40px !important;
+  margin-bottom: 30px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+.obits-hero-content {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 30px !important;
+}
+
+@media (max-width: 1024px) {
+  .obits-hero-content {
+    flex-direction: column !important;
+  }
+}
+
+.obits-hero-left {
+  flex: 1.2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.obits-hero-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.obits-hero-title-row i {
+  font-size: 28px !important;
+  color: #fef08a !important;
+  animation: flicker 2s infinite alternate !important;
+}
+
+@keyframes flicker {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+.obits-hero-title-row h1 {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+}
+
+.obits-search-inline-bar {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 10px 16px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  max-width: 580px !important;
+  width: 100% !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+@media (max-width: 600px) {
+  .obits-search-inline-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+.obits-search-field {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+}
+
+.obits-search-field i {
+  color: #94a3b8 !important;
+}
+
+.obits-search-field input {
+  border: none !important;
+  outline: none !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  width: 100% !important;
+  font-family: inherit !important;
+}
+
+.obits-search-select {
+  flex: 1 !important;
+  background: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  outline: none !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+}
+
+.obits-search-btn {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 20px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.obits-search-btn:hover {
+  background: #6d28d9 !important;
+}
+
+/* Right Stats Box Grid */
+.obits-hero-right {
+  flex: 1.1 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.obits-stat-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+.obits-stat-icon {
+  font-size: 20px !important;
+  color: #f87171 !important;
+  margin-bottom: 8px !important;
+}
+
+.obits-stat-icon.icon-gold { color: #f59e0b !important; }
+.obits-stat-icon.icon-heart { color: #ec4899 !important; }
+.obits-stat-icon.icon-users { color: #38bdf8 !important; }
+.obits-stat-icon.icon-flower { color: #a78bfa !important; }
+
+.obits-stat-val {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+}
+
+.obits-stat-lbl {
+  font-size: 11px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin-top: 2px !important;
+}
+
+/* Sidebar & Layout */
+.obits-main-layout {
+  display: grid !important;
+  grid-template-columns: 3.2fr 1fr !important;
+  gap: 30px !important;
+  margin-bottom: 40px !important;
+}
+
+@media (max-width: 1024px) {
+  .obits-main-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Quick Search Slider Row */
+.obits-slider-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+  flex-wrap: wrap !important;
+}
+
+.obits-slider-container {
+  overflow-x: auto !important;
+  display: flex !important;
+  gap: 10px !important;
+  scrollbar-width: none !important;
+}
+
+.obits-slider-container::-webkit-scrollbar {
+  display: none !important;
+}
+
+.obits-slide-btn {
+  flex: 0 0 auto !important;
+  padding: 10px 16px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #4b5563 !important;
+  cursor: pointer !important;
+}
+
+.obits-slide-btn.active {
+  background: #f5f3ff !important;
+  color: #7c3aed !important;
+  border-color: #c084fc !important;
+}
+
+/* Center Callout Lotus Box */
+.obits-center-callout-box {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: #fdf2f8 !important;
+  border: 1px solid #fbcfe8 !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  gap: 16px !important;
+  max-width: 440px !important;
+}
+
+.obits-callout-text-block {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.obits-callout-lotus {
+  font-size: 28px !important;
+  color: #ec4899 !important;
+}
+
+.obits-callout-desc {
+  font-size: 11.5px !important;
+  color: #4b5563 !important;
+  line-height: 1.4 !important;
+}
+
+.obits-callout-btn {
+  background: #db2777 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+/* Sidebar guides list */
+.obits-sidebar-block {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  margin-bottom: 20px !important;
+}
+
+.obits-sidebar-title {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #1f2937 !important;
+  margin-bottom: 14px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding-bottom: 8px !important;
+}
+
+.obits-sidebar-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid #f9fafb !important;
+}
+
+.obits-sidebar-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+.obits-sidebar-link-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 0 !important;
+  color: #4b5563 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.obits-sidebar-link-item:hover {
+  color: #7c3aed !important;
+}
+
+/* Framed Memorial Grid Card */
+.memorial-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 20px !important;
+}
+
+.memorial-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.05) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 420px !important;
+  position: relative !important;
+}
+
+.memorial-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.04) !important;
+}
+
+.memorial-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 14px !important;
+  font-size: 11px !important;
+  color: #9ca3af !important;
+}
+
+.memorial-card-flag {
+  cursor: pointer !important;
+  font-size: 13px !important;
+}
+
+/* Beautiful Frame Engine Overlays */
+.memorial-photo-frame-container {
+  height: 180px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+}
+
+.memorial-portrait-circle {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.memorial-portrait-circle img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Frames CSS overlay templates styles */
+.frame-overlay {
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: 50% !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+.frame-overlay-golden {
+  border: 8px solid transparent !important;
+  border-image: linear-gradient(135deg, #d97706, #fbbf24, #d97706) 1 !important;
+  box-shadow: 0 0 12px rgba(217, 119, 6, 0.4) !important;
+}
+
+.frame-overlay-floral {
+  border: 6px solid #fbcfe8 !important;
+  box-shadow: 0 0 8px #db2777 !important;
+}
+
+.frame-overlay-floral::after {
+  content: '🌸' !important;
+  position: absolute !important;
+  bottom: -4px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-size: 16px !important;
+}
+
+.frame-overlay-traditional {
+  border: 10px solid #78350f !important;
+  box-shadow: inset 0 0 6px #000 !important;
+}
+
+.frame-overlay-white {
+  border: 6px solid #ffffff !important;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15) !important;
+}
+
+.frame-overlay-white::before {
+  content: '🕯️' !important;
+  position: absolute !important;
+  top: -12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-size: 14px !important;
+}
+
+.frame-overlay-premium {
+  border: 8px double #1e3a8a !important;
+  box-shadow: 0 0 12px rgba(30, 58, 138, 0.4) !important;
+}
+
+/* Card content */
+.memorial-card-body {
+  padding: 10px 16px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  text-align: center !important;
+}
+
+.memorial-deceased-name {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #111827 !important;
+  margin-bottom: 2px !important;
+}
+
+.memorial-deceased-age {
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+}
+
+.memorial-deceased-loc {
+  font-size: 11.5px !important;
+  color: #9ca3af !important;
+  margin-top: 2px !important;
+}
+
+.memorial-deceased-dates {
+  font-size: 11px !important;
+  color: #4b5563 !important;
+  font-weight: 700 !important;
+  margin-top: 4px !important;
+}
+
+.memorial-card-metrics {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center;
+  border-top: 1px solid #f3f4f6 !important;
+  padding-top: 10px !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+}
+
+.memorial-details-btn {
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.memorial-details-btn:hover {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}

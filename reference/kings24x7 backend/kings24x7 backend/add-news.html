@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add News — NewsCMS Pro</title>
+  <meta name="description" content="Create a new article with the WordPress-style rich editor.">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3 z-3"></div>
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <div class="wrapper">
+
+    <!-- ===== Sidebar ===== -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><i class="bi bi-newspaper"></i></div>
+        <span class="brand-text">NewsCMS Pro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-grid-1x2-fill"></i><span class="nav-text">Dashboard</span></a></li>
+          <li class="nav-item"><a href="news.html" class="nav-link"><i class="nav-icon bi bi-file-text"></i><span class="nav-text">News</span><span class="nav-badge badge bg-danger rounded-pill">12</span></a></li>
+          <li class="nav-item"><a href="add-news.html" class="nav-link active"><i class="nav-icon bi bi-plus-circle"></i><span class="nav-text">Add News</span></a></li>
+        </ul>
+        <div class="nav-label">Content</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="categories.html" class="nav-link"><i class="nav-icon bi bi-collection"></i><span class="nav-text">Categories</span></a></li>
+          <li class="nav-item"><a href="hero-slider.html" class="nav-link"><i class="nav-icon bi bi-images"></i><span class="nav-text">Hero Slider</span></a></li>
+          <li class="nav-item"><a href="media.html" class="nav-link"><i class="nav-icon bi bi-folder"></i><span class="nav-text">Media Library</span><span class="nav-badge badge bg-primary rounded-pill">48</span></a></li>
+          <li class="nav-item"><a href="comments.html" class="nav-link"><i class="nav-icon bi bi-chat-dots"></i><span class="nav-text">Comments</span><span class="nav-badge badge bg-warning rounded-pill">7</span></a></li>
+        </ul>
+        <div class="nav-label">Monetization</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="advertisements.html" class="nav-link"><i class="nav-icon bi bi-megaphone"></i><span class="nav-text">Advertisements</span></a></li>
+        </ul>
+        <div class="nav-label">SEO</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="seo.html" class="nav-link"><i class="nav-icon bi bi-search-heart"></i><span class="nav-text">SEO</span></a></li>
+        </ul>
+        <div class="nav-label">Administration</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><span class="nav-text">Users</span></a></li>
+          <li class="nav-item"><a href="settings.html" class="nav-link"><i class="nav-icon bi bi-gear"></i><span class="nav-text">Settings</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="nav-link btn-logout"><i class="nav-icon bi bi-box-arrow-left"></i><span class="nav-text">Logout</span></a>
+      </div>
+    </aside>
+
+    <div class="main-content">
+
+      <!-- ===== Header ===== -->
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html"><i class="bi bi-house-door"></i></a></li>
+              <li class="breadcrumb-item"><a href="news.html">News</a></li>
+              <li class="breadcrumb-item active">Add New Article</li>
+            </ol>
+          </nav>
+        </div>
+        <div class="header-center">
+          <div class="header-search">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" class="form-control" placeholder="Search articles..." aria-label="Search">
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="header-btn" data-theme-toggle aria-label="Toggle theme"><i class="bi bi-moon-fill"></i></button>
+          <div class="dropdown">
+            <button class="header-btn" data-bs-toggle="dropdown" aria-label="Notifications"><i class="bi bi-bell"></i><span class="dot"></span></button>
+            <div class="dropdown-menu dropdown-menu-end" style="min-width:300px;">
+              <div class="px-3 py-2 fw-600 border-bottom" style="font-size:14px;">Notifications</div>
+              <a class="dropdown-item" href="#"><div class="d-flex gap-2 py-1"><i class="bi bi-check-circle text-success mt-1"></i><div><div class="fw-600" style="font-size:13px;">Article Published</div><div style="font-size:11px;color:var(--text-secondary);">"Breaking: Tech Innovation" published.</div></div></div></a>
+              <a class="dropdown-item" href="#"><div class="d-flex gap-2 py-1"><i class="bi bi-chat-dots text-primary mt-1"></i><div><div class="fw-600" style="font-size:13px;">New Comment</div><div style="font-size:11px;color:var(--text-secondary);">John replied to your article.</div></div></div></a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <button class="header-profile" data-bs-toggle="dropdown" aria-label="User menu">
+              <div class="avatar">JD</div>
+              <div class="profile-info"><div class="profile-name">John Doe</div><div class="profile-role">Senior Editor</div></div>
+              <i class="bi bi-chevron-down" style="font-size:12px;color:var(--text-secondary);"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear"></i> Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-left"></i> Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===== Page Content ===== -->
+      <div class="page-content">
+
+        <!-- ===== WordPress-Style Editor Header ===== -->
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2" style="border-bottom:1px solid var(--border);padding-bottom:16px;">
+          <div>
+            <h4 style="font-size:20px;font-weight:700;margin:0;">Add New Article</h4>
+            <p style="font-size:13px;color:var(--text-secondary);margin:4px 0 0;">Create content with the rich text editor</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-ghost btn-preview"><i class="bi bi-eye"></i> Preview</button>
+            <button class="btn btn-outline-primary"><i class="bi bi-save"></i> Save Draft</button>
+            <button class="btn btn-success"><i class="bi bi-check-lg"></i> Publish</button>
+          </div>
+        </div>
+
+        <div class="row g-4">
+
+          <!-- ===== LEFT COLUMN: Main Editor ===== -->
+          <div class="col-lg-8">
+
+            <!-- Title -->
+            <div class="mb-3">
+              <input type="text" id="headline" class="form-control form-control-lg" placeholder="Add title" style="font-size:28px;font-weight:700;border:none;padding:12px 0;border-radius:0;border-bottom:2px solid transparent;background:transparent;box-shadow:none;">
+            </div>
+
+            <!-- Add Media Toolbar -->
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap" style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;background:var(--bg);">
+              <button class="btn btn-sm btn-ghost" data-bs-toggle="modal" data-bs-target="#mediaModal">
+                <i class="bi bi-image text-primary"></i> Add Media
+              </button>
+              <div class="vr" style="height:20px;"></div>
+              <button class="btn btn-sm btn-ghost"><i class="bi bi-camera-video"></i> Add Video</button>
+              <button class="btn btn-sm btn-ghost"><i class="bi bi-headphones"></i> Add Audio</button>
+              <button class="btn btn-sm btn-ghost"><i class="bi bi-file-earmark"></i> Add Document</button>
+              <div class="vr" style="height:20px;"></div>
+              <button class="btn btn-sm btn-ghost" data-bs-toggle="modal" data-bs-target="#galleryModal"><i class="bi bi-collection"></i> Create Gallery</button>
+              <button class="btn btn-sm btn-ghost ms-auto" id="toggleDistractionFree" title="Distraction-free mode"><i class="bi bi-arrows-expand"></i></button>
+            </div>
+
+            <!-- TinyMCE Editor Container -->
+            <div class="mb-3" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+              <textarea id="tinymceEditor" placeholder="Start writing..."> </textarea>
+            </div>
+
+            <!-- Excerpt -->
+            <div class="mb-3">
+              <label class="form-label fw-600">Excerpt</label>
+              <textarea id="shortDesc" class="form-control" rows="3" placeholder="Write a brief excerpt for your article..." maxlength="300" style="font-size:14px;"></textarea>
+              <div class="d-flex justify-content-between mt-1">
+                <span class="form-text">Appears in article feeds and search results.</span>
+                <span class="form-text" id="shortDescCount">300 characters remaining</span>
+              </div>
+            </div>
+
+            <!-- ===== WordPress-Style SEO (Yoast-like) ===== -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-search-heart text-primary"></i>
+                <span class="fw-600" style="font-size:14px;">SEO Settings</span>
+                <span class="badge bg-success ms-auto" style="font-size:11px;">Good</span>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Meta Title</label>
+                    <input type="text" class="form-control" id="metaTitle" placeholder="SEO title (defaults to headline)" maxlength="70">
+                    <div class="form-text">60 characters recommended</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Focus Keyword</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="focusKeyword" placeholder="primary keyword">
+                      <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Meta Description</label>
+                    <textarea class="form-control" id="metaDesc" rows="2" placeholder="SEO description..." maxlength="160"></textarea>
+                  </div>
+                </div>
+                <!-- Google Preview -->
+                <div class="seo-preview mt-3">
+                  <div class="seo-url">newscms.com/news/<span id="previewSlug">article-slug</span></div>
+                  <div class="seo-title" id="previewTitle">Article Title Here</div>
+                  <div class="seo-desc" id="previewDesc">Article excerpt or meta description will appear here...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Discussion -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-chat-dots text-warning"></i>
+                <span class="fw-600" style="font-size:14px;">Discussion</span>
+              </div>
+              <div class="card-body">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="allowComments" checked>
+                  <label class="form-check-label" for="allowComments">Allow comments on this article</label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="allowPingbacks" checked>
+                  <label class="form-check-label" for="allowPingbacks">Allow pingbacks & trackbacks</label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ===== RIGHT COLUMN: Publish Sidebar ===== -->
+          <div class="col-lg-4">
+
+            <!-- Publish Box -->
+            <div class="card mb-3" style="position:sticky;top:90px;">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-gear"></i>
+                <span class="fw-600" style="font-size:14px;">Publish</span>
+              </div>
+              <div class="card-body p-0">
+                <div class="px-3 py-3 border-bottom">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span style="font-size:13px;color:var(--text-secondary);">Status</span>
+                    <select class="form-select form-select-sm" style="width:auto;">
+                      <option>Draft</option>
+                      <option>Pending Review</option>
+                      <option>Published</option>
+                      <option>Breaking News</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="px-3 py-3 border-bottom">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span style="font-size:13px;color:var(--text-secondary);">Visibility</span>
+                    <span style="font-size:13px;font-weight:600;">Public</span>
+                  </div>
+                </div>
+                <div class="px-3 py-3 border-bottom">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span style="font-size:13px;color:var(--text-secondary);">Publish</span>
+                    <span style="font-size:13px;font-weight:600;">Immediately</span>
+                  </div>
+                  <input type="datetime-local" class="form-control form-control-sm" id="publishDate">
+                </div>
+                <div class="px-3 py-3 border-bottom">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span style="font-size:13px;color:var(--text-secondary);">Slug</span>
+                  </div>
+                  <input type="text" class="form-control form-control-sm mt-1" id="slug" placeholder="article-slug">
+                </div>
+                <div class="p-3 d-grid gap-2">
+                  <button class="btn btn-success"><i class="bi bi-check-lg"></i> Publish</button>
+                  <button class="btn btn-outline-primary"><i class="bi bi-save"></i> Save Draft</button>
+                  <button class="btn btn-ghost btn-preview"><i class="bi bi-eye"></i> Preview</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-folder text-primary"></i>
+                <span class="fw-600" style="font-size:14px;">Categories</span>
+              </div>
+              <div class="card-body">
+                <div class="mb-2">
+                  <select class="form-select form-select-sm" id="category">
+                    <option value="">— Select Category —</option>
+                    <option>Technology</option>
+                    <option>Politics</option>
+                    <option>Business</option>
+                    <option>Sports</option>
+                    <option>Health</option>
+                    <option>Entertainment</option>
+                    <option>Science</option>
+                    <option>World</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:12px;">Sub Category</label>
+                  <select class="form-select form-select-sm" id="subCategory">
+                    <option value="">None</option>
+                    <option>AI & Robotics</option>
+                    <option>Cybersecurity</option>
+                    <option>Startups</option>
+                    <option>Elections</option>
+                    <option>Economy</option>
+                    <option>Fitness</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-tags text-success"></i>
+                <span class="fw-600" style="font-size:14px;">Tags</span>
+              </div>
+              <div class="card-body">
+                <input type="text" class="form-control form-control-sm" placeholder="Add tag and press Enter">
+                <div class="d-flex flex-wrap gap-1 mt-2">
+                  <span class="badge" style="background:var(--primary-light);color:var(--primary);font-weight:500;cursor:pointer;">technology <i class="bi bi-x ms-1"></i></span>
+                  <span class="badge" style="background:var(--primary-light);color:var(--primary);font-weight:500;cursor:pointer;">AI <i class="bi bi-x ms-1"></i></span>
+                  <span class="badge" style="background:var(--primary-light);color:var(--primary);font-weight:500;cursor:pointer;">innovation <i class="bi bi-x ms-1"></i></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Featured Image -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-image text-danger"></i>
+                <span class="fw-600" style="font-size:14px;">Featured Image</span>
+              </div>
+              <div class="card-body">
+                <div class="upload-zone" onclick="document.getElementById('featuredInput').click()" style="padding:20px;">
+                  <i class="bi bi-image" style="font-size:24px;color:var(--text-secondary);"></i>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Set featured image</div>
+                  <input type="file" id="featuredInput" accept="image/*" hidden onchange="previewImage(this,'featuredPreview')">
+                </div>
+                <img id="featuredPreview" src="#" alt="" style="display:none;max-width:100%;border-radius:var(--radius-sm);margin-top:8px;max-height:200px;">
+                <div class="mt-2 d-flex gap-2">
+                  <button class="btn btn-sm btn-ghost" onclick="document.getElementById('featuredInput').click()"><i class="bi bi-pencil"></i> Edit</button>
+                  <button class="btn btn-sm btn-ghost text-danger" onclick="removeFeaturedImage()"><i class="bi bi-trash"></i> Remove</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Author -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-person text-muted"></i>
+                <span class="fw-600" style="font-size:14px;">Author & Source</span>
+              </div>
+              <div class="card-body">
+                <div class="mb-2">
+                  <label class="form-label" style="font-size:12px;">Author</label>
+                  <select class="form-select form-select-sm">
+                    <option>John Doe</option>
+                    <option>Sarah Chen</option>
+                    <option>Mike Torres</option>
+                    <option>Emma Davis</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label" style="font-size:12px;">Source</label>
+                  <input type="text" class="form-control form-control-sm" placeholder="Source name or URL">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:12px;">Location</label>
+                  <input type="text" class="form-control form-control-sm" placeholder="e.g., New York, USA">
+                </div>
+              </div>
+            </div>
+
+            <!-- Article Flags -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-flag text-warning"></i>
+                <span class="fw-600" style="font-size:14px;">Article Flags</span>
+              </div>
+              <div class="card-body">
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="flagFeatured">
+                  <label class="form-check-label" for="flagFeatured" style="font-size:13px;">Featured</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="flagBreaking">
+                  <label class="form-check-label" for="flagBreaking" style="font-size:13px;">Breaking News</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="flagHero">
+                  <label class="form-check-label" for="flagHero" style="font-size:13px;">Hero Slider</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="flagTrending">
+                  <label class="form-check-label" for="flagTrending" style="font-size:13px;">Trending</label>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="flagEditor">
+                  <label class="form-check-label" for="flagEditor" style="font-size:13px;">Editor's Pick</label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ===== Footer ===== -->
+      <footer class="footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>&copy; <span id="currentYear"></span> NewsCMS Pro. All rights reserved.</span>
+          <span class="d-flex gap-3">
+            <a href="#" class="text-muted">Privacy Policy</a>
+            <a href="#" class="text-muted">Terms of Service</a>
+            <a href="#" class="text-muted">Support</a>
+          </span>
+        </div>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       MEDIA INSERTION MODAL (WordPress-style)
+       ============================================================ -->
+  <div class="modal fade" id="mediaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-600"><i class="bi bi-images me-2 text-primary"></i>Insert Media</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="d-flex" style="min-height:400px;">
+            <!-- Left Sidebar: Media library list -->
+            <div class="border-end" style="width:280px;flex-shrink:0;overflow-y:auto;">
+              <div class="p-3 border-bottom">
+                <div class="search-box">
+                  <i class="bi bi-search search-box-icon"></i>
+                  <input type="text" class="form-control form-control-sm" placeholder="Search media..." id="mediaSearchInput">
+                </div>
+              </div>
+              <div class="p-2">
+                <div class="d-flex flex-column gap-1">
+                  <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="cursor:pointer;background:var(--primary-light);color:var(--primary);">
+                    <i class="bi bi-grid-3x3-gap"></i> <span style="font-size:13px;font-weight:600;">All Media</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="cursor:pointer;">
+                    <i class="bi bi-image text-muted"></i> <span style="font-size:13px;">Images</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="cursor:pointer;">
+                    <i class="bi bi-camera-video text-muted"></i> <span style="font-size:13px;">Videos</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="cursor:pointer;">
+                    <i class="bi bi-file-earmark text-muted"></i> <span style="font-size:13px;">Documents</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="cursor:pointer;">
+                    <i class="bi bi-music-note text-muted"></i> <span style="font-size:13px;">Audio</span>
+                  </div>
+                </div>
+                <hr>
+                <button class="btn btn-sm btn-primary w-100" onclick="document.getElementById('modalUploadInput').click()">
+                  <i class="bi bi-cloud-upload"></i> Upload Files
+                </button>
+                <input type="file" id="modalUploadInput" multiple accept="image/*" hidden>
+              </div>
+            </div>
+
+            <!-- Right: Media Grid -->
+            <div class="flex-grow-1 p-3 overflow-auto">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span style="font-size:13px;color:var(--text-secondary);">All Media <span class="fw-600 text-dark">24 items</span></span>
+                <select class="form-select form-select-sm" style="width:auto;">
+                  <option>Grid View</option>
+                  <option>List View</option>
+                </select>
+              </div>
+              <div class="media-grid" style="grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));">
+                <div class="media-item" data-url="https://placehold.co/800x500/2563EB/ffffff?text=Summit" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/2563EB/ffffff?text=Summit" alt="summit" class="media-thumb" style="aspect-ratio:16/10;">
+                  <div class="media-info"><div class="media-name">summit-climate.jpg</div><div class="media-size">2.4 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/16A34A/ffffff?text=AI" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/16A34A/ffffff?text=AI+Launch" alt="ai" class="media-thumb">
+                  <div class="media-info"><div class="media-name">ai-platform.jpg</div><div class="media-size">1.8 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/F59E0B/ffffff?text=Sports" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/F59E0B/ffffff?text=Sports" alt="sports" class="media-thumb">
+                  <div class="media-info"><div class="media-name">championship.jpg</div><div class="media-size">3.1 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/DC2626/ffffff?text=Health" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/DC2626/ffffff?text=Health" alt="health" class="media-thumb">
+                  <div class="media-info"><div class="media-name">healthcare-reform.jpg</div><div class="media-size">1.2 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/8B5CF6/ffffff?text=Business" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/8B5CF6/ffffff?text=Business" alt="business" class="media-thumb">
+                  <div class="media-info"><div class="media-name">markets-rally.jpg</div><div class="media-size">2.7 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/EC4899/ffffff?text=Entertain" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/EC4899/ffffff?text=Entertain" alt="entertain" class="media-thumb">
+                  <div class="media-info"><div class="media-name">awards.jpg</div><div class="media-size">1.5 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/06B6D4/ffffff?text=Science" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/06B6D4/ffffff?text=Science" alt="science" class="media-thumb">
+                  <div class="media-info"><div class="media-name">quantum.jpg</div><div class="media-size">4.2 MB</div></div>
+                </div>
+                <div class="media-item" data-url="https://placehold.co/800x500/D946EF/ffffff?text=Guidelines" onclick="selectMediaItem(this)" data-bs-dismiss="modal">
+                  <img src="https://placehold.co/300x188/D946EF/ffffff?text=Guidelines" alt="guidelines" class="media-thumb">
+                  <div class="media-info"><div class="media-name">guidelines.jpg</div><div class="media-size">1.9 MB</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="me-auto">
+            <span style="font-size:13px;color:var(--text-secondary);">Click an image to insert it into the editor.</span>
+          </div>
+          <button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" id="insertMediaBtn" disabled data-bs-dismiss="modal"><i class="bi bi-check-lg"></i> Insert into Post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GALLERY MODAL
+       ============================================================ -->
+  <div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-600"><i class="bi bi-collection me-2 text-success"></i>Create Gallery</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Gallery Images</label>
+              <div class="upload-zone" onclick="document.getElementById('galleryInput').click()">
+                <i class="bi bi-cloud-upload upload-icon"></i>
+                <div class="upload-text">Drop images here to create a gallery</div>
+                <div class="upload-hint">or click to browse (multiple files allowed)</div>
+                <input type="file" id="galleryInput" accept="image/*" multiple hidden>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="gallery-grid">
+                <div class="gallery-item"><img src="https://placehold.co/120x120/2563EB/ffffff?text=1" alt=""><div class="gallery-overlay"><i class="bi bi-x-circle text-white" style="font-size:20px;"></i></div></div>
+                <div class="gallery-item"><img src="https://placehold.co/120x120/16A34A/ffffff?text=2" alt=""><div class="gallery-overlay"><i class="bi bi-x-circle text-white" style="font-size:20px;"></i></div></div>
+                <div class="gallery-item"><img src="https://placehold.co/120x120/F59E0B/ffffff?text=3" alt=""><div class="gallery-overlay"><i class="bi bi-x-circle text-white" style="font-size:20px;"></i></div></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Gallery Layout</label>
+              <select class="form-select">
+                <option>Grid (3 columns)</option>
+                <option>Grid (4 columns)</option>
+                <option>Slideshow</option>
+                <option>Masonry</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Image Size</label>
+              <select class="form-select">
+                <option>Large (1024x768)</option>
+                <option>Medium (640x480)</option>
+                <option>Small (320x240)</option>
+                <option>Thumbnail (150x150)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-success" data-bs-dismiss="modal"><i class="bi bi-check-lg"></i> Insert Gallery</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TinyMCE CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/5.10.9/tinymce.min.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+
+  <script>
+    /* ===== TinyMCE Initialization ===== */
+    tinymce.init({
+      selector: '#tinymceEditor',
+      height: 520,
+      menubar: true,
+      plugins: [
+        'advlist autolink lists link image charmap print preview anchor',
+        'searchreplace visualblocks code fullscreen',
+        'insertdatetime media table paste code help wordcount',
+        'textcolor colorpicker hr pagebreak emoticons'
+      ],
+      toolbar: [
+        'undo redo | formatselect | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat',
+        'link image media table | hr pagebreak emoticons | code fullscreen preview | help'
+      ],
+      toolbar_mode: 'wrap',
+      branding: false,
+      elementpath: true,
+      content_style: 'body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; font-size: 16px; line-height: 1.8; color: #1E293B; padding: 16px; max-width: 800px; margin: 0 auto; }',
+      setup: function (editor) {
+        window.tinymceEditor = editor;
+      }
+    });
+
+    /* ===== Media Insertion ===== */
+    var selectedMediaUrl = null;
+
+    window.selectMediaItem = function (el) {
+      document.querySelectorAll('.media-item').forEach(function (item) {
+        item.classList.remove('border', 'border-primary');
+      });
+      el.classList.add('border', 'border-primary');
+      selectedMediaUrl = el.getAttribute('data-url');
+      document.getElementById('insertMediaBtn').disabled = false;
+    };
+
+    document.getElementById('insertMediaBtn').addEventListener('click', function () {
+      if (selectedMediaUrl && window.tinymceEditor) {
+        window.tinymceEditor.insertContent('<img src="' + selectedMediaUrl + '" alt="" style="max-width:100%;height:auto;" />');
+        selectedMediaUrl = null;
+        document.getElementById('insertMediaBtn').disabled = true;
+        document.querySelectorAll('.media-item').forEach(function (item) {
+          item.classList.remove('border', 'border-primary');
+        });
+      }
+    });
+
+    /* ===== Slug Generation ===== */
+    var headlineInput = document.getElementById('headline');
+    var slugInput = document.getElementById('slug');
+    var previewSlug = document.getElementById('previewSlug');
+    var previewTitle = document.getElementById('previewTitle');
+
+    if (headlineInput && slugInput) {
+      headlineInput.addEventListener('keyup', function () {
+        var slug = this.value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+        if (slugInput) slugInput.value = slug;
+        if (previewSlug) previewSlug.textContent = slug || 'article-slug';
+        if (previewTitle) previewTitle.textContent = this.value || 'Article Title Here';
+      });
+    }
+
+    /* ===== Excerpt Character Count ===== */
+    var shortDesc = document.getElementById('shortDesc');
+    var shortDescCount = document.getElementById('shortDescCount');
+    if (shortDesc && shortDescCount) {
+      shortDesc.addEventListener('keyup', function () {
+        var remaining = 300 - this.value.length;
+        shortDescCount.textContent = remaining + ' characters remaining';
+      });
+    }
+
+    /* ===== Featured Image ===== */
+    window.removeFeaturedImage = function () {
+      var preview = document.getElementById('featuredPreview');
+      var input = document.getElementById('featuredInput');
+      if (preview) { preview.style.display = 'none'; preview.src = '#'; }
+      if (input) input.value = '';
+    };
+  </script>
+
+</body>
+</html>

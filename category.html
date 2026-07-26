@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ta" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>பிரிவுகள் - KING 24x7 | Tamil News Portal</title>
+  <link rel="stylesheet" href="css/styles.css?v=8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-light.png" id="favicon">
+</head>
+
+<body class="theme-politics" id="categoryPageBody">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-bar-left">
+        <span><i class="far fa-calendar-alt"></i> <span id="tamilDate"></span></span>
+        <span><i class="far fa-clock"></i> <span id="currentTime"></span></span>
+        <span><i class="fas fa-map-marker-alt"></i> 
+          <select id="districtSelector" class="district-select-top" aria-label="District">
+            <option value="சென்னை" selected>சென்னை</option>
+            <option value="கோயம்புத்தூர்">கோயம்புத்தூர்</option>
+            <option value="மதுரை">மதுரை</option>
+            <option value="சேலம்">சேலம்</option>
+            <option value="திருச்சி">திருச்சி</option>
+          </select>
+        </span>
+        <span><i class="fas fa-thermometer-half"></i> <span id="topTemp">32°C</span></span>
+      </div>
+      <div class="top-bar-right">
+        <a href="#" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-icon" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode"><i class="fas fa-moon"></i> இருள்</button>
+        <select class="lang-switcher" aria-label="Language">
+          <option value="ta" selected>தமிழ்</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+        <!-- HEADER MAIN -->
+  <header class="header-main">
+    <div class="container">
+      <div class="header-left">
+        <a href="index.html" class="logo-link">
+          <img src="assets/images/logo-banner-light.png" alt="KING 24x7" class="main-logo-img logo-light-only">
+          <img src="assets/images/logo-banner-dark.png" alt="KING 24x7" class="main-logo-img logo-dark-only">
+          <span class="logo-sub-text">LIVE • TRUE • TAMIL</span>
+        </a>
+      </div>
+      <div class="header-center"></div>
+      <div class="header-right">
+        <a href="index.html#section-livetv" class="livetv-btn">
+          <i class="fas fa-play-circle"></i> LIVE TV WATCH NOW
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="main-nav" id="mainNav">
+    <div class="container">
+      <div class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <i class="fas fa-bars"></i>
+      </div>
+            <ul class="nav-menu" id="navMenu">
+        <li class="nav-item" id="nav-home"><a href="index.html" class="nav-link">முகப்பு</a></li>
+        <li class="nav-item" id="nav-politics"><a href="category.html?cat=politics" class="nav-link">அரசியல்</a></li>
+        <li class="nav-item" id="nav-business"><a href="category.html?cat=business" class="nav-link">வணிகம்</a></li>
+        <li class="nav-item" id="nav-sports"><a href="category.html?cat=sports" class="nav-link">விளையாட்டு</a></li>
+        <li class="nav-item" id="nav-cinema"><a href="category.html?cat=cinema" class="nav-link">பொழுதுபோக்கு</a></li>
+        <li class="nav-item" id="nav-tech"><a href="category.html?cat=tech" class="nav-link">தொழில்நுட்பம்</a></li>
+        <li class="nav-item" id="nav-state"><a href="directory.html" class="nav-link">மாநிலம்</a></li>
+        <li class="nav-item" id="nav-world"><a href="category.html?cat=politics" class="nav-link">சர்வதேசம்</a></li>
+        <li class="nav-item"><a href="index.html#section-video" class="nav-link">வீдео</a></li>
+        <li class="nav-item"><a href="index.html#section-stories" class="nav-link">வெப் ஸ்டோரிஸ்</a></li>
+      </ul>
+      <div class="nav-search" id="searchToggle" aria-label="Search"><i class="fas fa-search"></i></div>
+    </div>
+  </nav>
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <!-- BREAKING NEWS -->
+  <div class="breaking-news">
+    <div class="container">
+      <div class="breaking-label" style="background-color: #FFD700; color: #000;"><i class="fas fa-bolt"></i> BREAKING NEWS</div>
+      <div class="breaking-ticker">
+        <div class="breaking-track" id="breakTrack">
+          <a href="#">🌧️ தமிழகத்தில் அடுத்த 3 நாட்களுக்கு மழைக்கு வாய்ப்பு – வானிலை ஆய்வு மையம்</a>
+          <a href="#">🏏 IPL 2025: சென்னை அணி அபார வெற்றி – ரசிகர்கள் உற்சாகம்</a>
+          <a href="#">📈 பங்குச்சந்தை உயர்வு – முதலீட்டாளர்கள் பெரும் மகிழ்ச்சி</a>
+        </div>
+      </div>
+      <div class="breaking-controls">
+        <button id="breakPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+        <button id="breakNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY HEADER BLOCK -->
+  <div class="category-header">
+    <div class="container">
+      <!-- Breadcrumb -->
+      <div class="breadcrumbs">
+        <a href="index.html">முகப்பு</a>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <span id="breadcrumbCat">அரசியல்</span>
+      </div>
+
+      <h1 id="categoryMainTitle">அரசியல் செய்திகள்</h1>
+
+      <div class="category-tabs-container">
+        <!-- Subcategory tabs -->
+        <div class="subcategory-tabs" id="subcategoryTabs">
+          <!-- Dynamically inserted tabs -->
+        </div>
+
+        <!-- Filter controls -->
+        <div class="category-filters">
+          <button class="category-filter-btn active" data-filter="all">அனைத்தும்</button>
+          <button class="category-filter-btn" data-filter="featured">முக்கிய செய்திகள்</button>
+          <button class="category-filter-btn" data-filter="analysis">ஆய்வுகள்</button>
+          <button class="category-filter-btn" data-filter="opinion">கருத்துக்கள்</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN NEWS GRID -->
+  <main class="news-section">
+    <div class="container">
+      <div class="news-grid-3" id="categoryNewsGrid">
+        <!-- Dynamic news cards will be inserted here by JavaScript -->
+      </div>
+      
+      <!-- Load More Placeholder -->
+      <div style="text-align: center; margin-top: 32px;">
+        <button class="livetv-btn" style="background: var(--category-color, var(--primary));" onclick="alert('மேலும் செய்திகள் விரைவில்!');">மேலும் செய்திகள்</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="assets/icons/logo-icon-light.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-light-only">
+            <img src="assets/icons/logo-icon-dark.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-dark-only">
+            <span style="font-size:24px; font-weight:800; color:white;">KING 24x7</span>
+          </div>
+          <div class="tagline" style="color:rgba(255,255,255,0.5); margin-top:8px;">உண்மை. பொறுப்புடன். தமிழ்.</div>
+          <p>KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி,
+            நம்பகமான செய்திகளை வழங்குகிறோம்.</p>
+        </div>
+<div class="footer-col">
+          <h5>செய்திகள்</h5>
+          <a href="category.html?cat=politics">அரசியல்</a>
+          <a href="category.html?cat=business">வணிகம்</a>
+          <a href="category.html?cat=sports">விளையாட்டு</a>
+          <a href="category.html?cat=cinema">சினிமா</a>
+          <a href="category.html?cat=tech">தொழில்நுட்பம்</a>
+        </div>
+        <div class="footer-col">
+          <h5>கூடுதல்</h5>
+          <a href="index.html#section-video">வீடியோக்கள்</a>
+          <a href="index.html#section-livetv">லைவ் டிவி</a>
+          <a href="index.html#section-stories">வெப் ஸ்டோரிஸ்</a>
+        </div>
+        <div class="footer-col">
+          <h5>தகவல்</h5>
+          <a href="#">எங்களைப் பற்றி</a>
+          <a href="#">தொடர்புக்கு</a>
+          <a href="#">விளம்பரம்</a>
+          <a href="#">தனியுரிமைக் கொள்கை</a>
+        </div>
+        <div class="footer-col">
+          <h5>பின்தொடர</h5>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2025 <strong>KING 24x7</strong> - All Rights Reserved.</div>
+        <div>
+          <a href="#">RSS Feeds</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Sitemap</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+  <script src="js/main.js?v=4" charset="UTF-8"></script>
+
+  <!-- CATEGORY DATA AND FILTER LOGIC -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 1. Get query param for category
+      const params = new URLSearchParams(window.location.search);
+      let cat = params.get('cat') || 'politics';
+      cat = cat.toLowerCase();
+
+      // Category details map
+      const catDetails = {
+        politics: {
+          title: 'அரசியல் செய்திகள்',
+          bread: 'அரசியல்',
+          themeClass: 'theme-politics',
+          subcats: ['அனைத்தும்', 'மாநிலம்', 'தேசியம்', 'சர்வதேசம்', 'அரசு கொள்கைகள்'],
+          articles: [
+            {
+              id: 1,
+              title: 'தமிழக சட்டமன்றக் கூட்டத்தொடர் புதிய பட்ஜெட் அறிவிப்புகள் – நேரடித் தகவல்கள்',
+              desc: 'பட்ஜெட் கூட்டத்தொடரில் முக்கிய துறைகளுக்கான நிதி ஒதுக்கீடுகள் மற்றும் புதிய திட்டங்கள் குறித்த தகவல்கள் வெளியிடப்பட்டன.',
+              subcat: 'மாநிலம்',
+              type: 'featured',
+              date: '1 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #1E3A8A, #3B82F6)'
+            },
+            {
+              id: 2,
+              title: 'தேசிய தேர்தல் களம்: புது தில்லியில் அனைத்துக் கட்சிக் கூட்டம் இன்று',
+              desc: 'எதிர்வரும் பாராளுமன்றக் கூட்டத்தொடரை சுமுகமாக நடத்துவது குறித்து முக்கிய விவாதங்கள் நடைபெறுகின்றன.',
+              subcat: 'தேசியம்',
+              type: 'recent',
+              date: '3 மணி நேரம்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #3B82F6, #60A5FA)'
+            },
+            {
+              id: 3,
+              title: 'இந்திய-அமெரிக்க வெளியுறவுத் துறை அமைச்சர்கள் சந்திப்பு - முக்கிய ஒப்பந்தங்கள்',
+              desc: 'இரு நாடுகளுக்கு இடையிலான பாதுகாப்பு மற்றும் வர்த்தக உறவுகள் குறித்து உயர்மட்ட ஆலோசனைகள் நடைபெற்றன.',
+              subcat: 'சர்வதேசம்',
+              type: 'analysis',
+              date: '6 மணி நேரம்',
+              readTime: '5 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #1D4ED8, #1E3A8A)'
+            },
+            {
+              id: 4,
+              title: 'புதிய கல்விக் கொள்கை 2026: மாநில அரசுகளின் கருத்துக்கள் கேட்பு',
+              desc: 'கல்வித் துறையில் மேற்கொள்ளப்பட வேண்டிய சீர்திருத்தங்கள் குறித்து ஆலோசனைகள் பெறப்பட்டு வருகின்றன.',
+              subcat: 'அரசு கொள்கைகள்',
+              type: 'opinion',
+              date: '12 மணி நேரம்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #2563EB, #3B82F6)'
+            },
+            {
+              id: 5,
+              title: 'தமிழகத்தில் உள்ளாட்சித் தேர்தல் அறிவிப்பு விரைவில் வெளியீடு',
+              desc: 'தேர்தல் ஆணையம் விரிவான ஏற்பாடுகளை செய்து வரும் நிலையில் முக்கிய அறிவிப்புகள் எதிர்பார்க்கப்படுகின்றன.',
+              subcat: 'மாநிலம்',
+              type: 'recent',
+              date: '1 நாள் முன்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #1E40AF, #3B82F6)'
+            },
+            {
+              id: 6,
+              title: 'நாடாளுமன்ற மசோதா விவாதம்: புதிய வரி விதிப்பு கொள்கை ஆய்வு',
+              desc: 'பொருளாதார வளர்ச்சிக்கு உதவும் வகையில் புதிய வரி சட்ட சீர்திருத்தங்கள் குறித்த ஆய்வுகள் விவாதிக்கப்படுகின்றன.',
+              subcat: 'தேசியம்',
+              type: 'analysis',
+              date: '2 நாட்கள் முன்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #1D4ED8, #60A5FA)'
+            }
+          ]
+        },
+        business: {
+          title: 'வணிகச் செய்திகள்',
+          bread: 'வணிகம்',
+          themeClass: 'theme-business',
+          subcats: ['அனைத்தும்', 'சந்தை', 'நிறுவனங்கள்', 'முதலீடு', 'ஸ்டார்ட்அப்'],
+          articles: [
+            {
+              id: 7,
+              title: 'பங்குச்சந்தை வரலாறு காணாத உயர்வு – சென்செக்ஸ் 83,000 புள்ளிகளைத் தாண்டியது',
+              desc: 'தொழில்நுட்ப மற்றும் வங்கி பங்குகள் பெரும் லாபம் ஈட்டியதை அடுத்து முதலீட்டாளர்கள் மகிழ்ச்சி அடைந்துள்ளனர்.',
+              subcat: 'சந்தை',
+              type: 'featured',
+              date: '30 நிமிடங்கள்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #065F46, #10B981)'
+            },
+            {
+              id: 8,
+              title: 'டாடா மோட்டார்ஸ் மின்சார வாகன உற்பத்தியில் புதிய முதலீடுகள்',
+              desc: 'வாகன சந்தையில் எலெக்ட்ரிக் கார்களின் தேவையை பூர்த்தி செய்ய புதிய தொழிற்சாலைகள் அமைக்கப்பட உள்ளன.',
+              subcat: 'நிறுவனங்கள்',
+              type: 'recent',
+              date: '2 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #10B981, #34D399)'
+            },
+            {
+              id: 9,
+              title: 'தங்கத்தின் விலை அதிரடி வீழ்ச்சி - இன்றைய நிலவரம்',
+              desc: 'சர்வதேச சந்தையில் ஏற்பட்ட மாற்றங்கள் காரணமாக தங்கம் மற்றும் வெள்ளியின் விலை இன்று சற்று குறைந்துள்ளது.',
+              subcat: 'முதலீடு',
+              type: 'recent',
+              date: '4 மணி நேரம்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #047857, #10B981)'
+            },
+            {
+              id: 10,
+              title: 'சென்னையில் புதிய ஸ்டார்ட்அப் கண்காட்சி - இளைஞர்கள் ஆர்வம்',
+              desc: '100க்கும் மேற்பட்ட வளரும் நிறுவனங்கள் தங்கள் கண்டுபிடிப்புகளையும் யோசனைகளையும் காட்சிப்படுத்தியுள்ளன.',
+              subcat: 'ஸ்டார்ட்அப்',
+              type: 'analysis',
+              date: '8 மணி நேரம்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #059669, #34D399)'
+            },
+            {
+              id: 11,
+              title: 'சிறுகுறு தொழில்களுக்கான கடன் உதவி திட்டம் விரிவாக்கம்',
+              desc: 'சுயதொழில் செய்பவர்களுக்கு உதவும் வகையில் வட்டி குறைப்பு மற்றும் எளிதான கடன் அனுமதிகள் வழங்கப்படுகின்றன.',
+              subcat: 'முதலீடு',
+              type: 'opinion',
+              date: '1 நாள் முன்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #065F46, #059669)'
+            },
+            {
+              id: 12,
+              title: 'கச்சா எண்ணெய் இறக்குமதி வரம்புகள் மாற்றி அமைப்பு',
+              desc: 'இந்திய இறக்குமதியாளர்கள் பலனடையும் வகையில் புதிய கொள்கை மாற்றங்கள் மத்திய அரசால் கொண்டுவரப்பட்டுள்ளன.',
+              subcat: 'சந்தை',
+              type: 'analysis',
+              date: '2 நாட்கள் முன்',
+              readTime: '5 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #10B981, #047857)'
+            }
+          ]
+        },
+        sports: {
+          title: 'விளையாட்டுச் செய்திகள்',
+          bread: 'விளையாட்டு',
+          themeClass: 'theme-sports',
+          subcats: ['அனைத்தும்', 'கிரிக்கெட்', 'கால்பந்து', 'டென்னிஸ்', 'உள்ளூர்'],
+          articles: [
+            {
+              id: 13,
+              title: 'IPL 2025: சென்னை சூப்பர் கிங்ஸ் அணி இறுதிப்போட்டிக்கு தகுதி பெற்றது',
+              desc: 'ரசிகர்களை பரவசப்படுத்திய பரபரப்பான போட்டியில் மும்பை அணியை வீழ்த்தி சென்னை அணி வெற்றி பெற்றது.',
+              subcat: 'கிரிக்கெட்',
+              type: 'featured',
+              date: '10 நிமிடங்கள்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #C2410C, #F97316)'
+            },
+            {
+              id: 14,
+              title: 'உலகக் கோப்பை தகுதிச் சுற்று கால்பந்து: இந்திய அணி அபார ஆட்டம்',
+              desc: 'நெருக்கடியான போட்டியில் ஆப்கானிஸ்தான் அணியை 2-1 என்ற கோல் கணக்கில் வீழ்த்தி இந்திய அணி சாதனை படைத்தது.',
+              subcat: 'கால்பந்து',
+              type: 'recent',
+              date: '3 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #F97316, #FB923C)'
+            },
+            {
+              id: 15,
+              title: 'விம்பிள்டன் டென்னிஸ் 2025: அரையிறுதியில் ரோகன் போபண்ணா ஜோடி',
+              desc: 'கடுமையான சவால்களைத் தாண்டி இந்தியாவின் நட்சத்திர வீரர் இரட்டையர் பிரிவில் புதிய மைல்கல்லை எட்டியுள்ளார்.',
+              subcat: 'டென்னிஸ்',
+              type: 'analysis',
+              date: '5 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #EA580C, #F97316)'
+            },
+            {
+              id: 16,
+              title: 'தமிழ்நாடு மாநில அளவிலான தடகள போட்டி மதுரையில் இன்று துவக்கம்',
+              desc: 'பல்வேறு மாவட்டங்களை சேர்ந்த 1,000க்கும் மேற்பட்ட இளம் வீரர் வீராங்கனைகள் இப்போட்டிகளில் பங்கேற்கின்றனர்.',
+              subcat: 'உள்ளூர்',
+              type: 'recent',
+              date: '9 மணி நேரம்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #F97316, #FB923C)'
+            },
+            {
+              id: 17,
+              title: 'இந்திய கிரிக்கெட் அணியின் புதிய பயிற்சியாளர் நியமனம் - முக்கிய ஆலோசனைகள்',
+              desc: 'அடுத்த சில தொடர்களுக்கான வியூகங்கள் மற்றும் உடற்தகுதி மேம்பாடு குறித்து புதிய பயிற்சியாளர் அறிக்கை தந்தார்.',
+              subcat: 'கிரிக்கெட்',
+              type: 'opinion',
+              date: '1 நாள் முன்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #C2410C, #EA580C)'
+            },
+            {
+              id: 18,
+              title: 'உள்ளூர் கபடிப் போட்டிகள்: சேலம் அணி சாம்பியன் பட்டம் வென்றது',
+              desc: 'இறுதிப்போட்டியில் ஈரோடு அணியை வீழ்த்தி சேலம் அணி தங்கக் கோப்பையை கைப்பற்றியது.',
+              subcat: 'உள்ளூர்',
+              type: 'analysis',
+              date: '3 நாட்கள் முன்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #F97316, #C2410C)'
+            }
+          ]
+        },
+        cinema: {
+          title: 'சினிமா & பொழுதுபோக்கு',
+          bread: 'பொழுதுபோக்கு',
+          themeClass: 'theme-cinema',
+          subcats: ['அனைத்தும்', 'கோலிவுட்', 'பாலிவுட்', 'விமர்சனங்கள்', 'இசை'],
+          articles: [
+            {
+              id: 19,
+              title: 'விஜய் 69-வது படம்: அனிருத் இசையமைப்பில் உருவாவதாக அதிகாரப்பூர்வ அறிவிப்பு',
+              desc: 'திரையுலகமே பெரிதும் எதிர்பார்த்த பிரம்மாண்ட கூட்டணி மீண்டும் இணைகிறது. ரசிகர்கள் பெரும் கொண்டாட்டத்தில் உள்ளனர்.',
+              subcat: 'கோலிவுட்',
+              type: 'featured',
+              date: '45 நிமிடங்கள்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #BE185D, #EC4899)'
+            },
+            {
+              id: 20,
+              title: 'ஆஸ்கார் 2026 பரிந்துரை பட்டியலில் இடம் பிடித்த தமிழ் திரைப்படம்',
+              desc: 'இந்தியாவின் அதிகாரப்பூர்வ பிரதிநிதியாக தமிழ் படம் தேர்வு செய்யப்பட்டுள்ளதாக திரைப்பட கூட்டமைப்பு அறிவித்துள்ளது.',
+              subcat: 'கோலிவுட்',
+              type: 'analysis',
+              date: '4 மணி நேரம்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #EC4899, #F472B6)'
+            },
+            {
+              id: 21,
+              title: 'சமீபத்திய பிளாக்பஸ்டர் படத்தின் நேர்மையான விமர்சனம் - விறுவிறுப்பான திரைக்கதை',
+              desc: 'கதைக்களம், நடிகர்களின் நடிப்பு மற்றும் தொழில்நுட்ப கூறுகள் பற்றிய முழுமையான திரைப்பட அலசல்.',
+              subcat: 'விமர்சனங்கள்',
+              type: 'analysis',
+              date: '6 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #9D174D, #EC4899)'
+            },
+            {
+              id: 22,
+              title: 'பாலிவுட்டின் பிரம்மாண்ட புதிய படம் டீசர் வெளியாகி உலகளவில் வைரல்',
+              desc: 'பிரம்மாண்ட கிராபிக்ஸ் காட்சிகளுடன் உருவான இந்த வரலாற்று படத்தின் டீசர் சாதனைகளைப் படைத்து வருகிறது.',
+              subcat: 'பாலிவுட்',
+              type: 'recent',
+              date: '10 மணி நேரம்',
+              readTime: '2 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #EC4899, #F472B6)'
+            },
+            {
+              id: 23,
+              title: 'ஏ.ஆர்.ரஹ்மானின் புதிய இசை நிகழ்ச்சி மேடையில் ரசிகர்கள் பரவசம்',
+              desc: 'சென்னையில் நேற்று இரவு நடைபெற்ற மெகா இசை நிகழ்ச்சியில் ஆயிரக்கணக்கானோர் கலந்து கொண்டு மகிழ்ந்தனர்.',
+              subcat: 'இசை',
+              type: 'recent',
+              date: '1 நாள் முன்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #BE185D, #9D174D)'
+            },
+            {
+              id: 24,
+              title: 'தமிழ் சினிமாவில் மாற்றுத் திறனாளிகளுக்கான படைப்புகள் - ஒரு சிறப்பு பார்வை',
+              desc: 'முற்போக்கான கதைக்களம் கொண்ட திரைப்படங்கள் சமூகத்தில் ஏற்படுத்தும் மாற்றங்கள் பற்றிய கட்டுரை.',
+              subcat: 'கோலிவுட்',
+              type: 'opinion',
+              date: '2 நாட்கள் முன்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #EC4899, #BE185D)'
+            }
+          ]
+        },
+        tech: {
+          title: 'தொழில்நுட்பச் செய்திகள்',
+          bread: 'தொழில்நுட்பம்',
+          themeClass: 'theme-tech',
+          subcats: ['அனைத்தும்', 'ஸ்மார்ட்போன்', 'மென்பொருள்', 'AI', 'விண்வெளி'],
+          articles: [
+            {
+              id: 25,
+              title: 'ChatGPT 5.0 வெளியீடு: செயற்கை நுண்ணறிவில் அடுத்த கட்ட பாய்ச்சல்',
+              desc: 'புதிய மனித உணர்வுகளைப் புரிந்துகொள்ளும் திறன் மற்றும் மிக வேகமான பதிலளிப்பு வசதிகள் கொண்ட புதிய மாடல் அறிமுகம்.',
+              subcat: 'AI',
+              type: 'featured',
+              date: '20 நிமிடங்கள்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #6D28D9, #A855F7)'
+            },
+            {
+              id: 26,
+              title: 'ஆப்பிள் நிறுவனத்தின் புதிய ஐபோன் 17 சீரிஸ் சிறப்பம்சங்கள் கசிந்தன',
+              desc: 'மெல்லிய வடிவமைப்பு, மேம்பட்ட பேட்டரி ஆயுள் மற்றும் சக்திவாய்ந்த கேமரா அமைப்புகள் இடம்பெறுவது உறுதியாகியுள்ளது.',
+              subcat: 'ஸ்மார்ட்போன்',
+              type: 'recent',
+              date: '3 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #A855F7, #C084FC)'
+            },
+            {
+              id: 27,
+              title: 'இஸ்ரோவின் அடுத்த மைல்கல்: நிலவுக்கு மீண்டும் விண்கலம் அனுப்ப திட்டம்',
+              desc: 'விண்கலத்தின் வடிவமைப்புப் பணிகள் முடிவடைந்த நிலையில் விரைவில் சோதனைகள் துவங்க இருப்பதாக இஸ்ரோ தலைவர் அறிவித்தார்.',
+              subcat: 'விண்வெளி',
+              type: 'analysis',
+              date: '5 மணி நேரம்',
+              readTime: '4 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #5B21B6, #A855F7)'
+            },
+            {
+              id: 28,
+              title: 'இந்தியாவின் புதிய சைபர் பாதுகாப்பு கொள்கை மற்றும் கட்டுப்பாடுகள்',
+              desc: 'இணையதள குற்றங்களை தடுக்கவும் தனிநபர் தரவுகளை பாதுகாக்கவும் புதிய மென்பொருள் சட்டங்கள் உருவாக்கப்படுகின்றன.',
+              subcat: 'மென்பொருள்',
+              type: 'recent',
+              date: '9 மணி நேரம்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #A855F7, #C084FC)'
+            },
+            {
+              id: 29,
+              title: 'ரோபோடிக்ஸ் தொழில்நுட்பம் மனித வேலைவாய்ப்புகளை பறிக்குமா? - சிறப்பு ஆய்வு',
+              desc: 'தொழிற்சாலைகளில் ரோபோக்களின் ஆதிக்கம் அதிகரித்து வரும் நிலையில் வேலைவாய்ப்புகளின் மாற்று சாத்தியங்கள்.',
+              subcat: 'AI',
+              type: 'opinion',
+              date: '1 நாள் முன்',
+              readTime: '5 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #6D28D9, #5B21B6)'
+            },
+            {
+              id: 30,
+              title: 'இலவச ஆண்ட்ராய்டு செயலிகளில் மறைந்துள்ள வைரஸ் ஆபத்து - கூகுள் எச்சரிக்கை',
+              desc: 'கோடிக்கணக்கான பயனர்கள் பயன்படுத்தும் சில முக்கிய செயலிகளில் மால்வேர் கண்டறியப்பட்டு ப்ளே ஸ்டோரில் இருந்து நீக்கம்.',
+              subcat: 'மென்பொருள்',
+              type: 'analysis',
+              date: '3 நாட்கள் முன்',
+              readTime: '3 நிமிட வாசிப்பு',
+              gradient: 'linear-gradient(135deg, #A855F7, #6D28D9)'
+            }
+          ]
+        }
+      };
+
+      // Fallback to politics if category not found
+      const currentCat = catDetails[cat] || catDetails['politics'];
+
+      // Apply category theme to page body
+      document.body.className = currentCat.themeClass;
+      
+      // Active nav link highlight
+      const activeNavId = 'nav-' + cat;
+      const navItem = document.getElementById(activeNavId);
+      if (navItem) {
+        document.querySelectorAll('.nav-menu .nav-item').forEach(el => el.classList.remove('active'));
+        navItem.classList.add('active');
+      }
+
+      // Update titles and breadcrumbs
+      document.getElementById('categoryMainTitle').textContent = currentCat.title;
+      document.getElementById('breadcrumbCat').textContent = currentCat.bread;
+      document.title = currentCat.title + ' - KING 24x7';
+
+      // 2. Insert subcategory tabs
+      const tabsContainer = document.getElementById('subcategoryTabs');
+      tabsContainer.innerHTML = '';
+      currentCat.subcats.forEach((sub, index) => {
+        const tabEl = document.createElement('div');
+        tabEl.className = 'subcategory-tab' + (index === 0 ? ' active' : '');
+        tabEl.textContent = sub;
+        tabEl.addEventListener('click', function() {
+          document.querySelectorAll('.subcategory-tab').forEach(t => t.classList.remove('active'));
+          tabEl.classList.add('active');
+          filterArticles();
+        });
+        tabsContainer.appendChild(tabEl);
+      });
+
+      // 3. Render news grid cards
+      const gridContainer = document.getElementById('categoryNewsGrid');
+      
+      function renderCards(articlesToRender) {
+        gridContainer.innerHTML = '';
+        if (articlesToRender.length === 0) {
+          gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">செய்திகள் ஏதும் இல்லை.</div>';
+          return;
+        }
+        
+        articlesToRender.forEach(art => {
+          const card = document.createElement('div');
+          card.className = 'news-card';
+          // Navigate to article template on card click, passing article ID and category name
+          card.onclick = function() {
+            window.location.href = 'article.html?cat=' + cat + '&id=' + art.id;
+          };
+          
+          card.innerHTML = `
+            <div class="card-img" style="background: ${art.gradient};">
+              <span class="cat-badge" style="background: var(--category-color, var(--primary));">${art.subcat}</span>
+            </div>
+            <div class="card-body">
+              <h3>${art.title}</h3>
+              <p>${art.desc}</p>
+              <div class="card-meta">
+                <span><i class="far fa-clock"></i> ${art.date}</span>
+                <span><i class="far fa-eye"></i> ${art.readTime}</span>
+              </div>
+            </div>
+          `;
+          gridContainer.appendChild(card);
+        });
+      }
+
+      // 4. Filtering logic
+      function filterArticles() {
+        const activeSubcatTab = document.querySelector('.subcategory-tab.active');
+        const activeFilterBtn = document.querySelector('.category-filter-btn.active');
+        
+        const subcatVal = activeSubcatTab ? activeSubcatTab.textContent : 'அனைத்தும்';
+        const filterVal = activeFilterBtn ? activeFilterBtn.dataset.filter : 'all';
+        
+        let filtered = currentCat.articles;
+        
+        // Filter by subcategory
+        if (subcatVal !== 'அனைத்தும்') {
+          filtered = filtered.filter(art => art.subcat === subcatVal);
+        }
+        
+        // Filter by main filter tag
+        if (filterVal !== 'all') {
+          filtered = filtered.filter(art => art.type === filterVal);
+        }
+        
+        renderCards(filtered);
+      }
+
+      // Initial render
+      renderCards(currentCat.articles);
+
+      // Add filter button event listeners
+      document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          filterArticles();
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

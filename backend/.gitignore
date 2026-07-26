@@ -1,0 +1,9 @@
+target/
+.idea/
+*.class
+*.jar
+*.war
+.classpath
+.project
+.settings/
+*.properties.local

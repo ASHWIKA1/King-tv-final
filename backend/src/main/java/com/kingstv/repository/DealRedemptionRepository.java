@@ -1,0 +1,14 @@
+package com.kingstv.repository;
+
+import com.kingstv.models.DealRedemption;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface DealRedemptionRepository extends JpaRepository<DealRedemption, Long> {
+    Optional<DealRedemption> findByRedemptionCode(String redemptionCode);
+    List<DealRedemption> findByUserId(Long userId);
+    List<DealRedemption> findByDealId(Long dealId);
+}

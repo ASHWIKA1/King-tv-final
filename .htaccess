@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteBase /
+
+# Support SPA routing for the React Admin Dashboard app
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]
