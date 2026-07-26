@@ -3,6 +3,26 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://kings-tv.onrender.com/sitemap.xml"
+    },
+    {
+      "source": "/sitemap-news.xml",
+      "destination": "https://kings-tv.onrender.com/sitemap-news.xml"
+    },
+    {
+      "source": "/sitemap-video.xml",
+      "destination": "https://kings-tv.onrender.com/sitemap-video.xml"
+    },
+    {
+      "source": "/sitemap-image.xml",
+      "destination": "https://kings-tv.onrender.com/sitemap-image.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://kings-tv.onrender.com/robots.txt"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

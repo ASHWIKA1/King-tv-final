@@ -582,8 +582,22 @@ const ArticleDetail = () => {
         fetchComments(currentCategoryId);
       });
 
-    // 4. Trending
-    setTrending(fallbackTrending);
+    // 4. Fetch dynamic trending articles
+    fetchApi('/articles/public/trending')
+      .then(tData => {
+        if (Array.isArray(tData)) {
+          setTrending(tData.map((item, index) => ({
+            id: item.id || item.article_id,
+            titleTa: item.titleTa,
+            titleEn: item.titleEn,
+            imageUrl: item.imageUrl,
+            rank: index + 1
+          })));
+        }
+      })
+      .catch(err => {
+        console.warn("Failed to load trending articles", err);
+      });
   };
 
   useEffect(() => {
@@ -709,23 +723,42 @@ const ArticleDetail = () => {
 
   const getTrendingList = () => {
     return trending.map(tItem => {
-      let title = tItem.title;
-      if (lang === 'en') {
-        if (title === 'சென்னை மெட்ரோ புதிய மெட்ரோ ரயில் திட்டம்') {
-          title = 'Chennai Metro new metro rail project';
-        } else if (title === 'தங்கம் விலை அதிரடி வீழ்ச்சி') {
-          title = 'Gold prices plunge sharply';
-        }
-      }
+      const title = lang === 'en' ? (tItem.titleEn || tItem.title) : (tItem.titleTa || tItem.title);
       return { ...tItem, title };
     });
   };
 
-  const getProcessedHtml = (content) => {
-    if (!content) return '';
-    const serverBase = import.meta.env.VITE_SERVER_BASE || 'https://kings-tv.onrender.com';
-    return content.replace(/(src|href)="\/uploads\//g, `$1="${serverBase}/uploads/`);
-  };
+  useEffect(() => {
+    if (article) {
+      document.title = (lang === 'en' ? article.titleEn : article.titleTa) || 'KINGS 24x7';
+      
+      const desc = lang === 'en' ? article.descEn : article.descTa;
+      const keywords = article.tags ? article.tags.join(', ') : 'news, tamil';
+      
+      const updateMetaTag = (name, content) => {
+        if (!content) return;
+        let element = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          if (name.startsWith('og:')) {
+            element.setAttribute('property', name);
+          } else {
+            element.setAttribute('name', name);
+          }
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      updateMetaTag('description', desc);
+      updateMetaTag('keywords', keywords);
+      updateMetaTag('og:title', lang === 'en' ? article.titleEn : article.titleTa);
+      updateMetaTag('og:description', desc);
+      if (article.imageUrl) {
+        updateMetaTag('og:image', article.imageUrl);
+      }
+    }
+  }, [lang, article]);
 
   if (!article) {
     return (
@@ -841,12 +874,12 @@ const ArticleDetail = () => {
           </div>
 
           {/* Full Width Hero Image */}
-          <div className="article-hero-img-container" style={{ margin: '24px 0', textAlign: 'center' }}>
+          <div className="article-hero-img-container" style={{ margin: '24px 0' }}>
             {article.imageUrl ? (
               <img 
                 src={article.imageUrl} 
                 alt={lang === 'en' ? (article.titleEn || article.titleTa) : article.titleTa} 
-                style={{ width: '100%', height: 'auto', maxHeight: '650px', objectFit: 'contain', borderRadius: '12px' }}
+                style={{ width: '100%', height: '350px', objectFit: 'cover', borderRadius: '12px' }}
               />
             ) : (
               <div style={{ width: '100%', height: '350px', borderRadius: '12px', background: article.gradient || 'linear-gradient(135deg, #1E3A8A, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -869,9 +902,7 @@ const ArticleDetail = () => {
             className="article-body-text" 
             id="articleBody" 
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
-            dangerouslySetInnerHTML={{ 
-              __html: getProcessedHtml(lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa) 
-            }}
+            dangerouslySetInnerHTML={{ __html: lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa }}
           />
 
           {/* MID-ARTICLE FEED AD WIDGET */}

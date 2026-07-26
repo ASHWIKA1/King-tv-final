@@ -93,7 +93,10 @@ const Header = () => {
   const [weatherTemp, setWeatherTemp] = useState('32°C');
 
   useEffect(() => {
-    fetchApi('/weather?city=Chennai')
+    // Fetch live weather for default district (Chennai) on load from backend
+    const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/v1';
+    fetch(`${baseApi}/weather?city=Chennai`)
+      .then(res => res.json())
       .then(data => {
         if (data && data.temp) {
           setWeatherTemp(data.temp);
@@ -105,6 +108,11 @@ const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState({
+    'site.name': 'KING 24x7',
+    'site.logo_url': 'assets/images/logo-banner-light.png',
+    'site.logo_dark_url': 'assets/images/logo-banner-dark.png'
+  });
   const [navCategories, setNavCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showHeaderSubcatDropdown, setShowHeaderSubcatDropdown] = useState(false);
@@ -273,12 +281,25 @@ const Header = () => {
         subcategories: []
       });
 
-      // Add all other active categories dynamically from DB in order
-      dbItems.forEach(item => {
-        if (!['regional', 'video', 'videos', 'web-stories'].includes(item.slug)) {
-          dynamicItems.push(item);
-        }
-      });
+      // Politics
+      const politics = findDbItem('politics');
+      dynamicItems.push(politics || { id: 'politics', path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [] });
+
+      // Business
+      const business = findDbItem('business');
+      dynamicItems.push(business || { id: 'business', path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [] });
+
+      // Sports
+      const sports = findDbItem('sports');
+      dynamicItems.push(sports || { id: 'sports', path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [] });
+
+      // Cinema
+      const cinema = findDbItem('cinema');
+      dynamicItems.push(cinema || { id: 'cinema', path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [] });
+
+      // Technology
+      const tech = findDbItem('tech') || findDbItem('technology');
+      dynamicItems.push(tech || { id: 'tech', path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [] });
 
       // Regional Directory (with dropdown chevron containing all items)
       const regional = findDbItem('regional');
@@ -305,6 +326,10 @@ const Header = () => {
         label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்',
         subcategories: regionalSubcategories
       });
+
+      // International
+      const international = findDbItem('international');
+      dynamicItems.push(international || { id: 'international', path: '/category/international', label: lang === 'en' ? 'International' : 'சர்வதேசம்', subcategories: [] });
 
       // Videos (with dropdown chevron)
       const videos = findDbItem('video') || findDbItem('videos');
@@ -436,17 +461,25 @@ const Header = () => {
   ];
 
   useEffect(() => {
+    fetchApi('/public/config/settings')
+      .then(res => {
+        if (res) {
+          setSiteSettings(res);
+        }
+      })
+      .catch(() => {});
+
     fetchApi('/articles')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setAllArticles([...data, ...fallbackArticles]);
+        if (Array.isArray(data)) {
+          setAllArticles(data);
         } else {
-          setAllArticles(fallbackArticles);
+          setAllArticles([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load articles", err);
-        setAllArticles(fallbackArticles);
+        setAllArticles([]);
       });
 
     fetchApi('/categories/nav')
@@ -467,48 +500,28 @@ const Header = () => {
 
     fetchApi('/videos')
       .then(data => {
-        const translatedFallbackVideos = fallbackVideos.map(vid => {
-          let titleVal = vid.title;
-          if (lang === 'en') {
-            if (vid.title.includes('பட்ஜெட்')) titleVal = 'Tamil Nadu Budget 2026 - Key Highlights Explained';
-            else if (vid.title.includes('கிரிக்கெட்')) titleVal = 'Cricket Match Highlights - India vs Australia';
-            else if (vid.title.includes('விவசாயிகளுக்கான')) titleVal = 'New Schemes for Farmers - Ground Report';
-            else if (vid.title.includes('பங்கு')) titleVal = 'Stock Market Analysis - Expert Advice';
-          }
-          return { ...vid, title: titleVal };
-        });
-        if (Array.isArray(data) && data.length > 0) {
-          setAllVideos([...data, ...translatedFallbackVideos]);
+        if (Array.isArray(data)) {
+          setAllVideos(data);
         } else {
-          setAllVideos(translatedFallbackVideos);
+          setAllVideos([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load videos", err);
-        const translatedFallbackVideos = fallbackVideos.map(vid => {
-          let titleVal = vid.title;
-          if (lang === 'en') {
-            if (vid.title.includes('பட்ஜெட்')) titleVal = 'Tamil Nadu Budget 2026 - Key Highlights Explained';
-            else if (vid.title.includes('கிரிக்கெட்')) titleVal = 'Cricket Match Highlights - India vs Australia';
-            else if (vid.title.includes('விவசாயிகளுக்கான')) titleVal = 'New Schemes for Farmers - Ground Report';
-            else if (vid.title.includes('பங்கு')) titleVal = 'Stock Market Analysis - Expert Advice';
-          }
-          return { ...vid, title: titleVal };
-        });
-        setAllVideos(translatedFallbackVideos);
+        setAllVideos([]);
       });
 
     fetchApi('/directory')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setAllBusinesses(data);
         } else {
-          setAllBusinesses(fallbackBusinesses);
+          setAllBusinesses([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load directory", err);
-        setAllBusinesses(fallbackBusinesses);
+        setAllBusinesses([]);
       });
   }, [lang]);
 
@@ -654,12 +667,14 @@ const Header = () => {
 
   const renderLogo = (size = 'normal', forceDark = false) => {
     const isDark = forceDark || theme === 'dark';
-    const logoUrl = isDark ? "assets/images/logo-banner-dark.png" : "assets/images/logo-banner-light.png";
+    const logoUrl = isDark 
+      ? (siteSettings['site.logo_dark_url'] || siteSettings['site.logo_url'] || "assets/images/logo-banner-dark.png") 
+      : (siteSettings['site.logo_url'] || "assets/images/logo-banner-light.png");
     return (
       <Link to="/" className="logo-link" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
         <img
           src={logoUrl}
-          alt="KING 24x7"
+          alt={siteSettings['site.name'] || "KING 24x7"}
           className="header-logo-img"
           style={{ height: size === 'small' ? '30px' : '55px', width: 'auto', objectFit: 'contain', display: 'block' }}
         />

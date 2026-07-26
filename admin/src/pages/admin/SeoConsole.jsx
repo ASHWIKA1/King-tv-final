@@ -61,19 +61,12 @@ const SeoConsole = () => {
     setPingStatus('Pinging Google and Bing...');
     try {
       const res = await api.post('/admin/sitemap-config/ping');
-      setPingStatus('Sitemaps submitted successfully!');
+      setPingStatus('Sitemaps submitted successfully! Logs: ' + (res.data.logs || []).join(' | '));
     } catch (err) {
       console.error(err);
-      const resData = err.response?.data;
-      if (resData && resData.engines) {
-        const details = resData.engines.map(e => `${e.name}: ${e.message}`).join(' | ');
-        setPingStatus(`Ping failed/deprecated. ${details}`);
-      } else {
-        const errMsg = err.response?.data?.message || err.message || "Unknown error";
-        setPingStatus(`Failed to ping search engines: ${errMsg}`);
-      }
+      setPingStatus('Failed to ping search engines. Backend service offline.');
     }
-    setTimeout(() => setPingStatus(null), 10000);
+    setTimeout(() => setPingStatus(null), 8000);
   };
 
   return (
@@ -231,8 +224,8 @@ const SeoConsole = () => {
                 {sitemapConfig.map(config => (
                   <div key={config.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{config.pageLabel || config.pagePath}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Priority: {config.priority || '0.5'} • Freq: {config.changeFreq || 'weekly'}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{config.routePattern}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Priority: {config.priority || '0.5'} • Freq: {config.changefreq || 'weekly'}</div>
                     </div>
                     <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.8rem', color: config.isExcluded ? 'var(--danger)' : 'var(--success)' }}>

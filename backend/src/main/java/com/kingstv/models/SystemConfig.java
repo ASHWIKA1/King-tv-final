@@ -81,8 +81,6 @@ public class SystemConfig {
     public static final String NOTIFY_EMAIL_DAILY = "notify.email.daily";
     public static final String NOTIFY_SMS_BREAKING = "notify.sms.breaking";
     public static final String NOTIFY_SMS_OTP = "notify.sms.otp";
-    public static final String AI_PROMPT_GENERATE_DRAFT = "ai.prompt_generate_draft";
-    public static final String AI_PROMPT_PROOFREAD_AUTOFILL = "ai.prompt_proofread_autofill";
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

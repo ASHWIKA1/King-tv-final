@@ -122,35 +122,10 @@ const UserManagement = () => {
     });
   };
 
-  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const PHONE_REGEX = /^\+?[0-9]{10,15}$/;
-
   const submitEditUser = async () => {
     if (editingUser) {
-      const fullNameClean = (editFormData.fullName || '').trim();
-      const rawPhone = (editFormData.phoneNumber || '').trim().replace(/[\s\-()]/g, '');
-
-      if (fullNameClean && fullNameClean.length < 2) {
-        alert("Full Name must be at least 2 characters long.");
-        return;
-      }
-
-      if (rawPhone && !PHONE_REGEX.test(rawPhone)) {
-        alert("Invalid phone number format. Please enter 10 to 15 digits (e.g. 9876543210 or +919876543210).");
-        return;
-      }
-
-      if (editFormData.password && editFormData.password.length < 6) {
-        alert("Password must be at least 6 characters long.");
-        return;
-      }
-
       try {
-        const payload = {
-          ...editFormData,
-          fullName: fullNameClean,
-          phoneNumber: rawPhone
-        };
+        const payload = { ...editFormData };
         if (!payload.password) delete payload.password; // Don't send empty password
 
         await api.put(`/admin/users/${editingUser.id}`, payload);
@@ -164,50 +139,18 @@ const UserManagement = () => {
         fetchUsers();
         setEditingUser(null);
       } catch (e) {
-        alert(e.response?.data?.message || "Failed to update user");
+        alert("Failed to update user");
       }
     }
   };
 
   const submitNewUser = async () => {
-    const emailClean = (newUser.email || '').trim().toLowerCase();
-    const fullNameClean = (newUser.fullName || '').trim();
-    const rawPhone = (newUser.phoneNumber || '').trim().replace(/[\s\-()]/g, '');
-
-    if (!emailClean || !newUser.password || !fullNameClean) {
-      alert("Please fill in all required fields (Full Name, Email, Password)");
+    if (!newUser.email || !newUser.password || !newUser.fullName) {
+      alert("Please fill in all fields");
       return;
     }
-
-    if (fullNameClean.length < 2) {
-      alert("Full Name must be at least 2 characters long.");
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(emailClean)) {
-      alert("Invalid email address format (e.g. user@example.com).");
-      return;
-    }
-
-    if (newUser.password.length < 6) {
-      alert("Password must be at least 6 characters long.");
-      return;
-    }
-
-    if (rawPhone && !PHONE_REGEX.test(rawPhone)) {
-      alert("Invalid phone number format. Please enter 10 to 15 digits (e.g. 9876543210 or +919876543210).");
-      return;
-    }
-
     try {
-      const payload = {
-        ...newUser,
-        email: emailClean,
-        fullName: fullNameClean,
-        phoneNumber: rawPhone
-      };
-
-      const res = await api.post(`/admin/users`, payload);
+      const res = await api.post(`/admin/users`, newUser);
       const createdUser = res.data;
 
       if (newUser.districtId && createdUser && createdUser.id) {
@@ -221,7 +164,7 @@ const UserManagement = () => {
       setNewUser({ email: '', fullName: '', role: 'MOBILE_JOURNALIST', password: '', phoneNumber: '', location: '', districtId: '' });
       alert("User added successfully!");
     } catch (e) {
-      alert(e.response?.data?.message || "Failed to create user.");
+      alert("Failed to create user. Email may already exist.");
     }
   };
 

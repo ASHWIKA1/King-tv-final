@@ -1,0 +1,77 @@
+/* MyQuotes.css */
+
+.my-quotes-container {
+  font-family: 'Mukta Malar', 'Outfit', sans-serif !important;
+}
+
+.my-quotes-title {
+  letter-spacing: -0.5px;
+}
+
+.quote-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.quote-status-badge.pending {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+}
+
+.quote-status-badge.shortlisted {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.quote-status-badge.approved,
+.quote-status-badge.accepted,
+.quote-status-badge.awarded {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.quote-status-badge.rejected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.wizard-btn-primary {
+  background: #4f46e5;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.wizard-btn-primary:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.wizard-btn-secondary {
+  background: transparent;
+  color: #4f46e5;
+  border: 1px solid #4f46e5;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.wizard-btn-secondary:hover {
+  background: rgba(79, 70, 229, 0.05);
+}

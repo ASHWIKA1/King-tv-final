@@ -37,14 +37,6 @@ const TaxonomyManager = () => {
     fetchTaxonomies();
   }, []);
 
-  const clearApiCache = () => {
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('api_cache_')) {
-        localStorage.removeItem(key);
-      }
-    });
-  };
-
   // --- Category Handlers ---
   const handleCatSubmit = async (e) => {
     e.preventDefault();
@@ -54,12 +46,10 @@ const TaxonomyManager = () => {
       } else {
         await api.post('/admin/taxonomy/categories', catFormData);
       }
-      clearApiCache();
       setShowCatModal(false);
       fetchTaxonomies();
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || "Failed to save category";
-      alert(`Error: ${errMsg}`);
+      alert("Failed to save category");
     }
   };
 
@@ -67,11 +57,9 @@ const TaxonomyManager = () => {
     if (window.confirm("Are you sure you want to delete this category?")) {
       try {
         await api.delete(`/admin/taxonomy/categories/${id}`);
-        clearApiCache();
         fetchTaxonomies();
       } catch (err) {
-        const errMsg = err.response?.data?.message || err.message || "Failed to delete category";
-        alert(`Error: ${errMsg}`);
+        alert("Failed to delete category");
       }
     }
   };
@@ -85,12 +73,10 @@ const TaxonomyManager = () => {
       } else {
         await api.post('/admin/taxonomy/subcategories', subCatFormData);
       }
-      clearApiCache();
       setShowSubCatModal(false);
       fetchTaxonomies();
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || "Failed to save subcategory";
-      alert(`Error: ${errMsg}`);
+      alert("Failed to save subcategory");
     }
   };
 
@@ -98,11 +84,9 @@ const TaxonomyManager = () => {
     if (window.confirm("Are you sure you want to delete this subcategory?")) {
       try {
         await api.delete(`/admin/taxonomy/subcategories/${id}`);
-        clearApiCache();
         fetchTaxonomies();
       } catch (err) {
-        const errMsg = err.response?.data?.message || err.message || "Failed to delete subcategory";
-        alert(`Error: ${errMsg}`);
+        alert("Failed to delete subcategory");
       }
     }
   };
@@ -112,16 +96,16 @@ const TaxonomyManager = () => {
     e.preventDefault();
     try {
       if (locFormData.id) {
-        await api.put(`/admin/taxonomy/districts/${locFormData.id}`, locFormData); 
+        // District update endpoint might not exist, but let's try POST if no PUT
+        // Since backend doesn't have PUT /districts, we may just have to delete & recreate or rely on it not being there
+        await api.post('/admin/taxonomy/districts', locFormData); 
       } else {
         await api.post('/admin/taxonomy/districts', locFormData);
       }
-      clearApiCache();
       setShowLocModal(false);
       fetchTaxonomies();
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || "Failed to save district";
-      alert(`Error: ${errMsg}`);
+      alert("Failed to save district");
     }
   };
 
@@ -129,11 +113,9 @@ const TaxonomyManager = () => {
     if (window.confirm("Are you sure you want to delete this district?")) {
       try {
         await api.delete(`/admin/taxonomy/districts/${id}`);
-        clearApiCache();
         fetchTaxonomies();
       } catch (err) {
-        const errMsg = err.response?.data?.message || err.message || "Failed to delete district";
-        alert(`Error: ${errMsg}`);
+        alert("Failed to delete district");
       }
     }
   };
@@ -194,25 +176,12 @@ const TaxonomyManager = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem', paddingLeft: '1.5rem', borderLeft: '2px solid rgba(0,0,0,0.1)' }}>
                     {subcategories.filter(sub => sub.categoryId === c.id).map(sub => (
                       <div key={sub.subcategoryId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.85rem' }}>↳ {sub.name} ({sub.nameTa})</span>
-                          <span style={{ 
-                            fontSize: '0.65rem', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px', 
-                            background: sub.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
-                            color: sub.status === 'active' ? '#10B981' : '#EF4444',
-                            fontWeight: 600
-                          }}>
-                            {sub.status === 'active' ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
+                        <span style={{ fontSize: '0.85rem' }}>↳ {sub.name} ({sub.nameTa})</span>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '0.15rem', color: 'var(--text-primary)', border: 'none', background: 'transparent' }}
                             onClick={() => { setSubCatFormData({ id: sub.subcategoryId, ...sub }); setShowSubCatModal(true); }}
-                            title="Edit Subcategory"
                           ><Edit2 size={12} /></button>
                           <button 
                             className="btn btn-secondary" 
@@ -362,18 +331,6 @@ const TaxonomyManager = () => {
               <div className="form-group">
                 <label>Display Order</label>
                 <input type="number" className="form-control" value={subCatFormData.displayOrder} onChange={e => setSubCatFormData({...subCatFormData, displayOrder: parseInt(e.target.value)})} />
-              </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select 
-                  className="form-control" 
-                  value={subCatFormData.status || 'active'} 
-                  onChange={e => setSubCatFormData({...subCatFormData, status: e.target.value})}
-                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.8rem' }}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
               </div>
               <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowSubCatModal(false)}>Cancel</button>

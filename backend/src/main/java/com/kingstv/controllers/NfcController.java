@@ -5,14 +5,11 @@ import com.kingstv.models.NfcTapHistory;
 import com.kingstv.models.DirectoryListing;
 import com.kingstv.models.User;
 import com.kingstv.models.AuditLog;
-import com.kingstv.models.NfcCardAuditLog;
-import com.kingstv.models.PaymentStatus;
 import com.kingstv.repository.NfcCardRepository;
 import com.kingstv.repository.NfcTapHistoryRepository;
 import com.kingstv.repository.DirectoryRepository;
 import com.kingstv.repository.UserRepository;
 import com.kingstv.repository.AuditLogRepository;
-import com.kingstv.repository.NfcCardAuditLogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,9 +37,6 @@ public class NfcController {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private NfcCardAuditLogRepository nfcCardAuditLogRepository;
 
     // --- Dynamic Shortcode Redirector ---
     @GetMapping("/t/{shortCode}")
@@ -161,96 +155,55 @@ public class NfcController {
         
         String current = card.getCardStatus() != null ? card.getCardStatus().toLowerCase() : "requested";
         String next = status.toLowerCase();
-        String note = request.getOrDefault("note", "");
-        String reason = request.getOrDefault("reason", "");
-        String cardUid = request.get("cardUid");
         
         boolean isValid = false;
-        
-        if (next.equals("processing")) {
-            if (current.equals("requested") || current.equals("undelivered")) {
-                isValid = true;
-                card.setProcessingAt(LocalDateTime.now());
+        if (current.equals("requested") && next.equals("processing")) {
+            isValid = true;
+            card.setProcessingAt(LocalDateTime.now());
+        } else if (current.equals("processing") && next.equals("issued")) {
+            isValid = true;
+            card.setIssuedAt(LocalDateTime.now());
+            String cardUid = request.get("cardUid");
+            if (cardUid != null && !cardUid.trim().isEmpty()) {
+                card.setShortCode(cardUid);
             }
-        } else if (next.equals("issued")) {
-            if (current.equals("processing") || current.equals("undelivered")) {
-                isValid = true;
-                card.setIssuedAt(LocalDateTime.now());
-                if (cardUid != null && !cardUid.trim().isEmpty()) {
-                    card.setShortCode(cardUid);
-                }
-            }
-        } else if (next.equals("delivered")) {
-            if (current.equals("issued")) {
-                isValid = true;
-                card.setDeliveredAt(LocalDateTime.now());
-            }
-        } else if (next.equals("undelivered")) {
-            if (current.equals("issued") || current.equals("processing") || current.equals("delivered")) {
-                isValid = true;
-            }
-        } else if (next.equals("cancelled")) {
-            if (current.equals("requested") || current.equals("undelivered")) {
-                isValid = true;
-            }
-        } else if (next.equals("blocked")) {
-            if (!current.equals("blocked")) {
-                isValid = true;
-                card.setStatusBeforeBlock(card.getCardStatus());
-            }
-        } else if (next.equals("unblocked")) {
-            if (current.equals("blocked")) {
-                isValid = true;
-                String restoreTo = card.getStatusBeforeBlock();
-                if (restoreTo == null || restoreTo.trim().isEmpty()) {
-                    restoreTo = "delivered";
-                }
-                next = restoreTo.toLowerCase();
-            }
-        } else if (next.equals("reissued")) {
+        } else if (current.equals("issued") && next.equals("delivered")) {
+            isValid = true;
+            card.setDeliveredAt(LocalDateTime.now());
+        } else if (next.equals("blocked") || next.equals("reissued")) {
+            // Allow blocking or reissuing at any state
             isValid = true;
         }
-
+        
         if (!isValid) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid workflow transition from " + current + " to " + next));
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid workflow transition. Next status must be '" + 
+                (current.equals("requested") ? "processing" : current.equals("processing") ? "issued" : "delivered") + "'"));
         }
-
+        
         card.setCardStatus(next);
         NfcCard saved = nfcCardRepository.save(card);
-
-        // Audit Logging
+        
+        // Log Audit
         try {
             String actorEmail = principal != null ? principal.getName() : "system";
             User actorUser = principal != null ? userRepository.findByEmail(actorEmail).orElse(null) : null;
-            
-            NfcCardAuditLog auditLog = new NfcCardAuditLog();
-            auditLog.setCardId(card.getId());
-            auditLog.setFromStatus(current);
-            auditLog.setToStatus(next);
+            AuditLog auditLog = new AuditLog();
             if (actorUser != null) {
-                auditLog.setChangedById((long) actorUser.getId());
-                auditLog.setChangedByEmail(actorUser.getEmail());
+                auditLog.setActorId((long) actorUser.getId());
+                auditLog.setActorRole(actorUser.getRole());
+                auditLog.setActorEmail(actorUser.getEmail());
             } else {
-                auditLog.setChangedByEmail(actorEmail);
+                auditLog.setActorEmail(actorEmail);
             }
-            
-            StringBuilder sb = new StringBuilder();
-            if (reason != null && !reason.trim().isEmpty()) {
-                sb.append("Reason: ").append(reason);
-            }
-            if (note != null && !note.trim().isEmpty()) {
-                if (sb.length() > 0) sb.append(". ");
-                sb.append("Note: ").append(note);
-            }
-            if (sb.length() == 0) {
-                sb.append("Status updated by administrator.");
-            }
-            auditLog.setNote(sb.toString());
-            nfcCardAuditLogRepository.save(auditLog);
+            auditLog.setActionType("NFC_STATUS_UPDATE");
+            auditLog.setEntityType("NfcCard");
+            auditLog.setEntityId(card.getId());
+            auditLog.setDetails("NFC card status changed from " + current + " to " + next);
+            auditLogRepository.save(auditLog);
         } catch (Exception e) {
-            // ignore
+            // Silently log or ignore audit logging exceptions
         }
-
+        
         return ResponseEntity.ok(saved);
     }
 
@@ -370,102 +323,12 @@ public class NfcController {
         List<Map<String, Object>> responses = new ArrayList<>();
         for (NfcCard card : cards) {
             Optional<DirectoryListing> dirOpt = directoryRepository.findById(card.getListingId());
-            if (dirOpt.isPresent() && "approved".equalsIgnoreCase(dirOpt.get().getKycStatus())) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("card", card);
-                map.put("business", dirOpt.get());
-                map.put("businessName", dirOpt.get().getBusinessName());
-                responses.add(map);
-            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("card", card);
+            map.put("business", dirOpt.orElse(null));
+            map.put("businessName", dirOpt.isPresent() ? dirOpt.get().getBusinessName() : "Unknown");
+            responses.add(map);
         }
         return ResponseEntity.ok(responses);
-    }
-
-    @GetMapping("/api/v1/nfc/{id}/audit")
-    public ResponseEntity<?> getCardAuditLogs(@PathVariable Long id) {
-        return ResponseEntity.ok(nfcCardAuditLogRepository.findByCardIdOrderByChangedAtDesc(id));
-    }
-
-    @PostMapping("/api/v1/nfc/{id}/payment/refund")
-    public ResponseEntity<?> refundPayment(@PathVariable Long id, Principal principal) {
-        Optional<NfcCard> cardOpt = nfcCardRepository.findById(id);
-        if (cardOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "NFC Card not found"));
-        }
-        NfcCard card = cardOpt.get();
-        card.setPaymentStatus(PaymentStatus.REFUNDED);
-        NfcCard saved = nfcCardRepository.save(card);
-
-        // Log Audit Trail
-        try {
-            String actorEmail = principal != null ? principal.getName() : "system";
-            User actorUser = principal != null ? userRepository.findByEmail(actorEmail).orElse(null) : null;
-            NfcCardAuditLog auditLog = new NfcCardAuditLog();
-            auditLog.setCardId(card.getId());
-            auditLog.setFromStatus(card.getCardStatus());
-            auditLog.setToStatus(card.getCardStatus());
-            if (actorUser != null) {
-                auditLog.setChangedById((long) actorUser.getId());
-                auditLog.setChangedByEmail(actorUser.getEmail());
-            } else {
-                auditLog.setChangedByEmail(actorEmail);
-            }
-            auditLog.setNote("Payment status marked as REFUNDED by administrator.");
-            nfcCardAuditLogRepository.save(auditLog);
-        } catch (Exception e) {}
-
-        return ResponseEntity.ok(saved);
-    }
-
-    @PatchMapping("/api/v1/nfc/{id}/payment")
-    public ResponseEntity<?> updatePaymentInfo(@PathVariable Long id, @RequestBody Map<String, Object> request, Principal principal) {
-        Optional<NfcCard> cardOpt = nfcCardRepository.findById(id);
-        if (cardOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "NFC Card not found"));
-        }
-        NfcCard card = cardOpt.get();
-        if (request.containsKey("paymentStatus")) {
-            card.setPaymentStatus(PaymentStatus.valueOf(request.get("paymentStatus").toString().toUpperCase()));
-        }
-        if (request.containsKey("paymentAmount") && request.get("paymentAmount") != null) {
-            card.setPaymentAmount(new java.math.BigDecimal(request.get("paymentAmount").toString()));
-        }
-        if (request.containsKey("paymentMethod")) {
-            card.setPaymentMethod((String) request.get("paymentMethod"));
-        }
-        if (request.containsKey("paymentReference")) {
-            card.setPaymentReference((String) request.get("paymentReference"));
-        }
-        if (request.containsKey("paidAt") && request.get("paidAt") != null) {
-            try {
-                card.setPaidAt(LocalDateTime.parse(request.get("paidAt").toString()));
-            } catch (Exception e) {
-                card.setPaidAt(LocalDateTime.now());
-            }
-        } else if (card.getPaymentStatus() == PaymentStatus.PAID && card.getPaidAt() == null) {
-            card.setPaidAt(LocalDateTime.now());
-        }
-
-        NfcCard saved = nfcCardRepository.save(card);
-
-        // Log Audit Trail
-        try {
-            String actorEmail = principal != null ? principal.getName() : "system";
-            User actorUser = principal != null ? userRepository.findByEmail(actorEmail).orElse(null) : null;
-            NfcCardAuditLog auditLog = new NfcCardAuditLog();
-            auditLog.setCardId(card.getId());
-            auditLog.setFromStatus(card.getCardStatus());
-            auditLog.setToStatus(card.getCardStatus());
-            if (actorUser != null) {
-                auditLog.setChangedById((long) actorUser.getId());
-                auditLog.setChangedByEmail(actorUser.getEmail());
-            } else {
-                auditLog.setChangedByEmail(actorEmail);
-            }
-            auditLog.setNote("Payment information updated by administrator: status=" + card.getPaymentStatus());
-            nfcCardAuditLogRepository.save(auditLog);
-        } catch (Exception e) {}
-
-        return ResponseEntity.ok(saved);
     }
 }

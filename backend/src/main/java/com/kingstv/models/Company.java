@@ -41,9 +41,6 @@ public class Company {
 
     private Boolean verified = false;
 
-    @Column(name = "status", nullable = false)
-    private String status = "active"; // active, suspended
-
     @Column(name = "user_id")
     private Long userId;
 
@@ -106,9 +103,6 @@ public class Company {
 
     public Boolean getVerified() { return verified; }
     public void setVerified(Boolean verified) { this.verified = verified; }
-
-    public String getStatus() { return status != null && !status.trim().isEmpty() ? status : "active"; }
-    public void setStatus(String status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

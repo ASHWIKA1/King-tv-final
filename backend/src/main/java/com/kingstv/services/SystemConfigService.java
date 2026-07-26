@@ -59,22 +59,13 @@ public class SystemConfigService {
 
         config.setConfigKey(key);
         config.setConfigGroup(group);
-        if (description != null) config.setDescription(description);
+        config.setDescription(description);
         config.setUpdatedBy(updatedBy);
 
         boolean shouldEncrypt = ENCRYPTED_KEYS.contains(key);
         if (shouldEncrypt) {
-            if ("••••••••".equals(value)) {
-                if (config.getId() != null) {
-                    return config; // Skip updating since it's the mask placeholder
-                } else {
-                    config.setConfigValue(encryptionService.encrypt(""));
-                    config.setIsEncrypted(true);
-                }
-            } else {
-                config.setConfigValue(encryptionService.encrypt(value));
-                config.setIsEncrypted(true);
-            }
+            config.setConfigValue(encryptionService.encrypt(value));
+            config.setIsEncrypted(true);
         } else {
             config.setConfigValue(value);
             config.setIsEncrypted(false);

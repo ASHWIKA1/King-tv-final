@@ -37,16 +37,6 @@ public class NfcCard {
     @Column(name = "tracking_number")
     private String trackingNumber;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status")
-    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
-
-    @Column(name = "payment_amount")
-    private java.math.BigDecimal paymentAmount;
-
-    @Column(name = "payment_method")
-    private String paymentMethod;
-
     @Column(name = "requested_at")
     private LocalDateTime requestedAt;
 
@@ -64,15 +54,6 @@ public class NfcCard {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @Column(name = "payment_reference")
-    private String paymentReference;
-
-    @Column(name = "paid_at")
-    private LocalDateTime paidAt;
-
-    @Column(name = "status_before_block")
-    private String statusBeforeBlock;
 
     @PreUpdate
     protected void onUpdate() {
@@ -109,15 +90,6 @@ public class NfcCard {
     public String getTrackingNumber() { return trackingNumber; }
     public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }
 
-    public PaymentStatus getPaymentStatus() { return paymentStatus; }
-    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
-
-    public java.math.BigDecimal getPaymentAmount() { return paymentAmount; }
-    public void setPaymentAmount(java.math.BigDecimal paymentAmount) { this.paymentAmount = paymentAmount; }
-
-    public String getPaymentMethod() { return paymentMethod; }
-    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
-
     public LocalDateTime getRequestedAt() { return requestedAt; }
     public void setRequestedAt(LocalDateTime requestedAt) { this.requestedAt = requestedAt; }
 
@@ -135,13 +107,4 @@ public class NfcCard {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public String getPaymentReference() { return paymentReference; }
-    public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
-
-    public LocalDateTime getPaidAt() { return paidAt; }
-    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
-
-    public String getStatusBeforeBlock() { return statusBeforeBlock; }
-    public void setStatusBeforeBlock(String statusBeforeBlock) { this.statusBeforeBlock = statusBeforeBlock; }
 }

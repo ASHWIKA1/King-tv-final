@@ -176,8 +176,8 @@ const Obituaries = () => {
         setLoading(false);
       })
       .catch(err => {
-        console.warn("Failed to load obituaries, using fallbacks", err);
-        setObits(fallbackObits);
+        console.warn("Failed to load obituaries", err);
+        setObits([]);
         setLoading(false);
       });
   };

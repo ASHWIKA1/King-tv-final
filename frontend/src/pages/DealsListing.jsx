@@ -57,7 +57,7 @@ const DealsListing = () => {
   ];
 
   // Deals List States
-  const [deals, setDeals] = useState(defaultDeals);
+  const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -89,18 +89,17 @@ const DealsListing = () => {
     setLoading(true);
     fetchApi('/deals/public')
       .then(res => {
-        if (res && res.content && res.content.length > 0) {
+        if (res && Array.isArray(res.content)) {
           setDeals(res.content);
         } else {
-          setDeals(defaultDeals);
+          setDeals([]);
         }
         setLoading(false);
       })
       .catch(err => {
         console.error("Error fetching deals", err);
-        setError("Showing simulated deals catalog.");
+        setDeals([]);
         setLoading(false);
-        setDeals(defaultDeals);
       });
   };
 

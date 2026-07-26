@@ -2,50 +2,7 @@
   --font-sans: 'Inter', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
   --font-title: 'Outfit', 'Noto Sans Tamil', sans-serif;
 
-  /* Custom Color Palette - Default Light Theme (White Background) */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --border-color: rgba(226, 232, 240, 0.9);
-  
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
-  
-  --primary: #B3732A;
-  --primary-hover: #8F5A1D;
-  --primary-glow: rgba(179, 115, 42, 0.1);
-  
-  --success: #059669;
-  --success-glow: rgba(5, 150, 105, 0.1);
-  
-  --warning: #d97706;
-  --warning-glow: rgba(217, 119, 6, 0.1);
-  
-  --danger: #dc2626;
-  --danger-glow: rgba(220, 38, 38, 0.1);
-
-  --sidebar-width: 260px;
-  --header-height: 70px;
-  
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
-  
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
-}
-
-html[lang="ta"] {
-  --font-sans: 'Noto Sans Tamil', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-title: 'Mukta Malar', 'Outfit', sans-serif;
-}
-
-[data-theme="dark"] {
+  /* Custom Color Palette (Modern Deep Royal Dark Mode & Warm Slate Light Mode) */
   --bg-primary: #0B0F19;
   --bg-secondary: #111827;
   --bg-surface: rgba(17, 24, 39, 0.85);
@@ -68,16 +25,31 @@ html[lang="ta"] {
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.15);
 
+  --sidebar-width: 260px;
+  --header-height: 70px;
+  
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  
   --shadow-sm: 0 1.5px 4px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+html[lang="ta"] {
+  --font-sans: 'Noto Sans Tamil', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-title: 'Mukta Malar', 'Outfit', sans-serif;
 }
 
 [data-theme="light"] {
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --border-color: rgba(226, 232, 240, 0.9);
+  --bg-primary: #FAF9F6;
+  --bg-secondary: #FFFFFF;
+  --bg-surface: rgba(255, 255, 255, 0.9);
+  --border-color: rgba(30, 41, 59, 0.1);
   
   --text-primary: #0F172A;
   --text-secondary: #475569;
@@ -149,8 +121,6 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   padding: var(--header-height) 2rem 2rem 2rem;
   transition: margin-left var(--transition-normal);
-  min-width: 0;
-  max-width: calc(100vw - var(--sidebar-width));
 }
 
 /* Header style */
@@ -190,13 +160,13 @@ h1, h2, h3, h4, h5, h6 {
   height: var(--header-height);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0 1.25rem;
+  justify-content: center;
+  padding: 0 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .sidebar-logo img {
-  max-height: 52px;
+  max-height: 40px;
   width: auto;
   object-fit: contain;
 }

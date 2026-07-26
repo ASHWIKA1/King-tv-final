@@ -1,1850 +1,2344 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare } from 'lucide-react';
-import { Editor } from '@tinymce/tinymce-react';
+import { Save, ArrowLeft, Send, CheckCircle, MapPin, Image, Video, Copy, Plus, Sparkles, X, RefreshCw, Zap } from 'lucide-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
 import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = '';
-
-export let activeAiConfig = { 
-  apiKey: '', 
-  apiUrl: '', 
-  model: 'gemini-2.0-flash' 
+export let activeAiConfig = {
+  apiKey: '',
+  apiUrl: '',
+  model: 'gemini-2.0-flash'
 };
 
-export const getGeminiUrl = (modelOverride) => {
-  const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+export const getGeminiUrl = () => {
+  const model = activeAiConfig.model || 'gemini-2.0-flash';
+  const apiKey = activeAiConfig.apiKey || '';
+  if (activeAiConfig.apiUrl) {
+    return `${activeAiConfig.apiUrl}?key=${apiKey}`;
+  }
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 };
 
 const callGemini = async (prompt) => {
-  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY;
-  if (!apiKey) {
-    throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
-  }
-  if (!activeAiConfig.apiUrl && !apiKey.startsWith('AIzaSy')) {
-    throw new Error('Invalid key format. Google AI Studio keys start with "AIzaSy". Click "🔑 Set API Key" to enter your key from Google AI Studio.');
-  }
-
-  const modelsToTry = [
-    activeAiConfig.model || 'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-2.5-flash',
-    'gemini-1.5-pro'
-  ];
-  
-  const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
-  let lastError = null;
-
-  for (const model of uniqueModels) {
-    try {
-      const url = getGeminiUrl(model);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) 
-        },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-        if (res.status === 429) errorMsg = 'Rate Limit Exceeded. Please wait 30s or try a different key.';
-        lastError = new Error(`Gemini Error (${model}): ${errorMsg}`);
-        console.warn(`Model ${model} failed:`, errorMsg);
-        continue;
-      }
-
-      const data = await res.json();
-      const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-      if (resultText) return resultText;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Model ${model} error:`, err);
-    }
-  }
-
-  throw lastError || new Error('Gemini API call failed on all model endpoints.');
-};
-
-const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
-  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || '';
-  if (!apiKey) throw new Error('API Key missing. Click "🔑 Set API Key" to enter key.');
-  
   const url = getGeminiUrl();
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: prompt }
-        ]
-      }]
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
   });
-  if (!res.ok) throw new Error(`Multimodal failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 };
 
-const slugify = (text) => (text || '').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+const stripHtml = (html) => (html || '').replace(/<[^>]*>/gm, ' ').replace(/\s+/g, ' ').trim();
+const hashStr  = (s) => s.split('').reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0).toString(36);
 
-// ── Contextual AI Helper ─────────────────────────────────────────────────────
-const handleAiInlineAction = async (editor, action, lang) => {
-  const selectedText = editor.selection.getContent({ format: 'text' }).trim();
-  if (!selectedText) {
-    alert('Please select some text first.');
-    return;
-  }
-  
-  // Create a temporary loading span and insert it
-  const tempId = 'ai-temp-' + Math.random().toString(36).substr(2, 9);
-  const loadingSpan = `<span id="${tempId}" style="background: rgba(245,158,11,0.2); border-bottom: 2px dashed #F59E0B; padding: 2px 4px; border-radius: 4px;">${selectedText} ⏳</span>`;
-  editor.selection.setContent(loadingSpan);
-  
-  let prompt = '';
-  if (action === 'grammar') prompt = `Fix any grammar, spelling, or stylistic issues in this text. Keep the same language. Return ONLY the corrected text without explanations or quotes:\n"${selectedText}"`;
-  else if (action === 'rephrase') prompt = `Rephrase this text to be clearer and more engaging, while keeping the same meaning and language. Return ONLY the new text:\n"${selectedText}"`;
-  else if (action === 'summarize') prompt = `Summarize this text concisely. Keep the same language. Return ONLY the summary:\n"${selectedText}"`;
-  else if (action === 'expand') prompt = `Expand on this text by providing more professional detail without inventing false facts. Keep the same language. Return ONLY the expanded text:\n"${selectedText}"`;
-  else if (action === 'translate') prompt = `Translate this text to ${lang === 'ta' ? 'English' : 'Tamil'}. Return ONLY the translated text:\n"${selectedText}"`;
-
-  try {
-    const aiResult = await callGemini(prompt);
-    // Replace the loading span with an interactive diff span
-    const resultSpan = `<span class="ai-suggestion" data-original="${encodeURIComponent(selectedText)}" data-result="${encodeURIComponent(aiResult)}" style="background: rgba(16, 185, 129, 0.15); border-bottom: 2px solid #10B981; padding: 2px 4px; border-radius: 4px; cursor: pointer;">${aiResult}</span>`;
-    const doc = editor.getDoc();
-    const tempNode = doc.getElementById(tempId);
-    if (tempNode) {
-      tempNode.outerHTML = resultSpan;
-    }
-  } catch (err) {
-    console.error(err);
-    alert('AI Error: ' + err.message);
-    const doc = editor.getDoc();
-    const tempNode = doc.getElementById(tempId);
-    if (tempNode) {
-      tempNode.outerHTML = selectedText;
-    }
-  }
+// ── AI Suggestion Box ─────────────────────────────────────────────────────────
+const AiSuggestionBox = ({ fieldId, suggestion, loading, onUse, onDismiss, onRegenerate, source }) => {
+  if (!loading && !suggestion) return null;
+  return (
+    <div style={{
+      marginTop: '0.5rem', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.3)',
+      background: 'rgba(139,92,246,0.04)', overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0.45rem 0.75rem', borderBottom: '1px solid rgba(139,92,246,0.15)',
+        background: 'rgba(139,92,246,0.07)',
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#8B5CF6', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <Sparkles size={11} /> AI Suggestion
+          {source && <span style={{ fontWeight: 400, opacity: 0.7, textTransform: 'none' }}>· from {source}</span>}
+        </span>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button onClick={onRegenerate} title="Regenerate" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8B5CF6', padding: '2px', display: 'flex', alignItems: 'center' }}>
+            <RefreshCw size={12} />
+          </button>
+          <button onClick={onDismiss} title="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+            <X size={12} />
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+        {loading ? (
+          <span style={{ fontSize: '0.8rem', color: '#8B5CF6', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', border: '2px solid #8B5CF6', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+            Generating…
+          </span>
+        ) : (
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: '1.5', flex: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{suggestion}</span>
+        )}
+        {!loading && suggestion && (
+          <button
+            onClick={onUse}
+            style={{
+              flexShrink: 0, padding: '0.3rem 0.85rem', fontSize: '0.78rem', fontWeight: 700,
+              background: '#8B5CF6', color: '#fff', border: 'none', borderRadius: '6px',
+              cursor: 'pointer', letterSpacing: '0.02em', transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => e.target.style.opacity = '0.85'}
+            onMouseLeave={e => e.target.style.opacity = '1'}
+          >
+            Use
+          </button>
+        )}
+      </div>
+    </div>
+  );
 };
 
-const handleAcceptReject = (editor, accept) => {
-  const node = editor.selection.getNode();
-  if (node && node.classList.contains('ai-suggestion')) {
-    if (accept) {
-      const text = decodeURIComponent(node.getAttribute('data-result'));
-      node.outerHTML = text;
-    } else {
-      const text = decodeURIComponent(node.getAttribute('data-original'));
-      node.outerHTML = text;
-    }
-  }
+// ── Tag Suggestion Row ────────────────────────────────────────────────────────
+const TagSuggestionBox = ({ tags, loading, onUseOne, onUseAll, onDismiss, onRegenerate }) => {
+  if (!loading && (!tags || tags.length === 0)) return null;
+  return (
+    <div style={{
+      marginTop: '0.5rem', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.3)',
+      background: 'rgba(139,92,246,0.04)', overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0.45rem 0.75rem', borderBottom: '1px solid rgba(139,92,246,0.15)',
+        background: 'rgba(139,92,246,0.07)',
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 700, color: '#8B5CF6', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <Sparkles size={11} /> AI Suggestion · Tags <span style={{ fontWeight: 400, opacity: 0.7, textTransform: 'none' }}>· from Content</span>
+        </span>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          {!loading && tags?.length > 0 && <button onClick={onUseAll} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8B5CF6', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>Use All</button>}
+          <button onClick={onRegenerate} title="Regenerate" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8B5CF6', padding: '2px', display: 'flex', alignItems: 'center' }}><RefreshCw size={12} /></button>
+          <button onClick={onDismiss} title="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px', display: 'flex', alignItems: 'center' }}><X size={12} /></button>
+        </div>
+      </div>
+      <div style={{ padding: '0.6rem 0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+        {loading ? (
+          <span style={{ fontSize: '0.8rem', color: '#8B5CF6', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', border: '2px solid #8B5CF6', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+            Generating…
+          </span>
+        ) : tags?.map((tag, i) => (
+          <button key={i} onClick={() => onUseOne(tag)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+            background: 'var(--bg-secondary)', border: '1px solid rgba(139,92,246,0.3)',
+            borderRadius: '20px', padding: '0.2rem 0.6rem', fontSize: '0.78rem',
+            cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#8B5CF6'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+          >
+            + {tag}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 };
 
-// ── Component ────────────────────────────────────────────────────────────────
+const TABS = ['Tamil', 'English', 'SEO', 'Settings'];
+
+const slugify = (text) =>
+  (text || '').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+
 const NewsEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
   const { user } = useAuth();
-  
-  const [activeTab, setActiveTab] = useState(0); 
+
+  const getPreviewUrl = (url) => {
+    if (!url) return '';
+    let finalUrl = url;
+    if (typeof finalUrl === 'string' && finalUrl.includes('kings-tv.onrender.com')) {
+      const path = finalUrl.replace(/^https?:\/\/kings-tv\.onrender\.com/, '');
+      const cleanPath = path.startsWith('/api/v1') ? path.substring(7) : path;
+      const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+        .replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+      finalUrl = serverBase + (cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath);
+    }
+    if (finalUrl.startsWith('http://') || finalUrl.startsWith('https://') || finalUrl.startsWith('data:')) return finalUrl;
+    const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+      .replace(/\/api\/v1\/?$/, '')
+      .replace(/\/api\/?$/, '');
+    const normalizedUrl = finalUrl.startsWith('/') ? finalUrl : '/' + finalUrl;
+    return serverBase + normalizedUrl;
+  };
+
+  const [activeTab, setActiveTab] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [mediaList, setMediaList] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(null);
+
   const [districts, setDistricts] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [reporters, setReporters] = useState([]);
+
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiAction, setAiAction] = useState('expand');
+  const [aiResult, setAiResult] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const [lastSavedTime, setLastSavedTime] = useState(null);
   
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
-  
-  // Unified Upload State
-  const [mediaList, setMediaList] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState(null);
-  const [uploadType, setUploadType] = useState('source'); 
-  
+  // AI SEO Assistant state
+  const [aiSeoLoading, setAiSeoLoading] = useState(false);
+  const [aiSeoSuggestions, setAiSeoSuggestions] = useState(null);
+  const [linkSuggestions, setLinkSuggestions] = useState([]);
+
+  // ── Inline AI Suggestion — state only (logic after form is declared) ──────
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [suggestions, setSuggestions] = useState({});
+  const [suggLoading, setSuggLoading] = useState({});
+  const [suggDismissed, setSuggDismissed] = useState({});
+  const lastGenHash = useRef('');
+  const debounceTimer = useRef(null);
+
+  const [userEditedFields, setUserEditedFields] = useState({});
+  const [aiFieldStates, setAiFieldStates] = useState({
+    titleTa: 'idle', titleEn: 'idle', shortDescTa: 'idle', shortDescEn: 'idle',
+    contentTa: 'idle', contentEn: 'idle', metaTitle: 'idle', metaDescription: 'idle',
+    metaKeywords: 'idle', focusKeywords: 'idle', slug: 'idle', categoryId: 'idle'
+  });
+  const [showAiNote, setShowAiNote] = useState(false);
+  const [docUploadProgress, setDocUploadProgress] = useState({ ta: '', en: '' });
+
   const [form, setForm] = useState({
     titleTa: '', titleEn: '', contentTa: '', contentEn: '',
     shortDescTa: '', shortDescEn: '', imageUrl: '', featuredImage: '',
     authorName: user?.name || user?.username || 'Kings TV News Desk', 
     reporterName: '', readabilityScore: '', seoScore: '', status: 'draft',
-    categoryId: '', subcategoryId: '', districtId: '', constituency: '',
+    categoryId: '', subcategoryId: '',
+    districtId: '', constituency: '',
     metaTitle: '', metaDescription: '', metaKeywords: '', focusKeywords: '', slug: '', canonicalUrl: '',
-    publishedAt: '', showRightColumn: true, isPluggedIn: false, featuredCategory: '',
-    allowComments: true, allowPingbacks: true
+    latitude: '', longitude: '', visibilityRadiusKm: '',
+    publishedAt: '',
+    showRightColumn: true, isPluggedIn: false, featuredCategory: '',
+    aiAutomationEnabled: false,
   });
 
-  const [aiGeneratingDraft, setAiGeneratingDraft] = useState(false);
-  const [aiDraftProgress, setAiDraftProgress] = useState('');
-  
-  const editorRefTa = useRef(null);
-  const editorRefEn = useRef(null);
+  // ── Gemini Multimodal OCR helper ──────────────────────────────────────────
+  const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
+    const url = getGeminiUrl();
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { data: base64Data, mimeType: mimeType } },
+            { text: prompt }
+          ]
+        }]
+      }),
+    });
+    if (!res.ok) throw new Error(`Gemini Multimodal failed: ${res.status}`);
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  };
 
-  // Hidden File Input Refs for Media Toolbar
-  const mediaInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-  const audioInputRef = useRef(null);
-  const docInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
-
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const [videoUrlInput, setVideoUrlInput] = useState('');
-  const [mediaUploading, setMediaUploading] = useState(false);
-  const [isCustomAuthor, setIsCustomAuthor] = useState(false);
-  const [aiProofreading, setAiProofreading] = useState(false);
-
-  // Gallery Creator Modal State
-  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
-  const [galleryTitle, setGalleryTitle] = useState('Media & Document Vault');
-  const [galleryItems, setGalleryItems] = useState([]);
-  const [galleryUploading, setGalleryUploading] = useState(false);
-
-  // Media Library Integration inside Gallery Modal
-  const [mediaLibraryItems, setMediaLibraryItems] = useState([]);
-  const [loadingMediaLibrary, setLoadingMediaLibrary] = useState(false);
-  const [galleryModalTab, setGalleryModalTab] = useState('library'); // 'library' | 'upload'
-  const [mediaLibrarySearch, setMediaLibrarySearch] = useState('');
-  const [mediaLibraryCategory, setMediaLibraryCategory] = useState('all');
-
-  const fetchMediaLibraryItems = async () => {
-    setLoadingMediaLibrary(true);
-    try {
-      const res = await api.get('/media/list');
-      const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
-      const formatted = list.map(m => {
-        const fileType = m.mimeType || m.type || '';
-        const fileName = m.filename || m.name || m.url?.split('/').pop() || 'file';
-        let cat = 'document';
-        if (fileType.startsWith('image/')) cat = 'image';
-        else if (fileType.startsWith('video/')) cat = 'video';
-        else if (fileType.startsWith('audio/')) cat = 'audio';
-
-        const ext = fileName.split('.').pop()?.toUpperCase() || 'FILE';
-        const sizeMb = m.fileSize ? (m.fileSize / (1024 * 1024)).toFixed(2) : (m.size ? (m.size / (1024 * 1024)).toFixed(2) : '0.50');
-
-        return {
-          id: m.id || m.url,
-          url: m.url || m.path,
-          name: fileName,
-          type: fileType,
-          ext,
-          sizeMb,
-          category: cat
-        };
-      });
-      setMediaLibraryItems(formatted);
-    } catch (err) {
-      console.warn('Failed to load media library items', err);
-    } finally {
-      setLoadingMediaLibrary(false);
+  // ── SEO & Readability Score Calculators (Rule-based, non-hallucinated) ─────
+  const calculateReadabilityScore = (text, isTamil) => {
+    if (!text) return 0;
+    const clean = text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+    const words = clean ? clean.split(/\s+/).length : 0;
+    if (words === 0) return 0;
+    
+    if (isTamil) {
+      const charCount = clean.replace(/\s+/g, '').length;
+      const avgWordLength = charCount / words;
+      const score = Math.max(0, Math.min(100, Math.round(130 - (avgWordLength * 12))));
+      return score;
+    } else {
+      const sentences = clean.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
+      const syllables = clean.length / 3; // rough estimate
+      const score = 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
+      return Math.max(0, Math.min(100, Math.round(score)));
     }
   };
+
+  const calculateSeoScore = (formState) => {
+    let score = 0;
+    const titleLen = (formState.metaTitle || formState.titleEn || formState.titleTa || '').length;
+    if (titleLen >= 40 && titleLen <= 60) score += 20;
+    else if (titleLen > 0) score += 10;
+    
+    const descLen = (formState.metaDescription || '').length;
+    if (descLen >= 120 && descLen <= 160) score += 20;
+    else if (descLen > 0) score += 10;
+    
+    const focusKw = (formState.focusKeywords || '').toLowerCase().trim();
+    const content = ((formState.contentTa || '') + ' ' + (formState.contentEn || '')).toLowerCase();
+    if (focusKw && content.includes(focusKw)) {
+      score += 20;
+      const index = content.replace(/<[^>]*>?/gm, ' ').indexOf(focusKw);
+      if (index >= 0 && index < 200) score += 10;
+    }
+    
+    const title = ((formState.titleEn || '') + ' ' + (formState.titleTa || '')).toLowerCase();
+    if (focusKw && title.includes(focusKw)) {
+      score += 15;
+    }
+    
+    const slug = (formState.slug || '');
+    if (slug && /^[a-z0-9-]+$/.test(slug)) {
+      score += 15;
+    }
+    
+    return score;
+  };
+
+  // ── Inline AI Suggestion — full logic (after form is declared) ────────────
+  const SUGG_SOURCE = {
+    excerpt: 'Title + Content', metaTitle: 'Title', focusKeyword: 'Content',
+    metaDescription: 'Content', slug: 'Title', tags: 'Content', category: 'Content',
+  };
+
+  const setFieldSugg = (field, val) => setSuggestions(p => ({ ...p, [field]: val }));
+  const setFieldLoad = (field, v)  => setSuggLoading(p => ({ ...p, [field]: v }));
+  const dismissField = (field)      => setSuggDismissed(p => ({ ...p, [field]: true }));
+  const undismissAll = ()           => setSuggDismissed({});
+
+  const logUse = (field, value, hash) => {
+    try {
+      const log = JSON.parse(localStorage.getItem('ai_use_log') || '[]');
+      log.unshift({ field, value: String(value).slice(0, 200), contentHash: hash, ts: new Date().toISOString() });
+      localStorage.setItem('ai_use_log', JSON.stringify(log.slice(0, 100)));
+    } catch {}
+  };
+
+  const resyncField = (fieldName) => {
+    setUserEditedFields(prev => ({ ...prev, [fieldName]: false }));
+    setAiFieldStates(prev => ({ ...prev, [fieldName]: 'generating' }));
+    triggerFieldGeneration(fieldName);
+  };
+
+  const handleToggleAiAutomation = (checked) => {
+    setForm(f => ({ ...f, aiAutomationEnabled: checked }));
+    if (checked) {
+      setShowAiNote(true);
+      setTimeout(() => setShowAiNote(false), 10000);
+      const title = form.titleEn || form.titleTa || '';
+      const content = form.contentTa || form.contentEn || '';
+      if (title || content) {
+        triggerAiAutomation(form.contentTa ? 'contentTa' : 'contentEn', form.contentTa || form.contentEn);
+      }
+    } else {
+      setShowAiNote(false);
+    }
+  };
+
+  const triggerFieldGeneration = async (field) => {
+    setAiFieldStates(prev => ({ ...prev, [field]: 'generating' }));
+    try {
+      const title = form.titleEn || form.titleTa || '';
+      const content = stripHtml(form.contentEn || form.contentTa || '');
+      const contentShort = content.slice(0, 2000);
+      let resValue = null;
+      
+      if (field === 'titleEn') {
+        const prompt = `You are localizing a Tamil news headline into natural, idiomatic English for a news website. Do not transliterate — write it the way an English news editor would title this story. Tamil title: "${form.titleTa}"\nArticle content for context: "${contentShort.substring(0, 500)}"\nReturn only the English title, max 15 words, no quotes, no explanation.`;
+        resValue = await callGemini(prompt);
+      } else if (field === 'titleTa') {
+        const prompt = `You are localizing an English news headline into natural, idiomatic Tamil for a news website. Do not transliterate — write it the way a Tamil news editor would title this story. English title: "${form.titleEn}"\nArticle content for context: "${contentShort.substring(0, 500)}"\nReturn only the Tamil title, max 15 words, no quotes, no explanation.`;
+        resValue = await callGemini(prompt);
+      } else if (field === 'contentEn') {
+        const prompt = `Translate and localize the following Tamil news content into natural, idiomatic English. Retain original paragraphs. Tamil content:\n"${form.contentTa}"`;
+        resValue = await callGemini(prompt);
+        if (resValue && window.tinymce?.get('tinymce-contentEn')) {
+          window.tinymce.get('tinymce-contentEn').setContent(resValue);
+        }
+      } else if (field === 'contentTa') {
+        const prompt = `Translate and localize the following English news content into natural, idiomatic Tamil. Retain original paragraphs. English content:\n"${form.contentEn}"`;
+        resValue = await callGemini(prompt);
+        if (resValue && window.tinymce?.get('tinymce-contentTa')) {
+          window.tinymce.get('tinymce-contentTa').setContent(resValue);
+        }
+      } else if (field === 'shortDescTa') {
+        const prompt = `Summarize the following news article in Tamil in exactly 1-2 sentences, suitable for a "short description" field on a news CMS. Content: "${form.contentTa || contentShort}"\nReturn only the Tamil summary text.`;
+        resValue = await callGemini(prompt);
+      } else if (field === 'shortDescEn') {
+        const prompt = `Summarize the following news article in English in exactly 1-2 sentences, suitable for a "short description" field on a news CMS. Content: "${form.contentEn || contentShort}"\nReturn only the English summary text.`;
+        resValue = await callGemini(prompt);
+      } else if (field === 'categoryId') {
+        const categoryNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
+        const prompt = `Given this news content, suggest the single best-fit category ID from this list: ${categoryNames}.\nReturn JSON: {"categoryId": "...", "confidence": 0-1}\nContent: "${contentShort}"`;
+        const raw = await callGemini(prompt);
+        try {
+          const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+          if (parsed.categoryId && parsed.confidence >= 0.5) {
+            resValue = parsed.categoryId;
+          }
+        } catch {}
+      } else if (['metaTitle', 'metaDescription', 'metaKeywords', 'focusKeywords', 'slug'].includes(field)) {
+        const lang = form.contentTa ? 'Tamil' : 'English';
+        const contentVal = form.contentTa || form.contentEn || '';
+        const prompt = `Given this news article content in ${lang}, generate SEO metadata as JSON only, no markdown, no explanation:
+{
+  "seo_title": "max 60 characters, keyword-forward",
+  "meta_description": "max 160 characters",
+  "meta_keywords": ["term1", "term2", ...] (5-8 terms),
+  "focus_keywords": ["term1", "term2", "term3"] (1-3 terms),
+  "url_slug": "lowercase-hyphenated-ascii"
+}
+Content: "${contentVal.substring(0, 2000)}"`;
+        const raw = await callGemini(prompt);
+        try {
+          const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+          const map = {
+            metaTitle: parsed.seo_title,
+            metaDescription: parsed.meta_description,
+            metaKeywords: Array.isArray(parsed.meta_keywords) ? parsed.meta_keywords.join(', ') : '',
+            focusKeywords: Array.isArray(parsed.focus_keywords) ? parsed.focus_keywords.join(', ') : '',
+            slug: parsed.url_slug
+          };
+          
+          setForm(f => {
+            const updates = {};
+            Object.keys(map).forEach(k => {
+              if (!userEditedFields[k]) {
+                updates[k] = map[k];
+                setAiFieldStates(prev => ({ ...prev, [k]: 'done' }));
+              }
+            });
+            const updated = { ...f, ...updates };
+            const readScore = calculateReadabilityScore(updated.contentTa || updated.contentEn, !!updated.contentTa);
+            const seoScoreVal = calculateSeoScore(updated);
+            updated.readabilityScore = readScore || '';
+            updated.seoScore = seoScoreVal || '';
+            return updated;
+          });
+          return;
+        } catch {}
+      }
+      
+      if (resValue !== null) {
+        setForm(f => {
+          const updated = { ...f, [field]: resValue };
+          const readScore = calculateReadabilityScore(updated.contentTa || updated.contentEn, !!updated.contentTa);
+          const seoScoreVal = calculateSeoScore(updated);
+          updated.readabilityScore = readScore || '';
+          updated.seoScore = seoScoreVal || '';
+          return updated;
+        });
+        setAiFieldStates(prev => ({ ...prev, [field]: 'done' }));
+      } else {
+        setAiFieldStates(prev => ({ ...prev, [field]: 'idle' }));
+      }
+    } catch (e) {
+      setAiFieldStates(prev => ({ ...prev, [field]: 'idle' }));
+    }
+  };
+
+  const triggerAiAutomation = async (sourceField, value) => {
+    if (!form.aiAutomationEnabled) return;
+    const title   = form.titleEn || form.titleTa || '';
+    const content = stripHtml(form.contentEn || form.contentTa || '');
+    if (!title && !content) return;
+    
+    const hash = hashStr(title + content);
+    if (hash === lastGenHash.current) return;
+    lastGenHash.current = hash;
+    
+    const targets = [];
+    if (sourceField === 'contentTa' && value) {
+      if (!userEditedFields.contentEn) targets.push('contentEn');
+      if (!userEditedFields.titleTa) targets.push('titleTa');
+      if (!userEditedFields.shortDescTa) targets.push('shortDescTa');
+      if (!userEditedFields.shortDescEn) targets.push('shortDescEn');
+      if (!userEditedFields.categoryId) targets.push('categoryId');
+      ['metaTitle', 'metaDescription', 'metaKeywords', 'focusKeywords', 'slug'].forEach(k => {
+        if (!userEditedFields[k]) targets.push(k);
+      });
+    } else if (sourceField === 'contentEn' && value) {
+      if (!userEditedFields.contentTa) targets.push('contentTa');
+      if (!userEditedFields.titleEn) targets.push('titleEn');
+      if (!userEditedFields.shortDescEn) targets.push('shortDescEn');
+      if (!userEditedFields.shortDescTa) targets.push('shortDescTa');
+      if (!userEditedFields.categoryId) targets.push('categoryId');
+      ['metaTitle', 'metaDescription', 'metaKeywords', 'focusKeywords', 'slug'].forEach(k => {
+        if (!userEditedFields[k]) targets.push(k);
+      });
+    } else if (sourceField === 'titleTa' && value) {
+      if (!userEditedFields.titleEn) targets.push('titleEn');
+      if (!userEditedFields.slug) targets.push('slug');
+    } else if (sourceField === 'titleEn' && value) {
+      if (!userEditedFields.titleTa) targets.push('titleTa');
+      if (!userEditedFields.slug) targets.push('slug');
+    }
+    
+    if (targets.length === 0) return;
+    setAiFieldStates(prev => {
+      const next = { ...prev };
+      targets.forEach(t => { next[t] = 'generating'; });
+      return next;
+    });
+    
+    await Promise.allSettled(
+      targets.map(t => triggerFieldGeneration(t))
+    );
+  };
+
+  const generateSuggestions = useCallback(async (overrideHash) => {
+    const title   = form.titleEn || form.titleTa || '';
+    const content = stripHtml(form.contentEn || form.contentTa || '');
+    if (!title && !content) return;
+    const hash = overrideHash || hashStr(title + content);
+    if (hash === lastGenHash.current && !overrideHash) return;
+    lastGenHash.current = hash;
+    undismissAll();
+    const contentShort = content.slice(0, 2000);
+    const categoryNames = categories.map(c => c.nameTa ? `${c.name} (${c.nameTa})` : c.name).join(', ');
+    const prompts = {
+      excerpt:         `Write a 1-2 sentence excerpt for this news article. Max 300 characters. Neutral, factual tone.\nTitle: "${title}"\nContent: "${contentShort}"\nReturn only the excerpt text.`,
+      metaTitle:       `Generate an SEO meta title. Max 60 chars, keyword-forward.\nTitle: "${title}"\nReturn only the meta title.`,
+      focusKeyword:    `Suggest the single primary focus keyword or phrase.\nTitle: "${title}"\nContent: "${contentShort}"\nReturn only the keyword.`,
+      metaDescription: `Write an SEO meta description. Max 155 chars, compelling but factual.\nTitle: "${title}"\nContent: "${contentShort}"\nReturn only the meta description.`,
+      slug:            `Generate a URL slug. Lowercase, hyphenated, ASCII only, max 70 chars.\nTitle: "${title}"\nReturn only the slug.`,
+      tags:            `Suggest 3-6 relevant tags as a JSON array of short lowercase strings.\nTitle: "${title}"\nContent: "${contentShort}"\nReturn only the JSON array.`,
+      category:        categoryNames ? `Suggest the best-fit category from: ${categoryNames}.\nReturn JSON: {"category": "...", "confidence": 0.0}. If confidence < 0.5 return {"category": null}.\nTitle: "${title}"\nContent: "${contentShort}"` : null,
+    };
+    await Promise.allSettled(
+      Object.entries(prompts).map(async ([field, prompt]) => {
+        if (!prompt) return;
+        setFieldLoad(field, true); setFieldSugg(field, null);
+        try {
+          const raw = await callGemini(prompt);
+          if (field === 'tags') {
+            try { const a = JSON.parse(raw.replace(/```json|```/g, '').trim()); setFieldSugg(field, Array.isArray(a) ? a : []); }
+            catch { setFieldSugg(field, []); }
+          } else if (field === 'category') {
+            try { const o = JSON.parse(raw.replace(/```json|```/g, '').trim()); setFieldSugg(field, o.category && o.confidence >= 0.5 ? o.category : null); }
+            catch { setFieldSugg(field, null); }
+          } else { setFieldSugg(field, raw); }
+        } catch { setFieldSugg(field, null); }
+        finally { setFieldLoad(field, false); }
+      })
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.titleEn, form.titleTa, form.contentEn, form.contentTa, categories]);
+
+  // Debounce trigger on title/content change
+  useEffect(() => {
+    if (!aiEnabled) return;
+    if (!(form.titleEn || form.titleTa) && !(form.contentEn || form.contentTa)) return;
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => generateSuggestions(), 2500);
+    return () => clearTimeout(debounceTimer.current);
+  }, [aiEnabled, form.titleEn, form.titleTa, form.contentEn, form.contentTa]); // eslint-disable-line
+
+  // Clear all when AI turned off
+  useEffect(() => {
+    if (!aiEnabled) { setSuggestions({}); setSuggLoading({}); setSuggDismissed({}); lastGenHash.current = ''; }
+  }, [aiEnabled]);
+
+  const useSuggestion = (formKey, fieldKey, value) => {
+    setForm(f => ({ ...f, [formKey]: value }));
+    logUse(fieldKey, value, lastGenHash.current);
+    dismissField(fieldKey);
+  };
+
+  const useTagChip = (tag) => {
+    const cur = (form.metaKeywords || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!cur.includes(tag)) { setForm(f => ({ ...f, metaKeywords: [...cur, tag].join(', ') })); logUse('tags_chip', tag, lastGenHash.current); }
+  };
+
+  const useAllTags = () => {
+    if (!suggestions.tags?.length) return;
+    const cur = (form.metaKeywords || '').split(',').map(s => s.trim()).filter(Boolean);
+    const merged = [...new Set([...cur, ...suggestions.tags])].join(', ');
+    setForm(f => ({ ...f, metaKeywords: merged })); logUse('tags_all', merged, lastGenHash.current); dismissField('tags');
+  };
+
+  const handleDocUpload = async (e, lang) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const setProgress = (text) => setDocUploadProgress(prev => ({ ...prev, [lang]: text }));
+    setProgress('Reading document…');
+    try {
+      let extractedText = '';
+      if (file.type === 'text/plain') {
+        extractedText = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsText(file);
+        });
+      } else if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+        const base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        setProgress('Running OCR via AI…');
+        const ocrPrompt = `Extract all text from this file. Retain original paragraph formatting. Do not summarize, just extract the exact text.`;
+        extractedText = await callGeminiMultimodal(base64Data, file.type, ocrPrompt);
+      } else {
+        alert('Format not supported. Please upload a .pdf, .txt or an image file.');
+        setProgress('');
+        return;
+      }
+      if (!extractedText || extractedText.trim().length === 0) {
+        setProgress('⚠️ Extraction failed (empty content)');
+        setTimeout(() => setProgress(''), 4000);
+        return;
+      }
+      const wordCount = extractedText.split(/\s+/).length;
+      setProgress(`Extracted ${wordCount} words`);
+      const targetField = lang === 'ta' ? 'contentTa' : 'contentEn';
+      const editorId = lang === 'ta' ? 'tinymce-contentTa' : 'tinymce-contentEn';
+      setForm(f => ({ ...f, [targetField]: extractedText }));
+      if (window.tinymce?.get(editorId)) {
+        window.tinymce.get(editorId).setContent(extractedText);
+      }
+      if (form.aiAutomationEnabled) {
+        setProgress('Generating...');
+        await triggerAiAutomation(targetField, extractedText);
+      }
+      setTimeout(() => setProgress(''), 4000);
+    } catch (err) {
+      console.error('Doc extraction error:', err);
+      setProgress('⚠️ Error reading document');
+      setTimeout(() => setProgress(''), 4000);
+    }
+  };
+
+  const renderAiIndicator = (field) => {
+    if (!form.aiAutomationEnabled) return null;
+    const state = aiFieldStates[field] || 'idle';
+    if (state === 'generating') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '6px', fontSize: '0.72rem', color: '#8B5CF6', fontWeight: 600 }}>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', border: '1.5px solid #8B5CF6', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+          Auto-generating…
+        </span>
+      );
+    }
+    if (state === 'done') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '6px', fontSize: '0.72rem', color: '#10B981', fontWeight: 600 }} title="AI successfully generated this field.">
+          ✨ Auto-filled
+        </span>
+      );
+    }
+    if (state === 'userEdited') {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginLeft: '6px', fontSize: '0.72rem', color: '#F59E0B', fontWeight: 600 }}>
+          <span>⚠️ Edited (AI paused)</span>
+          <button
+            type="button"
+            onClick={() => resyncField(field)}
+            style={{
+              background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: '4px', padding: '1px 6px', fontSize: '0.65rem', cursor: 'pointer', fontWeight: 'bold'
+            }}
+          >
+            🔄 Resync
+          </button>
+        </span>
+      );
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }} title="AI is monitoring this field.">
+        ✨
+      </span>
+    );
+  };
+
+
+  const formRef = useRef(form);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  // Auto-save logic
+  useEffect(() => {
+    if (!isEdit) {
+      const savedDraft = localStorage.getItem('newsEditorDraft');
+      if (savedDraft) {
+        if (window.confirm('You have an unsaved draft. Do you want to restore it?')) {
+          try {
+            const parsed = JSON.parse(savedDraft);
+            setForm(parsed);
+          } catch (e) {
+            console.error('Failed to parse draft', e);
+          }
+        } else {
+          localStorage.removeItem('newsEditorDraft');
+        }
+      }
+    }
+  }, [isEdit]);
 
   useEffect(() => {
-    if (galleryModalOpen) {
-      fetchMediaLibraryItems();
-    }
-  }, [galleryModalOpen]);
-
-  // API Key Modal State
-  const [keyModalOpen, setKeyModalOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [apiModelInput, setApiModelInput] = useState('gemini-2.0-flash');
-
-  const handleSaveApiKey = async () => {
-    const key = apiKeyInput.trim();
-    if (!key) return showMsg('Please enter a valid Gemini API Key', true);
-    if (!key.startsWith('AIzaSy')) return showMsg('Invalid key format. Google AI Studio keys start with "AIzaSy".', true);
-
-    activeAiConfig.model = apiModelInput;
-
-    try {
-      await api.post('/admin/config', [
-        { configKey: 'ai.llm_api_key', configValue: key },
-        { configKey: 'ai.llm_model', configValue: apiModelInput }
-      ]);
-      await api.put('/admin/ai-config/gemini', {
-        provider: 'gemini',
-        apiKey: key,
-        model: apiModelInput,
-        isActive: true
-      }).catch(() => {});
-      setApiKeyInput('');
-      setKeyModalOpen(false);
-      showMsg('🔑 Gemini API Key saved securely on server!');
-    } catch(e) {
-      showMsg('Error saving API Key to server.', true);
-    }
-  };
-
-  const getActiveEditor = () => activeTab === 0 ? editorRefTa.current : editorRefEn.current;
-
-  // Safe helper to insert HTML into TinyMCE or fall back to form state
-  const insertIntoActiveContent = (html) => {
-    const editor = getActiveEditor();
-    if (editor) {
-      editor.insertContent(html);
-    } else {
-      const field = activeTab === 0 ? 'contentTa' : 'contentEn';
-      setForm(f => ({
-        ...f,
-        [field]: (f[field] || '') + html
-      }));
-    }
-  };
-
-  // Helper to upload a single file
-  const uploadSingleFile = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await api.post('/articles/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    if (res.data?.url) {
-      const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
-      return res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
-    }
-    throw new Error('Upload failed');
-  };
-
-  // 1. Add Media (Images)
-  const handleAddMedia = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    setMediaUploading(true);
-    try {
-      for (const file of files) {
-        const url = await uploadSingleFile(file);
-        insertIntoActiveContent(`<p><img src="${url}" alt="${file.name}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 12px 0; display: block;" /></p><p>&nbsp;</p>`);
+    const autoSaveInterval = setInterval(() => {
+      if (!isEdit && (formRef.current.titleTa || formRef.current.contentTa)) {
+        localStorage.setItem('newsEditorDraft', JSON.stringify(formRef.current));
+        setLastSavedTime(new Date());
       }
-      showMsg('Image(s) added to editor successfully!');
-    } catch (err) {
-      console.error(err);
-      showMsg('Failed to upload image.', true);
-    } finally {
-      setMediaUploading(false);
-      if (mediaInputRef.current) mediaInputRef.current.value = '';
-    }
-  };
+    }, 30000); // 30 seconds
+    return () => clearInterval(autoSaveInterval);
+  }, [isEdit]);
 
-  // 2. Add Video File
-  const handleAddVideoFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setMediaUploading(true);
-    try {
-      const url = await uploadSingleFile(file);
-      insertIntoActiveContent(`<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${url}"><source src="${url}" type="${file.type}"></video></p><p>&nbsp;</p>`);
-      showMsg('Video added to editor successfully!');
-    } catch (err) {
-      console.error(err);
-      showMsg('Failed to upload video.', true);
-    } finally {
-      setMediaUploading(false);
-      if (videoInputRef.current) videoInputRef.current.value = '';
-      setVideoModalOpen(false);
-    }
-  };
-
-  // 2b. Add Video URL (YouTube / Embed / Direct MP4)
-  const handleInsertVideoUrl = () => {
-    if (!videoUrlInput.trim()) return;
-
-    let html = '';
-    const url = videoUrlInput.trim();
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      let videoId = '';
-      if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
-      else if (url.includes('v=')) videoId = url.split('v=')[1]?.split('&')[0];
-      const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-      html = `<p><iframe src="${embedUrl}" width="100%" height="400" frameborder="0" allowfullscreen style="border-radius: 8px; margin: 12px 0; max-width: 100%;"></iframe></p><p>&nbsp;</p>`;
-    } else {
-      html = `<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${url}"></video></p><p>&nbsp;</p>`;
-    }
-
-    insertIntoActiveContent(html);
-    setVideoUrlInput('');
-    setVideoModalOpen(false);
-    showMsg('Video embedded successfully!');
-  };
-
-  // 3. Add Audio
-  const handleAddAudio = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setMediaUploading(true);
-    try {
-      const url = await uploadSingleFile(file);
-      insertIntoActiveContent(`<p><audio controls style="width: 100%; margin: 12px 0;" src="${url}"></audio></p><p>&nbsp;</p>`);
-      showMsg('Audio added to editor successfully!');
-    } catch (err) {
-      console.error(err);
-      showMsg('Failed to upload audio.', true);
-    } finally {
-      setMediaUploading(false);
-      if (audioInputRef.current) audioInputRef.current.value = '';
-    }
-  };
-
-  // 4. Add Document (PDF, DOCX, TXT, etc.)
-  const handleAddDocument = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setMediaUploading(true);
-    try {
-      const url = await uploadSingleFile(file);
-      const ext = file.name.split('.').pop()?.toUpperCase() || 'DOC';
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      
-      const docHtml = `
-        <div class="document-card" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; margin: 16px 0;">
-          <div style="font-size: 28px; line-height: 1;">📄</div>
-          <div style="flex: 1; overflow: hidden;">
-            <strong style="display: block; font-size: 15px; color: #0f172a; margin-bottom: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${file.name}</strong>
-            <span style="font-size: 12px; color: #64748b; font-weight: 500;">${ext} Document • ${sizeMb} MB</span>
-          </div>
-          <a href="${url}" target="_blank" download style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; white-space: nowrap;">
-            ⬇ Download Document
-          </a>
-        </div>
-        <p>&nbsp;</p>
-      `;
-      insertIntoActiveContent(docHtml);
-      showMsg('Document attached to editor successfully!');
-    } catch (err) {
-      console.error(err);
-      showMsg('Failed to upload document.', true);
-    } finally {
-      setMediaUploading(false);
-      if (docInputRef.current) docInputRef.current.value = '';
-    }
-  };
-
-  // 5. Interactive Gallery Modal Upload Handler (Images, Videos, Audio, Docs)
-  const handleUploadGalleryModalFiles = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    setGalleryUploading(true);
-    try {
-      const newItems = [];
-      for (const file of files) {
-        const url = await uploadSingleFile(file);
-        const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        let category = 'image';
-        if (file.type.startsWith('video/')) category = 'video';
-        else if (file.type.startsWith('audio/')) category = 'audio';
-        else if (!file.type.startsWith('image/')) category = 'document';
-
-        newItems.push({
-          id: Date.now() + Math.random(),
-          url,
-          name: file.name,
-          type: file.type,
-          ext,
-          sizeMb,
-          category
-        });
-      }
-      setGalleryItems(prev => [...prev, ...newItems]);
-      showMsg(`Added ${newItems.length} file(s) to gallery modal!`);
-    } catch (err) {
-      console.error(err);
-      showMsg('Failed to upload gallery item.', true);
-    } finally {
-      setGalleryUploading(false);
-      if (galleryInputRef.current) galleryInputRef.current.value = '';
-    }
-  };
-
-  // Insert complete gallery HTML card into article content
-  const handleInsertGalleryModal = () => {
-    if (!galleryItems.length) return showMsg('Please upload at least one image, video, audio, or document to the gallery.', true);
-
-    const images = galleryItems.filter(i => i.category === 'image');
-    const videos = galleryItems.filter(i => i.category === 'video');
-    const audios = galleryItems.filter(i => i.category === 'audio');
-    const docs = galleryItems.filter(i => i.category === 'document');
-
-    let html = `
-      <div class="interactive-gallery-container" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; margin: 24px 0; font-family: sans-serif;">
-        <h4 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-          📂 ${galleryTitle || 'Media & Document Gallery'}
-        </h4>
-    `;
-
-    // Images Grid
-    if (images.length > 0) {
-      html += `
-        <div class="article-gallery" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
-          ${images.map(img => `<div style="overflow:hidden; border-radius:10px; height:180px;"><img src="${img.url}" alt="${img.name}" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:10px;" /></div>`).join('')}
-        </div>
-      `;
-    }
-
-    // Videos
-    if (videos.length > 0) {
-      videos.forEach(v => {
-        html += `<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${v.url}"><source src="${v.url}" type="${v.type}"></video></p>`;
-      });
-    }
-
-    // Audio Clips
-    if (audios.length > 0) {
-      audios.forEach(a => {
-        html += `<p><audio controls style="width: 100%; margin: 8px 0;" src="${a.url}"></audio></p>`;
-      });
-    }
-
-    // Document Downloads
-    if (docs.length > 0) {
-      html += `<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">`;
-      docs.forEach(d => {
-        html += `
-          <div class="document-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
-            <div style="font-size: 24px;">📄</div>
-            <div style="flex: 1; overflow: hidden;">
-              <strong style="display: block; font-size: 14px; color: #0f172a; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${d.name}</strong>
-              <span style="font-size: 11px; color: #64748b; font-weight: 500;">${d.ext} Document • ${d.sizeMb} MB</span>
-            </div>
-            <a href="${d.url}" target="_blank" download style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 600;">
-              ⬇ Download
-            </a>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    html += `</div><p>&nbsp;</p>`;
-
-    insertIntoActiveContent(html);
-    setGalleryModalOpen(false);
-    setGalleryItems([]);
-    setGalleryTitle('Media & Document Vault');
-    showMsg('Interactive Gallery attached to article successfully!');
-  };
-
+  // Load Categories & Districts Data
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {});
     api.get('/districts').then(r => setDistricts(r.data || [])).catch(() => {});
-    api.get('/user/reporters').then(r => {
-      const users = (Array.isArray(r.data) ? r.data : []).filter(u => {
-        const roleName = u.role ? u.role.replace(/^ROLE_/, '') : '';
-        return ['MOBILE_JOURNALIST', 'DISTRICT_ADMIN', 'CHIEF_EDITOR', 'INSTITUTION_LOGIN', 'SUPER_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR'].includes(roleName);
-      });
+    // Fetch reporters/journalists for the reporter name dropdown
+    api.get('/admin/users?role=MOBILE_JOURNALIST&size=100').then(r => {
+      const users = r.data?.users || [];
       setReporters(users);
-    }).catch(() => {});
+    }).catch(() => {
+      // Also try fetching all journalist-type roles
+      api.get('/admin/users?size=200').then(r => {
+        const users = (r.data?.users || []).filter(u => 
+          ['MOBILE_JOURNALIST', 'DISTRICT_ADMIN', 'CHIEF_EDITOR', 'INSTITUTION_LOGIN'].includes(u.role)
+        );
+        setReporters(users);
+      }).catch(() => {});
+    });
+    api.get('/admin/config')
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          res.data.forEach(item => {
+            if (item.configKey === 'ai.llm_api_key' && item.configValue) {
+              activeAiConfig.apiKey = item.configValue;
+            }
+            if (item.configKey === 'ai.llm_api_url' && item.configValue) {
+              activeAiConfig.apiUrl = item.configValue;
+            }
+            if (item.configKey === 'ai.llm_model' && item.configValue) {
+              activeAiConfig.model = item.configValue;
+            }
+          });
+        }
+      })
+      .catch(() => {});
     
-    api.get('/admin/config').then(res => {
-      if (Array.isArray(res.data)) {
-        res.data.forEach(item => {
-          if (item.configKey === 'ai.llm_api_url' && item.configValue) activeAiConfig.apiUrl = item.configValue;
-          if (item.configKey === 'ai.llm_model' && item.configValue) activeAiConfig.model = item.configValue;
-        });
-      }
-    }).catch(() => {});
-
     if (isEdit) {
       api.get(`/articles/${id}`).then(r => {
         const a = r.data;
-        setForm({
-          ...a,
+        const formObj = {
+          titleTa: a.titleTa || '', titleEn: a.titleEn || '',
+          contentTa: a.contentTa || '', contentEn: a.contentEn || '',
+          shortDescTa: a.shortDescTa || '', shortDescEn: a.shortDescEn || '',
+          imageUrl: a.imageUrl || '', featuredImage: a.featuredImage || '',
+          authorName: a.authorName || 'Kings TV News Desk', 
+          reporterName: a.reporterName || '',
+          readabilityScore: a.readabilityScore || '',
+          seoScore: a.seoScore || '',
+          status: a.status || 'draft',
+          categoryId: a.categoryId || '', subcategoryId: a.subcategoryId || '',
+          districtId: a.districtId || '', constituency: a.constituency || '',
+          metaTitle: a.metaTitle || '', metaDescription: a.metaDescription || '',
+          metaKeywords: a.metaKeywords || '', focusKeywords: a.focusKeywords || '', slug: a.slug || '', canonicalUrl: a.canonicalUrl || '',
+          latitude: a.latitude || '', longitude: a.longitude || '',
+          visibilityRadiusKm: a.visibilityRadiusKm || '',
           publishedAt: a.publishedAt ? a.publishedAt.substring(0, 16) : '',
           showRightColumn: a.showRightColumn !== false,
           isPluggedIn: a.isPluggedIn === true,
-          allowComments: a.allowComments !== false,
-          allowPingbacks: a.allowPingbacks !== false,
-          authorName: a.authorName || 'Kings TV News Desk',
-          status: a.status || 'draft'
-        });
+          featuredCategory: a.featuredCategory || '',
+        };
+        setForm(formObj);
+        
+        // Sync TinyMCE content if ready
+        if (window.tinymce) {
+          const editorTa = window.tinymce.get('tinymce-contentTa');
+          if (editorTa) editorTa.setContent(a.contentTa || '');
+          const editorEn = window.tinymce.get('tinymce-contentEn');
+          if (editorEn) editorEn.setContent(a.contentEn || '');
+        }
       }).catch(() => {});
     }
   }, [id, isEdit]);
 
+  // Dynamically load subcategories when category changes
   useEffect(() => {
     if (form.categoryId) {
+      // Reset subcategory when category changes
+      setForm(prev => ({ ...prev, subcategoryId: '' }));
+      // Load up to 200 subcategories to avoid pagination cutoff
       api.get(`/subcategories/getAllWeb?categoryId=${form.categoryId}&size=200`)
-        .then(r => setSubCategories(r.data?.content || r.data || []))
-        .catch(() => {
-          api.get('/admin/taxonomy/subcategories')
-            .then(res => {
-              const allSubs = Array.isArray(res.data) ? res.data : [];
-              const filtered = allSubs.filter(sc => String(sc.categoryId || sc.category?.id) === String(form.categoryId));
-              setSubCategories(filtered);
-            })
-            .catch(() => setSubCategories([]));
-        });
+        .then(r => {
+          if (r.data && r.data.content) {
+            setSubCategories(r.data.content);
+          } else if (Array.isArray(r.data)) {
+            setSubCategories(r.data);
+          } else {
+            setSubCategories([]);
+          }
+        })
+        .catch(() => setSubCategories([]));
     } else {
       setSubCategories([]);
     }
   }, [form.categoryId]);
 
-  const showMsg = (text, isError = false) => {
-    setMsg({ text, type: isError ? 'error' : 'success' });
-    setTimeout(() => setMsg(null), 4000);
-  };
-  
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  // Dynamic Internal Linking Suggestions
+  useEffect(() => {
+    if (form.focusKeywords) {
+      api.get('/articles')
+        .then(res => {
+          const list = Array.isArray(res.data) ? res.data : (res.data && Array.isArray(res.data.content) ? res.data.content : []);
+          const matchKeywords = form.focusKeywords.toLowerCase().split(/[\s,]+/);
+          const suggestions = list.filter(art => {
+            if (art.id === parseInt(id)) return false;
+            const title = ((art.titleEn || '') + ' ' + (art.titleTa || '')).toLowerCase();
+            return matchKeywords.some(kw => kw.length > 2 && title.includes(kw));
+          }).slice(0, 4);
+          setLinkSuggestions(suggestions);
+        })
+        .catch(() => {});
+    } else {
+      setLinkSuggestions([]);
+    }
+  }, [form.focusKeywords, id]);
 
-  // ── Unified Uploader ───────────────────────────────────────────────────────
+  // Initialize TinyMCE editors
+  useEffect(() => {
+    let active = true;
+    
+    const initTinyMCE = () => {
+      if (!window.tinymce) return;
+
+      // Clean up previous editors to prevent duplicate key errors
+      if (window.tinymce.get('tinymce-contentTa')) {
+        window.tinymce.get('tinymce-contentTa').destroy();
+      }
+      if (window.tinymce.get('tinymce-contentEn')) {
+        window.tinymce.get('tinymce-contentEn').destroy();
+      }
+
+      const imagesUploadHandler = (blobInfo, progress) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.withCredentials = false;
+        const baseApi = api.defaults.baseURL || 'http://localhost:8080/api/v1';
+        xhr.open('POST', `${baseApi}/articles/upload`);
+        
+        const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
+
+        xhr.upload.onprogress = (e) => {
+          progress(e.loaded / e.total * 100);
+        };
+
+        xhr.onload = () => {
+          if (xhr.status === 403 || xhr.status === 401) {
+            reject({ message: 'HTTP Error: ' + xhr.status, remove: true });
+            return;
+          }
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject('HTTP Error: ' + xhr.status);
+            return;
+          }
+          const json = JSON.parse(xhr.responseText);
+          if (!json || typeof json.url !== 'string') {
+            reject('Invalid JSON: ' + xhr.responseText);
+            return;
+          }
+          const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+            .replace(/\/api\/v1\/?$/, '')
+            .replace(/\/api\/?$/, '');
+          resolve(serverBase + json.url);
+        };
+
+        xhr.onerror = () => {
+          reject('Image upload failed due to a network error.');
+        };
+
+        const formData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+      });
+
+      const commonConfig = {
+        height: 600,
+        menubar: 'file edit view insert format tools table help',
+        plugins: [
+          'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+          'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+          'insertdatetime', 'media', 'table', 'help', 'wordcount',
+          'emoticons', 'codesample', 'quickbars', 'directionality', 'nonbreaking',
+          'pagebreak', 'accordion', 'visualchars', 'template'
+        ],
+        toolbar1: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify',
+        toolbar2: 'bullist numlist outdent indent | link image media table | emoticons charmap | removeformat fullscreen preview | template',
+        quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
+        quickbars_insert_toolbar: 'quickimage quicktable',
+        contextmenu: 'link image table',
+        templates: [
+          { title: 'Breaking News', description: 'Standard breaking news layout', content: '<h3><strong>BREAKING NEWS</strong></h3><p>[Lead paragraph goes here. Keep it punchy and to the point.]</p><p>[Additional details.]</p>' },
+          { title: 'Press Release', description: 'Formal press release format', content: '<h3><strong>PRESS RELEASE</strong></h3><p><strong>FOR IMMEDIATE RELEASE</strong></p><p>[City, Date] &mdash; [Company/Organization] today announced...</p>' },
+          { title: 'Interview / Q&A', description: 'Q&A format', content: '<p><strong>Interviewer:</strong> [Question here]</p><p><strong>Guest:</strong> [Answer here]</p>' }
+        ],
+        skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
+        content_css: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+        content_style: 'body { font-family:Inter,Outfit,-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; line-height: 1.6; background-color: var(--bg-surface); color: var(--text-primary); } img { border-radius: 8px; }',
+        images_upload_handler: imagesUploadHandler,
+        image_advtab: true,
+        image_caption: true,
+        toolbar_sticky: true,
+        toolbar_sticky_offset: 60
+      };
+
+      window.tinymce.init({
+        ...commonConfig,
+        selector: '#tinymce-contentTa',
+        setup: (editor) => {
+          editor.on('change keyup blur', () => {
+            setForm(f => ({ ...f, contentTa: editor.getContent() }));
+          });
+        },
+        init_instance_callback: (editor) => {
+          if (active && formRef.current.contentTa) {
+            editor.setContent(formRef.current.contentTa);
+          }
+        }
+      });
+
+      window.tinymce.init({
+        ...commonConfig,
+        selector: '#tinymce-contentEn',
+        setup: (editor) => {
+          editor.on('change keyup blur', () => {
+            setForm(f => ({ ...f, contentEn: editor.getContent() }));
+          });
+        },
+        init_instance_callback: (editor) => {
+          if (active && formRef.current.contentEn) {
+            editor.setContent(formRef.current.contentEn);
+          }
+        }
+      });
+    };
+
+    const checkInterval = setInterval(() => {
+      if (window.tinymce) {
+        clearInterval(checkInterval);
+        initTinyMCE();
+      }
+    }, 100);
+
+    return () => {
+      active = false;
+      clearInterval(checkInterval);
+      if (window.tinymce) {
+        if (window.tinymce.get('tinymce-contentTa')) {
+          window.tinymce.get('tinymce-contentTa').destroy();
+        }
+        if (window.tinymce.get('tinymce-contentEn')) {
+          window.tinymce.get('tinymce-contentEn').destroy();
+        }
+      }
+    };
+  }, []);
+
   const handleMediaUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    setUploadProgress(0);
     
-    const uploaded = [];
+    setUploadProgress(0);
+    const uploadedItems = [];
+    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (uploadType === 'source' && file.type === 'application/pdf' || file.type === 'text/plain') {
-        let textContent = '';
-        if (file.type === 'text/plain') {
-          textContent = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsText(file); });
-        } else {
-          const base64Data = await new Promise((r, rej) => { const reader = new FileReader(); reader.onload = () => r(reader.result.split(',')[1]); reader.readAsDataURL(file); });
-          setUploadProgress(Math.round(((i + 0.5) / files.length) * 100));
-          try {
-            textContent = await callGeminiMultimodal(base64Data, file.type, "Extract all text exactly as written.");
-          } catch(err) { console.error(err); }
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await api.post('/articles/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data && res.data.url) {
+          const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+            .replace(/\/api\/v1\/?$/, '')
+            .replace(/\/api\/?$/, '');
+          uploadedItems.push({
+            name: file.name,
+            url: serverBase + res.data.url,
+            type: file.type
+          });
         }
-        uploaded.push({ name: file.name, type: file.type, text: textContent });
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        try {
-          const res = await api.post('/articles/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-          if (res.data?.url) {
-            const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
-            uploaded.push({ name: file.name, url: serverBase + res.data.url, type: file.type });
-          }
-        } catch (err) { console.error(err); }
+      } catch (err) {
+        console.error("Upload failed for file", file.name, err);
       }
       setUploadProgress(Math.round(((i + 1) / files.length) * 100));
     }
-    setMediaList(p => [...p, ...uploaded]);
+    
+    setMediaList(prev => [...prev, ...uploadedItems]);
     setUploadProgress(null);
   };
 
-  const insertMedia = (url, type) => {
-    const editor = activeTab === 0 ? editorRefTa.current : editorRefEn.current;
-    if (!editor) return showMsg('Click inside the editor first.', true);
+  const handleFeaturedImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     
-    const html = type.startsWith('video/') 
-      ? `<video controls style="max-width: 100%; border-radius: 8px;"><source src="${url}" type="${type}"></video><p>&nbsp;</p>`
-      : (type.startsWith('audio/') 
-        ? `<audio controls src="${url}"></audio><p>&nbsp;</p>`
-        : `<img src="${url}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; display: block; margin: 12px 0;" /><p>&nbsp;</p>`);
-    editor.insertContent(html);
-  };
-
-  // ── Full Draft Generation ──────────────────────────────────────────────────
-  const handleGenerateDraft = async () => {
-    const sourceTexts = mediaList.filter(m => m.text).map(m => m.text).join('\n\n');
-    if (!sourceTexts && !form.contentTa && !form.contentEn) {
-      showMsg('Please upload a source document or paste raw notes first.', true);
-      return;
-    }
-    
-    setAiGeneratingDraft(true);
-    setAiDraftProgress('Reading source & generating draft...');
-    
-    const baseContent = sourceTexts || form.contentTa || form.contentEn;
-    const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
+    const formData = new FormData();
+    formData.append('file', file);
     
     try {
-      let raw = '';
-      try {
-        const res = await api.post('/admin/ai-config/generate-draft', {
-          baseContent,
-          categoryList: catNames
-        });
-        raw = res.data?.resultText || '';
-      } catch (e) {
-        raw = await callGemini(prompt);
-      }
-
-      let parsed = {};
-      try {
-        const cleanText = (raw || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-        const jsonString = (firstBrace !== -1 && lastBrace !== -1) ? cleanText.substring(firstBrace, lastBrace + 1) : cleanText;
-        parsed = JSON.parse(jsonString);
-      } catch (jsonErr) {
-        throw new Error('AI returned non-JSON text. Please try again.');
-      }
-      
-      setForm(f => ({
-        ...f,
-        titleEn: parsed.titleEn || f.titleEn,
-        titleTa: parsed.titleTa || f.titleTa,
-        contentEn: parsed.contentEn || f.contentEn,
-        contentTa: parsed.contentTa || f.contentTa,
-        shortDescEn: parsed.excerptEn || f.shortDescEn,
-        shortDescTa: parsed.excerptTa || f.shortDescTa,
-        metaTitle: parsed.seoTitle || f.metaTitle,
-        metaDescription: parsed.metaDescription || f.metaDescription,
-        metaKeywords: parsed.metaKeywords || f.metaKeywords,
-        focusKeywords: parsed.focusKeywords || f.focusKeywords,
-        slug: parsed.slug || f.slug,
-        categoryId: parsed.categoryId || f.categoryId
-      }));
-      
-      if (editorRefEn.current) editorRefEn.current.setContent(parsed.contentEn || '');
-      if (editorRefTa.current) editorRefTa.current.setContent(parsed.contentTa || '');
-      
-      showMsg('Draft generation complete!');
-    } catch (err) {
-      console.error(err);
-      const errDetail = err.response?.data?.message || err.message || 'Draft generation failed. Try again.';
-      showMsg(`Draft generation error: ${errDetail}`, true);
-    } finally {
-      setAiGeneratingDraft(false);
-      setAiDraftProgress('');
-    }
-  };
-
-  // ── 1-Click AI Proofread, Grammar Correction & Full Auto-Fill ───────────────
-  const handleAiProofreadAndAutoFill = async () => {
-    const taHtml = editorRefTa.current ? editorRefTa.current.getContent({ format: 'html' }) : form.contentTa;
-    const enHtml = editorRefEn.current ? editorRefEn.current.getContent({ format: 'html' }) : form.contentEn;
-    const sourceTexts = mediaList.filter(m => m.text).map(m => m.text).join('\n\n');
-    
-    const baseRaw = (taHtml || enHtml || sourceTexts || form.titleTa || form.titleEn || '').trim();
-    if (!baseRaw || baseRaw.replace(/<[^>]*>/g, '').trim().length < 5) {
-      showMsg('Please write or paste content in TinyMCE first, or upload a source document.', true);
-      return;
-    }
-
-    setAiProofreading(true);
-    showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
-
-    const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
-
-    try {
-      const res = await api.post('/admin/ai-config/proofread-autofill', {
-        baseContent: baseRaw,
-        categoryList: catNames
+      const res = await api.post('/articles/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const raw = res.data?.resultText || '';
-      let parsed = {};
-      try {
-        const cleanText = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-        const jsonString = (firstBrace !== -1 && lastBrace !== -1) ? cleanText.substring(firstBrace, lastBrace + 1) : cleanText;
-        parsed = JSON.parse(jsonString);
-      } catch (jsonErr) {
-        throw new Error('AI returned non-JSON text. Please try again.');
+      if (res.data && res.data.url) {
+        const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+          .replace(/\/api\/v1\/?$/, '')
+          .replace(/\/api\/?$/, '');
+        set('imageUrl', serverBase + res.data.url);
+        showMsg('Featured image uploaded successfully!');
       }
-
-      setForm(f => ({
-        ...f,
-        titleTa: parsed.titleTa || f.titleTa,
-        titleEn: parsed.titleEn || f.titleEn,
-        contentTa: parsed.contentTa || f.contentTa,
-        contentEn: parsed.contentEn || f.contentEn,
-        shortDescTa: parsed.shortDescTa || f.shortDescTa,
-        shortDescEn: parsed.shortDescEn || f.shortDescEn,
-        metaTitle: parsed.metaTitle || f.metaTitle,
-        metaDescription: parsed.metaDescription || f.metaDescription,
-        focusKeywords: parsed.focusKeywords || f.focusKeywords,
-        metaKeywords: parsed.metaKeywords || f.metaKeywords,
-        slug: parsed.slug || f.slug,
-        categoryId: parsed.categoryId || f.categoryId,
-        reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
-        constituency: f.constituency || parsed.suggestedLocation || ''
-      }));
-
-      if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
-      if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
-
-      showMsg('⚡ AI Grammar Check & Auto-Fill completed! All fields verified and filled.');
     } catch (err) {
-      console.error(err);
-      const errDetail = err.response?.data?.message || err.message || 'Please check Gemini API Key in settings.';
-      showMsg(`AI Auto-Fill error: ${errDetail}`, true);
-    } finally {
-      setAiProofreading(false);
+      showMsg('Failed to upload featured image.', true);
     }
   };
 
-  const handleSave = async (statusOverride) => {
-    const finalStatus = statusOverride || form.status;
-    setSaving(true);
-    setMsg(null);
-    try {
-      const payload = { ...form, status: finalStatus };
-      if (!payload.publishedAt) delete payload.publishedAt;
-      
-      let res;
-      if (isEdit) {
-        res = await api.put(`/articles/${id}`, payload);
-      } else {
-        res = await api.post('/articles', payload);
+  const insertMediaIntoTinyMCE = (url, type) => {
+    if (!window.tinymce) return;
+    const activeEditorId = activeTab === 0 ? 'tinymce-contentTa' : 'tinymce-contentEn';
+    const editor = window.tinymce.get(activeEditorId);
+    if (!editor) {
+      showMsg('Please click inside the Tamil or English editor first.', true);
+      return;
+    }
+    
+    let html = '';
+    if (type.startsWith('video/')) {
+      html = `<video controls style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0;"><source src="${url}" type="${type}">Your browser does not support the video tag.</video><p>&nbsp;</p>`;
+    } else {
+      html = `<img src="${url}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0;" /><p>&nbsp;</p>`;
+    }
+    editor.insertContent(html);
+    
+    // update form state immediately
+    if (activeTab === 0) {
+      set('contentTa', editor.getContent());
+    } else {
+      set('contentEn', editor.getContent());
+    }
+    showMsg('Media inserted successfully!');
+  };
+
+  const set = (key, val) => {
+    setForm(f => {
+      const next = { ...f, [key]: val };
+      const readScore = calculateReadabilityScore(next.contentTa || next.contentEn, !!next.contentTa);
+      const seoScoreVal = calculateSeoScore(next);
+      next.readabilityScore = readScore || '';
+      next.seoScore = seoScoreVal || '';
+      return next;
+    });
+  };
+
+  const handleUserEdit = (fieldName, value) => {
+    setForm(f => {
+      const next = { ...f, [fieldName]: value };
+      const readScore = calculateReadabilityScore(next.contentTa || next.contentEn, !!next.contentTa);
+      const seoScoreVal = calculateSeoScore(next);
+      next.readabilityScore = readScore || '';
+      next.seoScore = seoScoreVal || '';
+      return next;
+    });
+    setUserEditedFields(prev => ({ ...prev, [fieldName]: true }));
+    setAiFieldStates(prev => ({ ...prev, [fieldName]: 'userEdited' }));
+    if (form.aiAutomationEnabled) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        triggerAiAutomation(fieldName, value);
+      }, 2500);
+    }
+  };
+
+  const autoSlug = () => {
+    if (!form.slug && form.titleEn) set('slug', slugify(form.titleEn));
+  };
+
+  // ─── Client-side AI fallback (used when backend has no LLM configured) ─────
+  const clientSideAiFallback = (action, text, title) => {
+    const cleanText = (text || '').replace(/<[^>]*>/gm, ' ').replace(/\s+/g, ' ').trim();
+    const cleanTitle = (title || '').replace(/<[^>]*>/gm, '').trim();
+
+    switch (action) {
+      case 'headlines': {
+        const base = cleanTitle || cleanText.substring(0, 80);
+        return [
+          base,
+          `Breaking: ${base.substring(0, 60)}`,
+          `Update: ${base.substring(0, 55)} — Latest News`,
+          `Exclusive: ${base.substring(0, 55)}`,
+        ].filter(Boolean).join('\n');
       }
-      showMsg(`Article ${finalStatus === 'published' ? 'published' : 'saved'} successfully!`);
-      if (finalStatus === 'published') {
-        setTimeout(() => navigate('/admin/news'), 1500);
-      } else if (!isEdit && res.data?.id) {
-        setTimeout(() => navigate(`/admin/news/${res.data.id}/edit`), 1500);
+      case 'summarize': {
+        const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 20);
+        return sentences.slice(0, 3).map(s => s.trim()).join('. ') + (sentences.length > 3 ? '...' : '.');
+      }
+      case 'tags': {
+        const words = cleanText.toLowerCase().split(/\s+/);
+        const stopWords = new Set(['the','a','an','is','are','was','were','to','of','in','on','at','and','or','but','for','with','as','by','from','that','this','these','those','it','its','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','not','no','so','if','then','than','when','where','who','which','what','how','all','any','both','each','few','more','most','other','such','into','through','during','before','after','above','below','between']);
+        const freq = {};
+        words.forEach(w => {
+          const clean = w.replace(/[^\w]/g, '');
+          if (clean.length > 3 && !stopWords.has(clean)) freq[clean] = (freq[clean] || 0) + 1;
+        });
+        return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w]) => w).join(', ');
+      }
+      case 'seo': {
+        const title60 = cleanTitle.substring(0, 60) || cleanText.substring(0, 60);
+        const desc = cleanText.substring(0, 155) + (cleanText.length > 155 ? '...' : '');
+        const words2 = cleanText.toLowerCase().split(/\s+/);
+        const stopWords2 = new Set(['the','a','an','is','are','was','to','of','in','on','and','or','for','with','this','that','it']);
+        const freq2 = {};
+        words2.forEach(w => {
+          const c = w.replace(/[^\w]/g, '');
+          if (c.length > 3 && !stopWords2.has(c)) freq2[c] = (freq2[c] || 0) + 1;
+        });
+        const kws = Object.entries(freq2).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([w]) => w).join(', ');
+        const slugBase = title60.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        return 'SEO_TITLE:' + title60 + '\nMETA_DESC:' + desc + '\nKEYWORDS:' + kws + '\nSLUG:' + slugBase + '\nTAGS:' + kws;
+      }
+      case 'expand': {
+        return `${cleanText}\n\n[AI expansion not available — LLM credentials not configured. The above is your original content. Please configure an LLM API key in System Settings to enable AI expansion.]`;
+      }
+      case 'grammar': {
+        return `Your text (${cleanText.split(' ').length} words) has been reviewed locally. For full grammar checking, please configure an LLM API key in System Settings > AI Configuration.\n\nOriginal text preview:\n${cleanText.substring(0, 300)}...`;
+      }
+      case 'translate': {
+        return `Translation requires an LLM API key. Please configure one in System Settings > AI Configuration.\n\nYour text (${cleanText.split(' ').length} words) is ready to translate once configured.`;
+      }
+      default:
+        return 'Action not supported in local fallback mode.';
+    }
+  };
+
+  const runAiAction = async () => {
+    if (!aiPrompt && !['seo', 'tags'].includes(aiAction)) {
+      showMsg('Please provide some text or context for the AI.', true);
+      return;
+    }
+    
+    setAiLoading(true);
+    setAiResult('');
+    
+    let textToProcess = aiPrompt;
+    if (aiAction === 'seo' || aiAction === 'tags') {
+       textToProcess = form.contentTa || form.contentEn;
+       if (!textToProcess) {
+         showMsg('Please write some article content first.', true);
+         setAiLoading(false);
+         return;
+       }
+    }
+
+    try {
+      let prompt = '';
+      switch (aiAction) {
+        case 'headlines':
+          prompt = `Suggest 5 compelling, factual news headlines for this article content: "${textToProcess}". Return only the headlines listed 1 to 5.`;
+          break;
+        case 'expand':
+          prompt = `Expand this text professionally into a more detailed, well-written article: "${textToProcess}". Keep the same language.`;
+          break;
+        case 'summarize':
+          prompt = `Provide a concise summary (max 3 sentences) of this text: "${textToProcess}".`;
+          break;
+        case 'grammar':
+          prompt = `Review and correct any grammar, spelling, or styling issues in this text. Provide only the corrected version: "${textToProcess}".`;
+          break;
+        case 'tags':
+          prompt = `Suggest 5-8 relevant tags as a comma-separated list of short lowercase strings for this text: "${textToProcess}".`;
+          break;
+        case 'seo':
+          prompt = `Given this news article, generate SEO fields. Return EXACTLY this format, nothing else:
+SEO_TITLE: [title under 60 chars]
+META_DESC: [description under 155 chars]
+KEYWORDS: [focus keywords comma separated]
+SLUG: [lowercase URL slug]
+TAGS: [tags comma separated]
+
+Article: "${textToProcess}"`;
+          break;
+        case 'translate':
+          prompt = `Translate this text accurately. If it is in Tamil, translate to English. If it is in English, translate to Tamil. Return only the translated text: "${textToProcess}"`;
+          break;
+        default:
+          throw new Error('Unsupported action');
+      }
+
+      const result = await callGemini(prompt);
+      setAiResult(result);
+    } catch (err) {
+      const fallback = clientSideAiFallback(aiAction, textToProcess, form.titleEn || form.titleTa);
+      setAiResult('ℹ️ [Local Analysis — Gemini failed]\n\n' + fallback);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const generateAiSeoSuggestions = async () => {
+    const textToAnalyze = form.contentTa || form.contentEn || form.titleTa;
+    if (!textToAnalyze) {
+      showMsg('Please write some content first to generate SEO suggestions.', true);
+      return;
+    }
+    setAiSeoLoading(true);
+    try {
+      const seoPrompt = `Given this news article, generate SEO fields. Return EXACTLY this format, nothing else:
+SEO_TITLE: [title under 60 chars]
+META_DESC: [description under 155 chars]
+
+Article: "${textToAnalyze}"`;
+
+      const headlinesPrompt = `Suggest 5 compelling, factual news headlines for this article content: "${form.titleTa || form.titleEn || textToAnalyze.substring(0, 100)}". Return only the headlines listed 1 to 5.`;
+
+      const tagsPrompt = `Suggest 3-6 relevant tags for this news article as a comma-separated list of short lowercase strings.
+Article: "${textToAnalyze}"`;
+
+      const [seoRes, headlinesRes, tagsRes] = await Promise.allSettled([
+        callGemini(seoPrompt),
+        callGemini(headlinesPrompt),
+        callGemini(tagsPrompt)
+      ]);
+
+      const suggestions = { titles: [], descriptions: [], tags: [] };
+
+      if (seoRes.status === 'fulfilled' && seoRes.value) {
+        const lines = seoRes.value.split('\n');
+        lines.forEach(line => {
+          if (line.startsWith('SEO_TITLE:')) {
+            suggestions.titles.push(line.replace('SEO_TITLE:', '').trim());
+          } else if (line.startsWith('META_DESC:')) {
+            suggestions.descriptions.push(line.replace('META_DESC:', '').trim());
+          }
+        });
+      }
+
+      if (headlinesRes.status === 'fulfilled' && headlinesRes.value) {
+        const lines = headlinesRes.value.split('\n');
+        lines.forEach(line => {
+          const cleaned = line.replace(/^\d+\.\s*/, '').trim();
+          if (cleaned) {
+            const parts = cleaned.split('|');
+            const headline = parts[1] ? parts[1].trim() : parts[0].trim();
+            suggestions.titles.push(headline);
+          }
+        });
+      }
+
+      if (tagsRes.status === 'fulfilled' && tagsRes.value) {
+        suggestions.tags = tagsRes.value
+          .split(',')
+          .map(t => t.trim())
+          .filter(t => t.length > 0);
+      }
+
+      suggestions.titles = [...new Set(suggestions.titles)].filter(t => t.length > 0);
+      if (suggestions.descriptions.length === 0) {
+        suggestions.descriptions.push(textToAnalyze.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...');
+      }
+
+      setAiSeoSuggestions(suggestions);
+      showMsg('Successfully generated AI SEO suggestions!');
+    } catch (err) {
+      showMsg('Failed to fetch AI recommendations.', true);
+    } finally {
+      setAiSeoLoading(false);
+    }
+  };
+
+  // Auto-generate tags/keywords on entering SEO tab
+  useEffect(() => {
+    if (activeTab === 2 && !form.metaKeywords && (form.contentTa || form.contentEn)) {
+      const autoGenTags = async () => {
+        try {
+          const tagsPrompt = `Suggest 3-6 relevant tags for this news article as a comma-separated list of short lowercase strings.
+Article: "${form.contentTa || form.contentEn}"`;
+          const result = await callGemini(tagsPrompt);
+          if (result) {
+            const cleanedTags = result.split(',').map(s=>s.trim()).filter(s=>s).join(', ');
+            set('metaKeywords', cleanedTags);
+            showMsg('AI automatically generated keywords/tags for you!', false);
+          }
+        } catch (e) {
+          console.warn('Auto-generation of keywords failed', e);
+        }
+      };
+      autoGenTags();
+    }
+  }, [activeTab]);
+
+  const autoFillSeoWithAi = async () => {
+    const textToAnalyze = form.contentTa || form.contentEn || form.titleTa;
+    if (!textToAnalyze) {
+      showMsg('Please write some content first to generate SEO suggestions.', true);
+      return;
+    }
+    setAiSeoLoading(true);
+    
+    const applyParsedSeo = (result) => {
+      const lines = result.split('\n');
+      let updates = {};
+      lines.forEach(line => {
+        if (line.startsWith('SEO_TITLE:')) updates.metaTitle = line.replace('SEO_TITLE:', '').trim();
+        else if (line.startsWith('META_DESC:')) updates.metaDescription = line.replace('META_DESC:', '').trim();
+        else if (line.startsWith('SLUG:')) updates.slug = line.replace('SLUG:', '').trim();
+        else if (line.startsWith('KEYWORDS:')) updates.focusKeywords = line.replace('KEYWORDS:', '').trim();
+        else if (line.startsWith('TAGS:')) updates.metaKeywords = line.replace('TAGS:', '').trim();
+      });
+      return updates;
+    };
+
+    try {
+      const seoPrompt = `Given this news article content, generate SEO fields. Return EXACTLY this format, nothing else:
+SEO_TITLE: [title under 60 chars]
+META_DESC: [description under 155 chars]
+SLUG: [lowercase URL slug]
+KEYWORDS: [focus keywords comma separated]
+TAGS: [tags comma separated]
+
+Article: "${textToAnalyze}"`;
+      const result = await callGemini(seoPrompt);
+      if (result) {
+        const updates = applyParsedSeo(result);
+        setForm(f => {
+          const nf = { ...f, ...updates };
+          const readScore = calculateReadabilityScore(nf.contentTa || nf.contentEn, !!nf.contentTa);
+          const seoScoreVal = calculateSeoScore(nf);
+          nf.readabilityScore = readScore || '';
+          nf.seoScore = seoScoreVal || '';
+          formRef.current = nf;
+          return nf;
+        });
+        showMsg('✨ AI successfully auto-filled all SEO fields!');
+      } else {
+        throw new Error('No result');
       }
     } catch (err) {
-      showMsg('Failed to save article.', true);
+      const fallbackRaw = clientSideAiFallback('seo', textToAnalyze, form.titleEn || form.titleTa);
+      const updates = applyParsedSeo(fallbackRaw);
+      setForm(f => {
+        const nf = { ...f, ...updates };
+        const readScore = calculateReadabilityScore(nf.contentTa || nf.contentEn, !!nf.contentTa);
+        const seoScoreVal = calculateSeoScore(nf);
+        nf.readabilityScore = readScore || '';
+        nf.seoScore = seoScoreVal || '';
+        formRef.current = nf;
+        return nf;
+      });
+      showMsg('ℹ️ SEO fields filled using local analysis. Configure an LLM for AI-powered results.');
+    } finally {
+      setAiSeoLoading(false);
+    }
+  };
+
+  const showMsg = (text, isError = false) => {
+    setMsg({ text, isError });
+    setTimeout(() => setMsg(null), 4000);
+  };
+
+  const save = async (statusOverride) => {
+    let payload = { ...form };
+    if (statusOverride) payload.status = statusOverride;
+    if (isEdit) payload.id = parseInt(id);
+    if (!payload.slug && payload.titleEn) payload.slug = slugify(payload.titleEn);
+    if (!payload.titleTa) { showMsg('Tamil title is required.', true); setActiveTab(0); return; }
+
+    setSaving(true);
+    
+    // Auto-SEO on publish
+    if (payload.status === 'published') {
+      try {
+        let seoUpdates = {};
+        let needsSeo = false;
+        if (!payload.metaTitle) {
+          seoUpdates.metaTitle = payload.titleEn || payload.titleTa;
+          needsSeo = true;
+        }
+        if (!payload.metaDescription && payload.contentTa) {
+          const summarizePrompt = `Write a concise 1-2 sentence meta description summarizing this Tamil news article. Max 155 characters. Content: "${payload.contentTa}"`;
+          const result = await callGemini(summarizePrompt);
+          if (result) seoUpdates.metaDescription = result;
+          needsSeo = true;
+        }
+        if (!payload.metaKeywords && payload.contentTa) {
+          const tagsPrompt = `Suggest 3-6 relevant tags for this news article as a comma-separated list of short lowercase strings. Content: "${payload.contentTa}"`;
+          const result = await callGemini(tagsPrompt);
+          if (result) seoUpdates.metaKeywords = result.split(',').map(s=>s.trim()).filter(s=>s).join(', ');
+          needsSeo = true;
+        }
+        
+        if (needsSeo) {
+           payload = { ...payload, ...seoUpdates };
+           setForm(f => ({ ...f, ...seoUpdates }));
+           showMsg('AI auto-generated SEO fields.', false);
+        }
+      } catch (err) {
+        console.warn('Auto-SEO failed', err);
+      }
+    }
+
+    try {
+      if (isEdit) {
+        await api.put('/articles/saveUpdate', payload);
+        showMsg('Article updated successfully!');
+        setTimeout(() => navigate('/admin/news'), 1500);
+      } else {
+        await api.post('/articles/saveUpdate', payload);
+        showMsg('Article created successfully!');
+        setTimeout(() => navigate('/admin/news'), 1500);
+      }
+    } catch (err) {
+      showMsg(err.response?.data?.message || 'Save failed.', true);
     } finally {
       setSaving(false);
     }
   };
 
-  // ── TinyMCE Setup ──────────────────────────────────────────────────────────
-  const tinyInit = (lang) => ({
-    height: 600,
-    menubar: false,
-    extended_valid_elements: 'video[src|controls|width|height|style|class|type],audio[src|controls|style|class],source[src|type],iframe[src|width|height|frameborder|allowfullscreen|style|class],div[*],a[*],span[*],img[*]',
-    plugins: [
-      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-      'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
-    ],
-    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote | undo redo | fullscreen code',
-    quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
-    contextmenu: 'link image table',
-    skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
-    content_css: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
-    content_style: `
-      body { font-family:Inter,Outfit,-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; line-height: 1.6; padding: 12px; } 
-      .ai-suggestion { background: rgba(16, 185, 129, 0.15); border-bottom: 2px solid #10B981; cursor: pointer; }
-      .document-card { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; margin: 16px 0; }
-      .article-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
-      video, audio, img, iframe { max-width: 100%; border-radius: 8px; }
-    `,
-    setup: (editor) => {
-      // AI Context Toolbar definition
-      editor.ui.registry.addButton('ai_fix', { icon: 'format-painter', tooltip: 'Fix Grammar', onAction: () => handleAiInlineAction(editor, 'grammar', lang) });
-      editor.ui.registry.addButton('ai_rephrase', { icon: 'change-case', tooltip: 'Rephrase', onAction: () => handleAiInlineAction(editor, 'rephrase', lang) });
-      editor.ui.registry.addButton('ai_summarize', { icon: 'align-left', tooltip: 'Summarize', onAction: () => handleAiInlineAction(editor, 'summarize', lang) });
-      editor.ui.registry.addButton('ai_expand', { icon: 'add-row-bottom', tooltip: 'Expand', onAction: () => handleAiInlineAction(editor, 'expand', lang) });
-      editor.ui.registry.addButton('ai_translate', { icon: 'translate', tooltip: 'Translate', onAction: () => handleAiInlineAction(editor, 'translate', lang) });
-      
-      editor.ui.registry.addContextToolbar('ai_selection', {
-        predicate: (node) => !editor.selection.isCollapsed() && !node.classList.contains('ai-suggestion'),
-        items: 'ai_fix ai_rephrase ai_summarize ai_expand ai_translate',
-        position: 'selection',
-        scope: 'editor'
-      });
+  const calcStats = (html) => {
+    if (!html) return { words: 0, chars: 0, readingTime: 0, readability: { score: 0, label: 'N/A', color: 'gray' } };
+    const text = html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+    const words = text ? text.split(' ').length : 0;
+    const chars = text.length;
+    const readingTime = Math.ceil(words / 200); // 200 words per minute avg
 
-      // Accept/Reject Toolbar for applied AI suggestions
-      editor.ui.registry.addButton('ai_accept', { icon: 'check', text: 'Accept', onAction: () => handleAcceptReject(editor, true) });
-      editor.ui.registry.addButton('ai_reject', { icon: 'close', text: 'Reject', onAction: () => handleAcceptReject(editor, false) });
-      
-      editor.ui.registry.addContextToolbar('ai_decision', {
-        predicate: (node) => node.classList.contains('ai-suggestion'),
-        items: 'ai_accept ai_reject',
-        position: 'node',
-        scope: 'node'
-      });
+    const sentences = text.split(/[.!?]+/).length || 1;
+    const syllables = text.length / 3; // rough estimate
+    const score = 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / (words || 1));
+    const normalized = Math.max(0, Math.min(100, score));
+    let readability = { score: Math.round(normalized), label: 'Difficult', color: '#EF4444' };
+    if (normalized > 70) readability = { score: Math.round(normalized), label: 'Easy to Read', color: '#10B981' };
+    else if (normalized > 50) readability = { score: Math.round(normalized), label: 'Standard', color: '#F59E0B' };
+
+    return { words, chars, readingTime, readability };
+  };
+
+  const getDensity = () => {
+    const kw = form.focusKeywords ? form.focusKeywords.trim().toLowerCase() : '';
+    if (!kw) return { count: 0, percent: 0, status: 'Neutral', color: 'gray' };
+    const text = ((form.contentTa || '') + ' ' + (form.contentEn || '')).toLowerCase();
+    const cleanText = text.replace(/<[^>]*>/g, ' ');
+    const words = cleanText.split(/\s+/).filter(Boolean);
+    const wordCount = words.length || 1;
+    
+    let count = 0;
+    let pos = cleanText.indexOf(kw);
+    while (pos !== -1) {
+      count++;
+      pos = cleanText.indexOf(kw, pos + kw.length);
     }
-  });
+    
+    const percent = parseFloat(((count / wordCount) * 100).toFixed(2));
+    let status = 'Good';
+    let color = '#10B981';
+    if (percent < 0.5) {
+      status = 'Too Low (<0.5%)';
+      color = '#F59E0B';
+    } else if (percent > 2.5) {
+      status = 'Keyword Stuffing (>2.5%)';
+      color = '#EF4444';
+    }
+    return { count, percent, status, color, wordCount };
+  };
+
+  const density = getDensity();
+
+  const inputStyle = {
+    width: '100%', padding: '0.75rem 1rem', borderRadius: '8px',
+    border: '1px solid var(--border-color)', background: 'var(--bg-surface)',
+    color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+  };
+  const taStyle = { ...inputStyle, minHeight: '140px', resize: 'vertical', fontFamily: 'inherit' };
+  const labelStyle = { fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' };
+
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+
+  const renderPipeline = () => {
+    const steps = [
+      { id: 'draft', label: 'Draft' },
+      { id: 'pending', label: 'Review' },
+      { id: 'published', label: 'Published' }
+    ];
+    let currentStepIdx = steps.findIndex(s => s.id === form.status);
+    if (currentStepIdx === -1) currentStepIdx = 0;
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+        {steps.map((step, idx) => (
+          <React.Fragment key={step.id}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem', zIndex: 2 }}>
+              <div style={{ 
+                width: '28px', height: '28px', borderRadius: '50%', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: idx <= currentStepIdx ? 'var(--primary)' : 'var(--bg-secondary)',
+                color: idx <= currentStepIdx ? '#fff' : 'var(--text-muted)',
+                fontSize: '12px', fontWeight: 'bold', border: `2px solid ${idx <= currentStepIdx ? 'var(--primary)' : 'var(--border-color)'}`
+              }}>
+                {idx < currentStepIdx ? '✓' : idx + 1}
+              </div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: idx <= currentStepIdx ? 'var(--text-primary)' : 'var(--text-muted)' }}>{step.label}</span>
+            </div>
+            {idx < steps.length - 1 && (
+              <div style={{ flex: 1, height: '3px', background: idx < currentStepIdx ? 'var(--primary)' : 'var(--border-color)', margin: '0 -4px', alignSelf: 'center', marginBottom: '18px', zIndex: 1 }} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
-      {/* Hidden File Inputs for Media Upload Toolbar */}
-      <input type="file" ref={mediaInputRef} onChange={handleAddMedia} accept="image/*" multiple style={{ display: 'none' }} />
-      <input type="file" ref={videoInputRef} onChange={handleAddVideoFile} accept="video/*" style={{ display: 'none' }} />
-      <input type="file" ref={audioInputRef} onChange={handleAddAudio} accept="audio/*" style={{ display: 'none' }} />
-      <input type="file" ref={docInputRef} onChange={handleAddDocument} accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx" style={{ display: 'none' }} />
-      <input type="file" ref={galleryInputRef} onChange={handleUploadGalleryModalFiles} accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx" multiple style={{ display: 'none' }} />
-
+    <div className="animate-fade-in" style={{ padding: '1.5rem 0' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => navigate('/admin/news')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-            <ArrowLeft size={20} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button onClick={() => navigate('/admin/news')}
+            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
+            <ArrowLeft size={16} />
           </button>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
-            {isEdit ? 'Edit Article' : 'Write New Article'}
-          </h1>
+          <div>
+            <h1 style={{ marginBottom: '0.15rem' }}>{isEdit ? '✏️ Edit Article' : '📝 Create Article'}</h1>
+            <p className="text-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isEdit ? `Editing ID #${id}` : 'New article — Tamil required'}
+              {lastSavedTime && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>
+                  Autosaved at {lastSavedTime.toLocaleTimeString()}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => {
-            const previewWin = window.open('about:blank', '_blank');
-            previewWin.document.write(`<html><head><title>Preview</title></head><body style="max-width:800px; margin:0 auto; padding:40px; font-family:sans-serif;"><h1>${form.titleEn || form.titleTa || 'Untitled'}</h1>${form.contentEn || form.contentTa}</body></html>`);
-          }} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-            Preview
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {/* ── Enable AI Automation Toggle ─────────────── */}
+          <label
+            title={form.aiAutomationEnabled ? 'AI Automation is ON — click to disable' : 'Enable AI Automation'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+              padding: '0.45rem 0.9rem', borderRadius: '8px',
+              background: form.aiAutomationEnabled ? 'rgba(16,185,129,0.12)' : 'var(--bg-secondary)',
+              border: `1px solid ${form.aiAutomationEnabled ? 'rgba(16,185,129,0.45)' : 'var(--border-color)'}`,
+              color: form.aiAutomationEnabled ? '#10B981' : 'var(--text-secondary)',
+              fontSize: '0.82rem', fontWeight: 700, userSelect: 'none', transition: 'all 0.2s',
+            }}
+          >
+            <input
+              type="checkbox" checked={form.aiAutomationEnabled}
+              onChange={e => handleToggleAiAutomation(e.target.checked)}
+              style={{ accentColor: '#10B981', width: '14px', height: '14px' }}
+            />
+            <Sparkles size={13} style={{ color: form.aiAutomationEnabled ? '#10B981' : 'var(--text-secondary)' }} />
+            {form.aiAutomationEnabled ? 'AI: ON' : 'AI: OFF'}
+          </label>
+
+          <button onClick={() => setAiPanelOpen(!aiPanelOpen)}
+            className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', background: aiPanelOpen ? 'var(--primary)' : '', color: aiPanelOpen ? '#fff' : '' }}>
+            <Zap size={14} /> AI Assistant
           </button>
-          
-          <button onClick={() => handleSave('draft')} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-            <Save size={16} /> Save Draft
+          <button onClick={() => save('draft')} disabled={saving}
+            className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+            <Save size={15} /> Save Draft
           </button>
-          
-          <button onClick={() => handleSave('published')} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#2563EB', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(37,99,235,0.3)' }}>
-            <Send size={16} /> {saving ? 'Saving...' : 'Publish Now'}
+          <button onClick={() => save('pending')} disabled={saving}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem',
+              borderRadius: '8px', background: 'rgba(245,158,11,0.1)', color: '#F59E0B',
+              border: '1px solid rgba(245,158,11,0.3)', cursor: 'pointer' }}>
+            <Send size={15} /> Submit for Review
+          </button>
+          <button onClick={() => save('published')} disabled={saving}
+            className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+            <CheckCircle size={15} /> {saving ? 'Saving…' : 'Publish'}
           </button>
         </div>
       </div>
 
-      {msg && (
-        <div style={{ padding: '12px 16px', marginBottom: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', background: msg.type === 'error' ? '#FEF2F2' : '#ECFDF5', color: msg.type === 'error' ? '#DC2626' : '#059669', border: `1px solid ${msg.type === 'error' ? '#FCA5A5' : '#6EE7B7'}` }}>
-          {msg.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
-          {msg.text}
+      {/* AI Automation Note Banner */}
+      {showAiNote && (
+        <div style={{
+          padding: '0.6rem 1rem', background: 'rgba(16,185,129,0.1)', color: '#10B981',
+          border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px',
+          fontSize: '0.82rem', fontWeight: 600, marginBottom: '1rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem'
+        }}>
+          <Sparkles size={14} /> AI will auto-fill and translate fields as you write. You can still edit anything manually.
         </div>
       )}
 
-      {/* Main Grid: 8px aligned */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
-        
-        {/* Left Column: Editor & Media */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* AI Master Control Panel */}
-          <div style={{ background: 'var(--bg-secondary)', border: '1px solid #F59E0B', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ background: '#F59E0B', color: '#fff', padding: '6px', borderRadius: '6px' }}>
-                  <Sparkles size={18} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>AI Content Engine & Auto-Fill</h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    Proofread grammar/spelling in TinyMCE & auto-fill all title, excerpt, and SEO fields in 1-click.
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button 
-                  onClick={handleAiProofreadAndAutoFill} 
-                  disabled={aiProofreading}
-                  style={{ background: '#10B981', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, cursor: aiProofreading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  {aiProofreading ? <Loader2 size={16} className="spin" /> : <Zap size={16} />}
-                  {aiProofreading ? 'Proofreading...' : '⚡ AI Proofread & Auto-Fill All Fields'}
-                </button>
+      {/* Alert */}
+      {msg && (
+        <div style={{
+          padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600,
+          background: msg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+          color: msg.isError ? '#EF4444' : '#10B981',
+          border: `1px solid ${msg.isError ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+        }}>{msg.text}</div>
+      )}
 
-                <button 
-                  onClick={handleGenerateDraft} 
-                  disabled={aiGeneratingDraft}
-                  style={{ background: '#F59E0B', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, cursor: aiGeneratingDraft ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  {aiGeneratingDraft ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
-                  {aiGeneratingDraft ? 'Drafting...' : 'Generate Full Draft'}
-                </button>
-
-                <button
-                  onClick={() => setKeyModalOpen(true)}
-                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid #F59E0B', padding: '8px 14px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  title="Configure Gemini API Key"
-                >
-                  🔑 Set API Key
-                </button>
-              </div>
+      {/* AI Assistant Inline Panel — above tabs */}
+      {aiPanelOpen && (
+        <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '10px', border: '2px solid var(--primary)', background: 'var(--bg-surface)', marginBottom: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'start' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h4 style={{ margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>✨ AI Assistant</h4>
+              <button onClick={() => setAiPanelOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1rem', padding: 0 }}>✕</button>
             </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              <select style={{ ...inputStyle, cursor: 'pointer', flex: 1 }} value={aiAction} onChange={e => setAiAction(e.target.value)}>
+                <option value="headlines">🪄 Generate Headlines</option>
+                <option value="expand">✍️ Expand Text</option>
+                <option value="summarize">📝 Summarize</option>
+                <option value="grammar">🔤 Grammar Check</option>
+                <option value="tags">🏷️ Generate Tags</option>
+                <option value="seo">🔍 SEO Optimizer</option>
+                <option value="translate">🌐 Translate (Ta↔En)</option>
+              </select>
+            </div>
+            {['headlines', 'expand', 'summarize', 'grammar', 'translate'].includes(aiAction) && (
+              <textarea
+                style={{ ...taStyle, minHeight: '80px', marginBottom: '0.5rem' }}
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder="Enter text or rough idea..."
+              />
+            )}
+            <button onClick={runAiAction} disabled={aiLoading} className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+              {aiLoading ? '🤖 Generating...' : '🚀 Run AI Action'}
+            </button>
           </div>
-
-          {/* Editor Tabs */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-              {['Tamil', 'English', 'Settings'].map((tab, idx) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(idx)}
-                  style={{
-                    flex: 1, padding: '14px', border: 'none', background: activeTab === idx ? 'var(--bg-surface)' : 'transparent',
-                    borderBottom: activeTab === idx ? '2px solid #2563EB' : '2px solid transparent',
-                    fontWeight: activeTab === idx ? 700 : 600,
-                    color: activeTab === idx ? '#2563EB' : 'var(--text-secondary)',
-                    cursor: 'pointer', fontSize: '14px'
-                  }}
-                >
-                  {tab}
+          <div>
+            {aiResult ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={labelStyle}>AI Output</label>
+                <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', fontSize: '0.85rem', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto', flex: 1 }}>
+                  {aiResult}
+                </div>
+                <button onClick={() => { navigator.clipboard.writeText(aiResult); showMsg('AI Output copied!'); }}
+                  className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                  <Copy size={12} /> Copy Output
                 </button>
-              ))}
-            </div>
-
-            <div style={{ padding: '24px', minHeight: '720px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-              {(activeTab === 0 || activeTab === 1) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Add title ({activeTab === 0 ? 'Tamil' : 'English'})</label>
-                    <input 
-                      type="text" 
-                      value={activeTab === 0 ? form.titleTa : form.titleEn}
-                      onChange={e => set(activeTab === 0 ? 'titleTa' : 'titleEn', e.target.value)}
-                      style={{ width: '100%', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '18px', fontWeight: '600', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                      placeholder="Add title"
-                    />
-                  </div>
-
-                  {/* Reference Media Upload Toolbar matching user request image */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justify: 'space-between',
-                    padding: '8px 14px',
-                    background: 'var(--bg-secondary, #f8fafc)',
-                    border: '1px solid var(--border-color, #cbd5e1)',
-                    borderRadius: '8px 8px 0 0',
-                    borderBottom: 'none',
-                    marginTop: '4px',
-                    gap: '10px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => mediaInputRef.current?.click()}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <ImageIcon size={15} color="#2563EB" /> Add Media
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setVideoModalOpen(true)}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <Video size={15} color="#0EA5E9" /> Add Video
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => audioInputRef.current?.click()}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <Mic size={15} color="#8B5CF6" /> Add Audio
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => docInputRef.current?.click()}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <FileText size={15} color="#F59E0B" /> Add Document
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setGalleryModalOpen(true)}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <LayoutTemplate size={15} color="#10B981" /> Create Gallery
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '14px' }}>
-                      {mediaUploading ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#2563eb' }}>
-                          <Loader2 size={14} className="spin" /> Uploading & inserting...
-                        </span>
-                      ) : (
-                        <span title="Rich Media Toolbar Active" style={{ cursor: 'pointer', padding: '2px 6px', color: '#94a3b8' }}>
-                          ↕
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: 0 }}>
-                    <Editor
-                      onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
-                      value={activeTab === 0 ? form.contentTa : form.contentEn}
-                      onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}
-                      init={tinyInit(activeTab === 0 ? 'ta' : 'en')}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Short Excerpt</label>
-                    <textarea 
-                      rows="2"
-                      value={activeTab === 0 ? form.shortDescTa : form.shortDescEn}
-                      onChange={e => set(activeTab === 0 ? 'shortDescTa' : 'shortDescEn', e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '14px', background: 'var(--bg-secondary)', resize: 'vertical' }}
-                      placeholder="Brief summary..."
-                    />
-                  </div>
-
-                  {/* ── SEO & Meta Engine Section (Rendered Down Below Content Editor) ── */}
-                  <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-secondary)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                      <div>
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>🔍 SEO & Meta Engine Settings</h3>
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Automated or custom meta titles, description, keywords, and URL slug optimization.</p>
-                      </div>
-                      {form.seoScore > 0 && (
-                        <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: form.seoScore > 70 ? '#10B981' : '#F59E0B', color: '#fff' }}>
-                          SEO Score: {form.seoScore}/100
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Title</label>
-                        <input 
-                          type="text" 
-                          value={form.metaTitle || ''} 
-                          onChange={e => set('metaTitle', e.target.value)} 
-                          placeholder="Optimized headline for search engines..."
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>URL Slug</label>
-                        <input 
-                          type="text" 
-                          value={form.slug || ''} 
-                          onChange={e => set('slug', e.target.value)} 
-                          placeholder="article-url-slug"
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Description</label>
-                      <textarea 
-                        rows="3" 
-                        value={form.metaDescription || ''} 
-                        onChange={e => set('metaDescription', e.target.value)} 
-                        placeholder="Brief search result summary (max 160 chars)..."
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', resize: 'vertical', color: 'var(--text-primary)' }} 
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Focus Keywords (Comma Separated)</label>
-                        <input 
-                          type="text" 
-                          value={form.focusKeywords || ''} 
-                          onChange={e => set('focusKeywords', e.target.value)} 
-                          placeholder="primary, focus, keywords"
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>News Tags (Meta Keywords)</label>
-                        <input 
-                          type="text" 
-                          value={form.metaKeywords || ''} 
-                          onChange={e => set('metaKeywords', e.target.value)} 
-                          placeholder="news, breaking, tamil, india"
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Canonical URL</label>
-                      <input 
-                        type="text" 
-                        value={form.canonicalUrl || ''} 
-                        onChange={e => set('canonicalUrl', e.target.value)} 
-                        placeholder="https://king-tv.com/..."
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Settings Tab (Author Dropdown + Custom Name, Source, Location) ── */}
-              {activeTab === 2 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
-                  <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600 }}>Publication & Author Controls</h3>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Configure author credentials, news source agency, location, and interaction policies.</p>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    {/* Author Dropdown with Others Option */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600 }}>Author / Journalist Name *</label>
-                      <select 
-                        value={isCustomAuthor ? 'OTHER' : (form.authorName || 'Kings TV News Desk')}
-                        onChange={e => {
-                          if (e.target.value === 'OTHER') {
-                            setIsCustomAuthor(true);
-                            set('authorName', '');
-                          } else {
-                            setIsCustomAuthor(false);
-                            set('authorName', e.target.value);
-                          }
-                        }}
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px' }}
-                      >
-                        <option value="Kings TV News Desk">Kings TV News Desk</option>
-                        <option value="Editorial Desk">Editorial Desk</option>
-                        {reporters.map(r => (
-                          <option key={r.id} value={r.fullName || r.username}>
-                            {r.fullName || r.username} ({r.role ? r.role.replace('_', ' ') : 'Reporter'})
-                          </option>
-                        ))}
-                        <option value="OTHER">➕ Others / Type Custom Author Name...</option>
-                      </select>
-
-                      {/* Custom Author Name Input if Others selected */}
-                      {(isCustomAuthor || !['Kings TV News Desk', 'Editorial Desk', ...reporters.map(r => r.fullName || r.username)].includes(form.authorName)) && (
-                        <div style={{ marginTop: '10px' }}>
-                          <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Custom Author Name</label>
-                          <input 
-                            type="text" 
-                            value={form.authorName} 
-                            onChange={e => { setIsCustomAuthor(true); set('authorName', e.target.value); }}
-                            placeholder="Type author / journalist name..."
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #2563EB', background: '#F0F9FF', fontSize: '14px', fontWeight: 600 }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* News Source / Agency */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600 }}>News Source / Agency</label>
-                      <input 
-                        type="text" 
-                        value={form.reporterName} 
-                        onChange={e => set('reporterName', e.target.value)} 
-                        placeholder="e.g. Kings TV Desk, PTI, ANI, Press Release"
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px' }} 
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    {/* News Location / City */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600 }}>News Location / City</label>
-                      <input 
-                        type="text" 
-                        value={form.constituency} 
-                        onChange={e => set('constituency', e.target.value)} 
-                        placeholder="e.g. Chennai, Coimbatore, New Delhi"
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px' }} 
-                      />
-                    </div>
-
-                    {/* Target District */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600 }}>Target District</label>
-                      <select 
-                        value={form.districtId} 
-                        onChange={e => set('districtId', e.target.value)}
-                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px' }}
-                      >
-                        <option value="">All Districts</option>
-                        {districts.map(d => <option key={d.id} value={d.id}>{d.nameEn || d.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '12px', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>Reader Engagement Controls</h4>
-                    <div style={{ display: 'flex', gap: '24px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={form.allowComments} onChange={e => set('allowComments', e.target.checked)} /> Allow reader comments
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={form.allowPingbacks} onChange={e => set('allowPingbacks', e.target.checked)} /> Allow trackbacks & pingbacks
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Unified Media & Source Upload */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600 }}>Media & Source Upload</h3>
-            
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="radio" name="uploadType" checked={uploadType === 'source'} onChange={() => setUploadType('source')} /> Use as AI Source (Docs, Audio)
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                <input type="radio" name="uploadType" checked={uploadType === 'insert'} onChange={() => setUploadType('insert')} /> Insert into Article (Images, Video)
-              </label>
-            </div>
-            
-            <div style={{ border: '2px dashed var(--border-color)', borderRadius: '8px', padding: '32px', textAlign: 'center', position: 'relative' }}>
-              <input type="file" multiple onChange={handleMediaUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
-              <UploadCloud size={32} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>Drag & drop files here, or click to browse</p>
-              {uploadProgress !== null && (
-                <div style={{ marginTop: '16px', background: '#e2e8f0', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${uploadProgress}%`, background: 'var(--primary-color)', height: '100%', transition: 'width 0.3s' }}></div>
-                </div>
-              )}
-            </div>
-
-            {mediaList.length > 0 && (
-              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Uploaded Files</h4>
-                {mediaList.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-                      {m.type.startsWith('image/') ? <ImageIcon size={20} color="#8B5CF6"/> : 
-                       m.type.startsWith('video/') ? <Video size={20} color="#EF4444"/> : 
-                       m.type.startsWith('audio/') ? <Mic size={20} color="#F59E0B"/> : 
-                       <FileText size={20} color="#3B82F6"/>}
-                      <span style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
-                      {m.text && <span style={{ fontSize: '10px', background: '#FEF3C7', color: '#D97706', padding: '2px 6px', borderRadius: '10px', fontWeight: 600 }}>Extracted {m.text.split(' ').length} words</span>}
-                    </div>
-                    {m.url && uploadType === 'insert' && (
-                      <button onClick={() => insertMedia(m.url, m.type)} style={{ padding: '6px 12px', fontSize: '12px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                        Insert to Editor
-                      </button>
-                    )}
-                  </div>
-                ))}
+              </div>
+            ) : (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                Select an action and run it to see AI output here.
               </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Right Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '340px' }}>
-          
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
-            <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => set('featuredImage', url)} />
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlignLeft size={16} /> Taxonomy</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category</label>
-                <select value={form.categoryId} onChange={e => set('categoryId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameEn || c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Subcategory</label>
-                <select value={form.subcategoryId} onChange={e => set('subcategoryId', e.target.value)} disabled={!subCategories.length} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory</option>
-                  {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameTa ? `${s.nameTa} / ${s.name}` : s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>News Tags (comma separated)</label>
-                <input type="text" value={form.metaKeywords} onChange={e => set('metaKeywords', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }} placeholder="e.g. TamilNadu, Politics, Breaking" />
-              </div>
-            </div>
-          </div>
-          
-        </div>
+      {/* Tab Nav */}
+      <div style={{ display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid var(--border)', alignItems: 'center' }}>
+        {TABS.map((tab, i) => (
+          <button key={tab} onClick={() => setActiveTab(i)}
+            style={{
+              padding: '0.75rem 1.5rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600,
+              background: 'transparent', borderBottom: activeTab === i ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === i ? 'var(--primary)' : 'var(--text-muted)', marginBottom: '-2px', transition: 'all 0.2s'
+            }}>
+            {tab === 'Tamil' && '🇮🇳 '}{tab === 'English' && '🌐 '}{tab === 'SEO' && '🔍 '}{tab === 'Settings' && '⚙️ '}{tab}
+          </button>
+        ))}
+        {/* Inline media insert button in tab bar */}
+        <button
+          onClick={() => setMediaModalOpen(true)}
+          title="Open Media Insert Library"
+          style={{ marginLeft: 'auto', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.4rem 0.75rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}
+        >
+          <Image size={15} /> Media
+        </button>
       </div>
-      
-      {/* Video Upload / Embed Modal */}
-      {videoModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--bg-surface, #ffffff)', borderRadius: '12px',
-            border: '1px solid var(--border-color, #e2e8f0)', width: '100%', maxWidth: '480px',
-            padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Video size={20} color="#0EA5E9" /> Add Video to Article
-              </h3>
-              <button onClick={() => setVideoModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <X size={20} />
-              </button>
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '1.75rem', borderRadius: '12px', position: 'relative', minHeight: '500px' }}>
+            {/* Tamil Tab */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1.5rem',
+              visibility: activeTab === 0 ? 'visible' : 'hidden',
+              height: activeTab === 0 ? 'auto' : 0,
+              overflow: activeTab === 0 ? 'visible' : 'hidden',
+              position: activeTab === 0 ? 'relative' : 'absolute',
+              width: '100%',
+              left: 0,
+              top: activeTab === 0 ? 0 : '1.75rem',
+              padding: activeTab === 0 ? 0 : '0 1.75rem',
+              boxSizing: 'border-box',
+              opacity: activeTab === 0 ? 1 : 0
+            }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
-                  Option 1: Upload Video File
-                </label>
-                <button
-                  onClick={() => videoInputRef.current?.click()}
-                  disabled={mediaUploading}
-                  style={{
-                    width: '100%', padding: '12px', background: 'var(--bg-secondary, #f8fafc)',
-                    border: '1px dashed #0EA5E9', borderRadius: '8px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    fontWeight: 600, color: '#0284C7'
-                  }}
-                >
-                  <UploadCloud size={18} /> Choose Video File (.mp4, .webm)
-                </button>
+                <label style={labelStyle}>Tamil Title <span style={{ color: '#EF4444' }}>*</span> {renderAiIndicator('titleTa')}</label>
+                <input style={inputStyle} value={form.titleTa}
+                  onChange={e => handleUserEdit('titleTa', e.target.value)} placeholder="தமிழ் தலைப்பு..." />
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '12px', margin: '4px 0' }}>
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
-                OR
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
-              </div>
-
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
-                  Option 2: Video URL (YouTube, Vimeo, MP4)
-                </label>
-                <input
-                  type="text"
-                  value={videoUrlInput}
-                  onChange={e => setVideoUrlInput(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  style={{
-                    width: '100%', padding: '10px 14px', borderRadius: '6px',
-                    border: '1px solid var(--border-color, #cbd5e1)', fontSize: '14px',
-                    background: 'var(--bg-secondary, #fff)'
-                  }}
-                />
+                <label style={labelStyle}>Short Description / Excerpt (Tamil) {renderAiIndicator('shortDescTa')}</label>
+                <textarea style={taStyle} value={form.shortDescTa}
+                  onChange={e => handleUserEdit('shortDescTa', e.target.value)} placeholder="சுருக்கமான விளக்கம்..." rows={3} />
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['excerpt'] && (
+                  <AiSuggestionBox
+                    fieldId="excerpt"
+                    suggestion={suggestions['excerpt']}
+                    loading={suggLoading['excerpt']}
+                    source={SUGG_SOURCE['excerpt']}
+                    onUse={() => useSuggestion('shortDescTa', 'excerpt', suggestions['excerpt'])}
+                    onDismiss={() => dismissField('excerpt')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-                <button
-                  onClick={() => setVideoModalOpen(false)}
-                  style={{ padding: '8px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleInsertVideoUrl}
-                  disabled={!videoUrlInput.trim()}
-                  style={{
-                    padding: '8px 16px', background: videoUrlInput.trim() ? '#0EA5E9' : '#cbd5e1',
-                    color: '#ffffff', border: 'none', borderRadius: '6px', cursor: videoUrlInput.trim() ? 'pointer' : 'not-allowed',
-                    fontWeight: 600
-                  }}
-                >
-                  Embed Video
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* API Key Modal */}
-      {keyModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--bg-surface, #ffffff)', borderRadius: '12px',
-            border: '1px solid var(--border-color, #e2e8f0)', width: '100%', maxWidth: '500px',
-            padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={20} color="#F59E0B" /> Configure Gemini API Key
-              </h3>
-              <button onClick={() => setKeyModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
-                  Gemini API Key (Google AI Studio Key)
-                </label>
-                <input
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={e => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
-                  style={{
-                    width: '100%', padding: '10px 14px', borderRadius: '6px',
-                    border: '1px solid var(--border-color, #cbd5e1)', fontSize: '14px',
-                    background: 'var(--bg-secondary, #fff)', fontFamily: 'monospace'
-                  }}
-                />
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Get your free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#2563EB', textDecoration: 'underline' }}>Google AI Studio</a>.
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
-                  Gemini Model Endpoint
-                </label>
-                <select
-                  value={apiModelInput}
-                  onChange={e => setApiModelInput(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 14px', borderRadius: '6px',
-                    border: '1px solid var(--border-color, #cbd5e1)', fontSize: '14px',
-                    background: 'var(--bg-secondary, #fff)'
-                  }}
-                >
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Recommended Fast & Multimodal)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Fast & Reliable)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Next Generation)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (High Precision Reasoning)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-                <button
-                  onClick={() => setKeyModalOpen(false)}
-                  style={{ padding: '8px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveApiKey}
-                  style={{
-                    padding: '8px 18px', background: '#F59E0B',
-                    color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer',
-                    fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px'
-                  }}
-                >
-                  <Check size={16} /> Save & Activate Key
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Interactive Gallery & Media Vault Creator Modal */}
-      {galleryModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--bg-surface, #ffffff)', borderRadius: '16px',
-            border: '1px solid var(--border-color, #e2e8f0)', width: '100%', maxWidth: '680px',
-            maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
-          }}>
-            {/* Modal Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ background: '#10B981', color: '#ffffff', padding: '8px', borderRadius: '8px', display: 'flex' }}>
-                  <LayoutTemplate size={20} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Interactive Gallery & Media Vault Creator</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Combine images, videos, audio clips, and documents into a clean interactive reader gallery.</p>
-                </div>
-              </div>
-              <button onClick={() => setGalleryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #1e293b)', marginBottom: '6px' }}>Gallery Title / Header</label>
-                <input
-                  type="text"
-                  value={galleryTitle}
-                  onChange={e => setGalleryTitle(e.target.value)}
-                  placeholder="e.g. Event Photo Album & Downloadable Press Release"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border-color, #cbd5e1)', fontSize: '14px', background: 'var(--bg-secondary, #ffffff)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              {/* Source Tab Selector */}
-              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color, #e2e8f0)', pb: '8px' }}>
-                <button
-                  onClick={() => setGalleryModalTab('library')}
-                  style={{
-                    padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none',
-                    background: galleryModalTab === 'library' ? '#2563EB' : 'var(--bg-secondary, #f1f5f9)',
-                    color: galleryModalTab === 'library' ? '#ffffff' : 'var(--text-secondary, #475569)',
-                    fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-                  }}
-                >
-                  <FolderIcon size={16} /> Choose from Media Library ({mediaLibraryItems.length})
-                </button>
-                <button
-                  onClick={() => setGalleryModalTab('upload')}
-                  style={{
-                    padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none',
-                    background: galleryModalTab === 'upload' ? '#2563EB' : 'var(--bg-secondary, #f1f5f9)',
-                    color: galleryModalTab === 'upload' ? '#ffffff' : 'var(--text-secondary, #475569)',
-                    fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-                  }}
-                >
-                  <UploadCloud size={16} /> Upload New Files
-                </button>
-              </div>
-
-              {/* Tab 1: Media Library Picker */}
-              {galleryModalTab === 'library' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-secondary, #f8fafc)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color, #e2e8f0)' }}>
-                  {/* Search and Category Filter Bar */}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Content (Tamil) <span style={{ color: '#EF4444' }}>*</span> {renderAiIndicator('contentTa')}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label htmlFor="doc-upload-ta" className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', margin: 0 }}>
+                      📎 Attach source document
+                    </label>
                     <input
-                      type="text"
-                      placeholder="Search media library..."
-                      value={mediaLibrarySearch}
-                      onChange={e => setMediaLibrarySearch(e.target.value)}
-                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', width: '200px', background: '#ffffff' }}
+                      type="file"
+                      id="doc-upload-ta"
+                      style={{ display: 'none' }}
+                      accept=".pdf,.txt,.png,.jpg,.jpeg,.webp"
+                      onChange={(e) => handleDocUpload(e, 'ta')}
                     />
-
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {['all', 'image', 'video', 'audio', 'document'].map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => setMediaLibraryCategory(cat)}
-                          style={{
-                            padding: '4px 10px', borderRadius: '12px', border: 'none', fontSize: '11px', fontWeight: 600, textTransform: 'capitalize', cursor: 'pointer',
-                            background: mediaLibraryCategory === cat ? '#2563EB' : '#e2e8f0',
-                            color: mediaLibraryCategory === cat ? '#ffffff' : '#475569'
-                          }}
-                        >
-                          {cat === 'all' ? 'All' : cat === 'image' ? 'Photos 🖼️' : cat === 'video' ? 'Videos 🎥' : cat === 'audio' ? 'Audio 🎙️' : 'Docs 📄'}
-                        </button>
-                      ))}
-                    </div>
+                    {docUploadProgress.ta && <span style={{ fontSize: '0.72rem', color: '#8B5CF6', fontStyle: 'italic' }}>{docUploadProgress.ta}</span>}
                   </div>
-
-                  {/* Media Library Items Grid */}
-                  {loadingMediaLibrary ? (
-                    <div style={{ padding: '30px', textAlign: 'center', color: '#2563eb', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <Loader2 size={18} className="spin" /> Loading Media Library...
-                    </div>
-                  ) : (
-                    (() => {
-                      const itemsToShow = mediaLibraryItems.filter(item => {
-                        const matchesCat = mediaLibraryCategory === 'all' || item.category === mediaLibraryCategory;
-                        const matchesSearch = !mediaLibrarySearch || item.name.toLowerCase().includes(mediaLibrarySearch.toLowerCase());
-                        return matchesCat && matchesSearch;
-                      });
-
-                      if (itemsToShow.length === 0) {
-                        return (
-                          <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px', background: '#ffffff', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                            No files found in Media Library under this filter. Switch to "Upload New Files" to add files.
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', maxHeight: '210px', overflowY: 'auto', paddingRight: '4px' }}>
-                          {itemsToShow.map(item => {
-                            const isAdded = galleryItems.some(i => i.id === item.id || i.url === item.url);
-                            return (
-                              <div
-                                key={item.id}
-                                onClick={() => {
-                                  if (isAdded) {
-                                    setGalleryItems(prev => prev.filter(i => i.id !== item.id && i.url !== item.url));
-                                  } else {
-                                    setGalleryItems(prev => [...prev, item]);
-                                  }
-                                }}
-                                style={{
-                                  border: `2px solid ${isAdded ? '#10B981' : '#cbd5e1'}`,
-                                  borderRadius: '8px', padding: '8px', background: isAdded ? '#ecfdf5' : '#ffffff',
-                                  cursor: 'pointer', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '6px',
-                                  position: 'relative'
-                                }}
-                              >
-                                {item.category === 'image' && (
-                                  <div style={{ height: '70px', borderRadius: '4px', overflow: 'hidden', background: '#f1f5f9' }}>
-                                    <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  </div>
-                                )}
-                                {item.category === 'video' && (
-                                  <div style={{ height: '70px', borderRadius: '4px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
-                                    <Video size={24} />
-                                  </div>
-                                )}
-                                {item.category === 'audio' && (
-                                  <div style={{ height: '70px', borderRadius: '4px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-                                    <Mic size={24} />
-                                  </div>
-                                )}
-                                {item.category === 'document' && (
-                                  <div style={{ height: '70px', borderRadius: '4px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '24px' }}>
-                                    📄
-                                  </div>
-                                )}
-
-                                <div style={{ overflow: 'hidden' }}>
-                                  <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
-                                  <span style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase' }}>{item.category}</span>
-                                </div>
-
-                                <button
-                                  style={{
-                                    width: '100%', padding: '4px', borderRadius: '4px', border: 'none',
-                                    background: isAdded ? '#10B981' : '#2563EB', color: '#ffffff',
-                                    fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px'
-                                  }}
-                                >
-                                  {isAdded ? <Check size={12} /> : <Plus size={12} />}
-                                  {isAdded ? 'Added' : 'Select'}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()
-                  )}
                 </div>
-              )}
-
-              {/* Tab 2: Upload Dropzone */}
-              {galleryModalTab === 'upload' && (
-                <div
-                  onClick={() => galleryInputRef.current?.click()}
-                  style={{
-                    border: '2px dashed #3b82f6', borderRadius: '12px', padding: '24px',
-                    textAlign: 'center', background: '#eff6ff', cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                >
-                  <UploadCloud size={36} color="#2563eb" style={{ marginBottom: '8px' }} />
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1e40af', fontWeight: 600 }}>Click or Drag Files to Add to Gallery</h4>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#3b82f6' }}>Supports Photos, Videos (MP4), Audio (MP3), Documents (PDF, DOCX, TXT)</p>
-                  {galleryUploading && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '12px', color: '#2563eb', fontSize: '13px', fontWeight: 600 }}>
-                      <Loader2 size={16} className="spin" /> Uploading media files...
-                    </div>
-                  )}
+                <textarea id="tinymce-contentTa" style={{ ...taStyle, minHeight: '350px' }} value={form.contentTa}
+                  onChange={e => handleUserEdit('contentTa', e.target.value)} placeholder="செய்தி உள்ளடக்கம்..." />
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px' }}>
+                  <span>📊 {calcStats(form.contentTa).words} words</span>
+                  <span>📖 ~{calcStats(form.contentTa).readingTime} min read</span>
+                  <span>🔤 {calcStats(form.contentTa).chars} characters</span>
+                  <span style={{ color: calcStats(form.contentTa).readability.color, fontWeight: 600 }}>🧠 {calcStats(form.contentTa).readability.label}</span>
                 </div>
-              )}
+              </div>
+            </div>
 
-              {/* Items Selected Preview Grid */}
+            {/* English Tab */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1.5rem',
+              visibility: activeTab === 1 ? 'visible' : 'hidden',
+              height: activeTab === 1 ? 'auto' : 0,
+              overflow: activeTab === 1 ? 'visible' : 'hidden',
+              position: activeTab === 1 ? 'relative' : 'absolute',
+              width: '100%',
+              left: 0,
+              top: activeTab === 1 ? 0 : '1.75rem',
+              padding: activeTab === 1 ? 0 : '0 1.75rem',
+              boxSizing: 'border-box',
+              opacity: activeTab === 1 ? 1 : 0
+            }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #334155)' }}>Selected Gallery Vault Items ({galleryItems.length})</h4>
-                  {galleryItems.length > 0 && (
-                    <button onClick={() => setGalleryItems([])} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-                      Clear All
-                    </button>
-                  )}
+                <label style={labelStyle}>English Title {renderAiIndicator('titleEn')}</label>
+                <input style={inputStyle} value={form.titleEn}
+                  onChange={e => { handleUserEdit('titleEn', e.target.value); if (!form.slug) set('slug', slugify(e.target.value)); }}
+                  placeholder="English headline..." />
+              </div>
+              <div>
+                <label style={labelStyle}>Short Description / Excerpt (English) {renderAiIndicator('shortDescEn')}</label>
+                <textarea style={taStyle} value={form.shortDescEn}
+                  onChange={e => handleUserEdit('shortDescEn', e.target.value)} placeholder="Brief summary..." rows={3} />
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['excerpt'] && (
+                  <AiSuggestionBox
+                    fieldId="excerpt_en"
+                    suggestion={suggestions['excerpt']}
+                    loading={suggLoading['excerpt']}
+                    source={SUGG_SOURCE['excerpt']}
+                    onUse={() => useSuggestion('shortDescEn', 'excerpt', suggestions['excerpt'])}
+                    onDismiss={() => dismissField('excerpt')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Content (English) {renderAiIndicator('contentEn')}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label htmlFor="doc-upload-en" className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', margin: 0 }}>
+                      📎 Attach source document
+                    </label>
+                    <input
+                      type="file"
+                      id="doc-upload-en"
+                      style={{ display: 'none' }}
+                      accept=".pdf,.txt,.png,.jpg,.jpeg,.webp"
+                      onChange={(e) => handleDocUpload(e, 'en')}
+                    />
+                    {docUploadProgress.en && <span style={{ fontSize: '0.72rem', color: '#8B5CF6', fontStyle: 'italic' }}>{docUploadProgress.en}</span>}
+                  </div>
+                </div>
+                <textarea id="tinymce-contentEn" style={{ ...taStyle, minHeight: '350px' }} value={form.contentEn}
+                  onChange={e => handleUserEdit('contentEn', e.target.value)} placeholder="Full article content..." />
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px' }}>
+                  <span>📊 {calcStats(form.contentEn).words} words</span>
+                  <span>📖 ~{calcStats(form.contentEn).readingTime} min read</span>
+                  <span>🔤 {calcStats(form.contentEn).chars} characters</span>
+                  <span style={{ color: calcStats(form.contentEn).readability.color, fontWeight: 600 }}>🧠 {calcStats(form.contentEn).readability.label}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SEO Tab */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1.5rem',
+              visibility: activeTab === 2 ? 'visible' : 'hidden',
+              height: activeTab === 2 ? 'auto' : 0,
+              overflow: activeTab === 2 ? 'visible' : 'hidden',
+              position: activeTab === 2 ? 'relative' : 'absolute',
+              width: '100%',
+              left: 0,
+              top: activeTab === 2 ? 0 : '1.75rem',
+              padding: activeTab === 2 ? 0 : '0 1.75rem',
+              boxSizing: 'border-box',
+              opacity: activeTab === 2 ? 1 : 0
+            }}>
+              {/* AI SEO Assistant Widget */}
+              <div className="glass-panel" style={{ padding: '1.5rem', background: 'rgba(179, 115, 42, 0.08)', border: '1px solid var(--primary)', borderRadius: '10px' }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--primary)', fontSize: '1.1rem', fontWeight: 700 }}>
+                  ✨ AI News SEO Assistant
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 1rem 0' }}>
+                  Analyze your article to automatically suggest titles, meta descriptions, and search tags.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button onClick={autoFillSeoWithAi} disabled={aiSeoLoading} className="btn btn-primary" style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {aiSeoLoading ? 'Auto-filling...' : '✨ One-Click AI Auto-Fill (All Fields)'}
+                  </button>
+                  <button onClick={generateAiSeoSuggestions} disabled={aiSeoLoading} className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
+                    🔍 Generate & Suggest Options
+                  </button>
                 </div>
 
-                {galleryItems.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', background: 'var(--bg-secondary, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', color: '#94a3b8', fontSize: '12px' }}>
-                    No files added to gallery yet. Select files from Media Library above or upload new files.
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {galleryItems.map((item) => (
-                      <div key={item.id} style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px', background: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {item.category === 'image' && (
-                          <div style={{ height: '70px', borderRadius: '4px', overflow: 'hidden', background: '#f1f5f9' }}>
-                            <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        )}
-                        {item.category === 'video' && (
-                          <div style={{ height: '70px', borderRadius: '4px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
-                            <Video size={24} />
-                          </div>
-                        )}
-                        {item.category === 'audio' && (
-                          <div style={{ height: '70px', borderRadius: '4px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-                            <Mic size={24} />
-                          </div>
-                        )}
-                        {item.category === 'document' && (
-                          <div style={{ height: '70px', borderRadius: '4px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '24px' }}>
-                            📄
-                          </div>
-                        )}
-
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                          <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
-                          <span style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase' }}>{item.category} • {item.sizeMb} MB</span>
+                {aiSeoSuggestions && (
+                  <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                    {aiSeoSuggestions.titles && aiSeoSuggestions.titles.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>🎯 Suggested SEO Titles:</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {aiSeoSuggestions.titles.map((t, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', gap: '1rem' }}>
+                              <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{t}</span>
+                              <button onClick={() => { set('metaTitle', t); showMsg('Meta Title updated!'); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Use</button>
+                            </div>
+                          ))}
                         </div>
-
-                        <button
-                          onClick={() => setGalleryItems(prev => prev.filter(i => i.id !== item.id && i.url !== item.url))}
-                          style={{ position: 'absolute', top: '4px', right: '4px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="Remove item"
-                        >
-                          <X size={10} />
-                        </button>
                       </div>
-                    ))}
+                    )}
+
+                    {aiSeoSuggestions.descriptions && aiSeoSuggestions.descriptions.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>📝 Suggested Meta Descriptions:</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {aiSeoSuggestions.descriptions.map((d, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', gap: '1rem' }}>
+                              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{d}</span>
+                              <button onClick={() => { set('metaDescription', d); showMsg('Meta Description updated!'); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Use</button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiSeoSuggestions.tags && aiSeoSuggestions.tags.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>🏷️ Suggested Search Tags:</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                          {aiSeoSuggestions.tags.map((tag, idx) => (
+                            <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-secondary)', padding: '0.25rem 0.5rem', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}>
+                              <span>#{tag}</span>
+                              <button onClick={() => {
+                                const currentTags = form.metaKeywords ? form.metaKeywords.split(',').map(s=>s.trim()).filter(s=>s) : [];
+                                if (!currentTags.includes(tag)) {
+                                  const newTags = [...currentTags, tag].join(', ');
+                                  set('metaKeywords', newTags);
+                                  showMsg(`Added tag #${tag}`);
+                                }
+                              }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '0.8rem' }}>+</button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
+
+              <div>
+                <label style={labelStyle}>Live Google Search Preview</label>
+                <div style={{ padding: '1rem', background: document.documentElement.classList.contains('dark') ? '#202124' : '#fff', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 1px 6px rgba(32,33,36,.1)', width: '600px', maxWidth: '100%', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <div style={{ width: '28px', height: '28px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>K</div>
+                    <div>
+                      <div style={{ fontSize: '14px', color: document.documentElement.classList.contains('dark') ? '#dadce0' : '#202124', lineHeight: '1.2' }}>King 24x7</div>
+                      <div style={{ fontSize: '12px', color: document.documentElement.classList.contains('dark') ? '#bdc1c6' : '#5f6368', lineHeight: '1.2' }}>https://king24x7.com › news › {form.slug || 'article-slug'}</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '20px', color: document.documentElement.classList.contains('dark') ? '#8ab4f8' : '#1a0dab', textDecoration: 'none', marginBottom: '0.25rem', fontWeight: 400 }}>
+                    {form.metaTitle || form.titleEn || form.titleTa || 'SEO Title Preview'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: document.documentElement.classList.contains('dark') ? '#bdc1c6' : '#4d5156', lineHeight: '1.58' }}>
+                    {form.metaDescription || 'Meta description preview will appear here. This gives users a summary of what they will find when they click the link in search results.'}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label style={labelStyle}>SEO Title <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(max 60 chars)</span> {renderAiIndicator('metaTitle')}</label>
+                <input style={inputStyle} value={form.metaTitle}
+                  onChange={e => handleUserEdit('metaTitle', e.target.value)} placeholder="SEO optimized title..." maxLength={60} />
+                <div style={{ fontSize: '0.75rem', color: form.metaTitle.length > 55 ? '#F59E0B' : 'var(--text-muted)', marginTop: '4px' }}>
+                  {form.metaTitle.length}/60 characters
+                </div>
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['metaTitle'] && (
+                  <AiSuggestionBox
+                    fieldId="metaTitle"
+                    suggestion={suggestions['metaTitle']}
+                    loading={suggLoading['metaTitle']}
+                    source={SUGG_SOURCE['metaTitle']}
+                    onUse={() => useSuggestion('metaTitle', 'metaTitle', suggestions['metaTitle'])}
+                    onDismiss={() => dismissField('metaTitle')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Meta Description <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(max 160 chars)</span> {renderAiIndicator('metaDescription')}</label>
+                <textarea style={{ ...taStyle, minHeight: '80px' }} value={form.metaDescription}
+                  onChange={e => handleUserEdit('metaDescription', e.target.value)} placeholder="Meta description for search engines..." maxLength={160} />
+                <div style={{ fontSize: '0.75rem', color: form.metaDescription.length > 150 ? '#F59E0B' : 'var(--text-muted)', marginTop: '4px' }}>
+                  {form.metaDescription.length}/160 characters
+                </div>
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['metaDescription'] && (
+                  <AiSuggestionBox
+                    fieldId="metaDescription"
+                    suggestion={suggestions['metaDescription']}
+                    loading={suggLoading['metaDescription']}
+                    source={SUGG_SOURCE['metaDescription']}
+                    onUse={() => useSuggestion('metaDescription', 'metaDescription', suggestions['metaDescription'])}
+                    onDismiss={() => dismissField('metaDescription')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Meta Keywords / Search Tags {renderAiIndicator('metaKeywords')}</label>
+                <input style={inputStyle} value={form.metaKeywords}
+                  onChange={e => handleUserEdit('metaKeywords', e.target.value)} placeholder="news, tamil, politics..." />
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['tags'] && (
+                  <TagSuggestionBox
+                    tags={suggestions['tags']}
+                    loading={suggLoading['tags']}
+                    onUseOne={useTagChip}
+                    onUseAll={useAllTags}
+                    onDismiss={() => dismissField('tags')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Focus Keywords {renderAiIndicator('focusKeywords')}</label>
+                <input style={inputStyle} value={form.focusKeywords}
+                  onChange={e => handleUserEdit('focusKeywords', e.target.value)} placeholder="e.g. புதிய இந்திய அணி, இளம் வீரர்கள்..." />
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['focusKeyword'] && (
+                  <AiSuggestionBox
+                    fieldId="focusKeyword"
+                    suggestion={suggestions['focusKeyword']}
+                    loading={suggLoading['focusKeyword']}
+                    source={SUGG_SOURCE['focusKeyword']}
+                    onUse={() => useSuggestion('focusKeywords', 'focusKeyword', suggestions['focusKeyword'])}
+                    onDismiss={() => dismissField('focusKeyword')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+                {form.focusKeywords && (
+                  <div style={{ marginTop: '0.75rem', padding: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                      <span style={{ fontWeight: 600 }}>Focus Keyword Density:</span>
+                      <span style={{ color: density.color, fontWeight: 'bold' }}>{density.percent}% ({density.status})</span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Found {density.count} occurrences in {density.wordCount} words. Target: 0.5% - 2.5%
+                    </div>
+                  </div>
+                )}
+                {linkSuggestions.length > 0 && (
+                  <div style={{ marginTop: '0.75rem', padding: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '6px' }}>Suggested Internal Links:</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {linkSuggestions.map(art => (
+                        <div key={art.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px', color: 'var(--text-primary)' }}>
+                            {art.titleEn || art.titleTa}
+                          </span>
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigator.clipboard.writeText(`/news/${art.slug}`);
+                              showMsg('Internal link copied to clipboard!');
+                            }}
+                            className="btn btn-secondary" 
+                            style={{ padding: '2px 6px', fontSize: '0.65rem' }}
+                          >
+                            Copy Link
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>URL Slug {renderAiIndicator('slug')}</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input style={{ ...inputStyle, flex: 1 }} value={form.slug}
+                    onChange={e => handleUserEdit('slug', e.target.value)} placeholder="auto-generated-from-title" />
+                  <button onClick={autoSlug} className="btn btn-secondary" style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                    Auto-generate
+                  </button>
+                </div>
+                {!form.aiAutomationEnabled && aiEnabled && !suggDismissed['slug'] && (
+                  <AiSuggestionBox
+                    fieldId="slug"
+                    suggestion={suggestions['slug']}
+                    loading={suggLoading['slug']}
+                    source={SUGG_SOURCE['slug']}
+                    onUse={() => useSuggestion('slug', 'slug', suggestions['slug'])}
+                    onDismiss={() => dismissField('slug')}
+                    onRegenerate={() => generateSuggestions(Date.now().toString())}
+                  />
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Canonical URL</label>
+                <input style={inputStyle} value={form.canonicalUrl}
+                  onChange={e => handleUserEdit('canonicalUrl', e.target.value)} placeholder="https://king24x7.com/news/slug" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Readability Score (0-100)</label>
+                  <input style={inputStyle} type="number" min="0" max="100" value={form.readabilityScore}
+                    onChange={e => set('readabilityScore', e.target.value)} placeholder="e.g. 85" />
+                </div>
+                <div>
+                  <label style={labelStyle}>SEO Score (0-100)</label>
+                  <input style={inputStyle} type="number" min="0" max="100" value={form.seoScore}
+                    onChange={e => set('seoScore', e.target.value)} placeholder="e.g. 92" />
+                </div>
+              </div>
             </div>
 
-            {/* Modal Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc' }}>
-              <button onClick={() => setGalleryModalOpen(false)} style={{ padding: '9px 18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button
-                onClick={handleInsertGalleryModal}
-                disabled={!galleryItems.length}
-                style={{
-                  padding: '9px 20px', background: galleryItems.length ? '#10B981' : '#cbd5e1',
-                  color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '14px',
-                  fontWeight: 600, cursor: galleryItems.length ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', gap: '6px'
-                }}
-              >
-                <Check size={16} /> Insert Gallery to Article ({galleryItems.length})
-              </button>
+            {/* Settings Tab */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '1.5rem',
+              visibility: activeTab === 3 ? 'visible' : 'hidden',
+              height: activeTab === 3 ? 'auto' : 0,
+              overflow: activeTab === 3 ? 'visible' : 'hidden',
+              position: activeTab === 3 ? 'relative' : 'absolute',
+              width: '100%',
+              left: 0,
+              top: activeTab === 3 ? 0 : '1.75rem',
+              padding: activeTab === 3 ? 0 : '0 1.75rem',
+              boxSizing: 'border-box',
+              opacity: activeTab === 3 ? 1 : 0
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Author Name</label>
+                  <input style={inputStyle} value={form.authorName}
+                    onChange={e => set('authorName', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Reporter Name</label>
+                  <input
+                    list="reporter-list"
+                    style={inputStyle}
+                    value={form.reporterName}
+                    onChange={e => set('reporterName', e.target.value)}
+                    placeholder="Select or type reporter name..."
+                  />
+                  <datalist id="reporter-list">
+                    {reporters.map(r => (
+                      <option key={r.id} value={r.fullName || r.email}>
+                        {r.fullName ? `${r.fullName} (${r.role?.replace(/_/g, ' ')})` : r.email}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+              <div>
+                <DatePickerInput
+                  label="Schedule Publish Date"
+                  value={form.publishedAt ? form.publishedAt.substring(0, 10) : ''}
+                  onChange={val => set('publishedAt', val ? val + 'T00:00' : '')}
+                  placeholder="dd/mm/yyyy"
+                />
+              </div>
+              <div style={{ padding: '1.25rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <label style={{ ...labelStyle, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
+                  <MapPin size={14} /> GPS Visibility (optional)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.75rem' }}>Latitude</label>
+                    <input type="number" style={inputStyle} value={form.latitude}
+                      onChange={e => set('latitude', e.target.value)} placeholder="11.0168" step="any" />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.75rem' }}>Longitude</label>
+                    <input type="number" style={inputStyle} value={form.longitude}
+                      onChange={e => set('longitude', e.target.value)} placeholder="76.9558" step="any" />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.75rem' }}>Radius (km)</label>
+                    <input type="number" style={inputStyle} value={form.visibilityRadiusKm}
+                      onChange={e => set('visibilityRadiusKm', e.target.value)} placeholder="50" />
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: '1.25rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <label style={{ ...labelStyle, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
+                  Layout & Featured Controls
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="checkbox" checked={form.showRightColumn}
+                      onChange={e => set('showRightColumn', e.target.checked)} />
+                    Show Right Sidebar (Ads & Widgets)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="checkbox" checked={form.isPluggedIn}
+                      onChange={e => set('isPluggedIn', e.target.checked)} />
+                    Plug into Homepage Top Banner
+                  </label>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.75rem' }}>Featured Section Override (Optional)</label>
+                    <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.featuredCategory} onChange={e => set('featuredCategory', e.target.value)}>
+                      <option value="">None</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.nameTa ? `${c.nameTa} / ${c.name}` : c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Global CSS for TinyMCE Spinners */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}} />
+        </div>
+
+        {/* Media Assets Library Modal */}
+        {mediaModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+            <div className="glass-panel" style={{ padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                    <Image size={20} style={{ color: 'var(--primary)' }} /> Insert Media
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                    Upload images & videos, then insert them into your article content.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div>
+                    <label htmlFor="media-helper-upload" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer', padding: '0.5rem 1rem', borderRadius: '8px' }}>
+                      <Plus size={14} /> Upload Files
+                    </label>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*,video/*" 
+                      onChange={handleMediaUpload} 
+                      style={{ display: 'none' }} 
+                      id="media-helper-upload" 
+                    />
+                  </div>
+                  <button onClick={() => setMediaModalOpen(false)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '8px' }}>
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              {uploadProgress !== null && (
+                <div style={{ width: '100%', background: 'var(--border-color)', height: '6px', borderRadius: '3px', marginBottom: '1rem', overflow: 'hidden' }}>
+                  <div style={{ width: `${uploadProgress}%`, background: 'var(--primary)', height: '100%', transition: 'width 0.2s' }} />
+                </div>
+              )}
+
+              {mediaList.length === 0 ? (
+                <div style={{ border: '2px dashed var(--border-color)', borderRadius: '8px', padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  No media files available. Upload files to use them in the editor.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem' }}>
+                  {mediaList.map((item, idx) => (
+                    <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                      <div style={{ height: '120px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {item.type.startsWith('image/') ? (
+                          <img src={getPreviewUrl(item.url)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <Video size={32} style={{ color: '#fff' }} />
+                        )}
+                      </div>
+                      <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>
+                          {item.name}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <button 
+                              onClick={() => {
+                                insertMediaIntoTinyMCE(item.url, item.type);
+                                setMediaModalOpen(false);
+                              }}
+                              style={{ flex: 1, padding: '4px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              Insert
+                            </button>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(item.url);
+                                showMsg('URL copied to clipboard!');
+                              }}
+                              style={{ padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                              title="Copy Link"
+                            >
+                              <Copy size={12} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if(window.confirm('Delete this media item?')) {
+                                  setMediaList(mediaList.filter((_, i) => i !== idx));
+                                }
+                              }}
+                              style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', color: '#EF4444' }}
+                              title="Remove from list"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {item.type && item.type.startsWith('image/') && (
+                            <button 
+                              onClick={() => { set('imageUrl', item.url); showMsg('✅ Set as featured image!'); }}
+                              style={{ width: '100%', padding: '6px', background: form.imageUrl === item.url ? '#10B981' : 'rgba(16,185,129,0.15)', color: form.imageUrl === item.url ? '#fff' : '#10B981', border: '1px solid #10B981', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                              title="Set as Featured Image"
+                            >
+                              {form.imageUrl === item.url ? '✅ Featured Image' : '⭐ Set as Featured Image'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Status */}
+          <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+            {renderPipeline()}
+            <label style={labelStyle}>Status</label>
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.status} onChange={e => set('status', e.target.value)}>
+              <option value="draft" style={{ color: '#000000', backgroundColor: '#ffffff' }}>📝 Draft</option>
+              <option value="pending" style={{ color: '#000000', backgroundColor: '#ffffff' }}>⏳ Pending Review</option>
+              <option value="published" style={{ color: '#000000', backgroundColor: '#ffffff' }}>✅ Published</option>
+              <option value="rejected" style={{ color: '#000000', backgroundColor: '#ffffff' }}>❌ Rejected</option>
+              <option value="archived" style={{ color: '#000000', backgroundColor: '#ffffff' }}>📦 Archived</option>
+            </select>
+          </div>
+
+          {/* Category & Subcategory Cascading Select */}
+          <CategorySubcategorySelect
+            categoryId={form.categoryId}
+            subcategoryId={form.subcategoryId}
+            onCategoryChange={val => handleUserEdit('categoryId', val)}
+            onSubcategoryChange={val => set('subcategoryId', val)}
+            required={true}
+            labelSuffix={renderAiIndicator('categoryId')}
+          />
+
+          {/* District */}
+          <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+            <label style={labelStyle}>District</label>
+            <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.districtId} onChange={e => set('districtId', e.target.value)}>
+              <option value="" style={{ color: '#000000', backgroundColor: '#ffffff' }}>— Select District —</option>
+              {districts.map(d => (
+                <option key={d.id} value={d.id} style={{ color: '#000000', backgroundColor: '#ffffff' }}>
+                  {d.nameTa ? `${d.nameTa} / ${d.nameEn}` : d.nameEn}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Constituency */}
+          <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+            <label style={labelStyle}>Constituency</label>
+            <input 
+              style={inputStyle} 
+              value={form.constituency}
+              onChange={e => set('constituency', e.target.value)} 
+              placeholder="e.g. Coimbatore South" 
+            />
+          </div>
+
+          {/* Featured Image Upload with Instant Preview */}
+          <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+            <ImageUploadPreview
+              label="Featured Image"
+              value={form.imageUrl}
+              onChange={val => set('imageUrl', val)}
+              uploadEndpoint="/articles/upload"
+              placeholder="Image URL or upload file..."
+            />
+          </div>
+
+          {/* News Tags */}
+          <div className="glass-panel" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+            <label style={labelStyle}>News Tags (comma-separated) {renderAiIndicator('metaKeywords')}</label>
+            <input 
+              style={inputStyle} 
+              value={form.metaKeywords}
+              onChange={e => handleUserEdit('metaKeywords', e.target.value)} 
+              placeholder="e.g. Budget, Assembly, Chennai" 
+            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+              {(form.metaKeywords || '').split(',').map(s => s.trim()).filter(Boolean).map((t, idx) => (
+                <span key={idx} style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
+                  #{t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Save actions */}
+          <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderRadius: '12px' }}>
+            <button onClick={() => save()} disabled={saving}
+              className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+              <Save size={15} /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={() => navigate('/admin/news')}
+              className="btn btn-secondary" style={{ width: '100%' }}>Cancel</button>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };

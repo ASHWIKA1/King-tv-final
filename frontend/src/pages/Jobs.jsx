@@ -162,8 +162,8 @@ const Jobs = () => {
         setLoading(false);
       })
       .catch(err => {
-        console.warn("Failed to load jobs from API, using fallback", err);
-        setJobs(fallbackJobs);
+        console.warn("Failed to load jobs from API", err);
+        setJobs([]);
         setLoading(false);
       });
   };
@@ -1795,7 +1795,7 @@ const Jobs = () => {
           </div>
 
           <div className="featured-jobs-grid">
-            {(jobs.length > 0 ? jobs : fallbackJobs).slice(0, 4).map(job => (
+            {jobs.slice(0, 4).map(job => (
               <div className="featured-job-card" key={job.id} onClick={() => handleOpenDetails(job)}>
                 <span className="featured-card-badge">Featured</span>
                 <div>
@@ -1864,7 +1864,7 @@ const Jobs = () => {
             </div>
           ) : (
             <div className="latest-jobs-list">
-              {(jobs.length > 0 ? jobs : fallbackJobs).map(job => (
+              {jobs.map(job => (
                 <div className="latest-job-row" key={job.id} onClick={() => handleOpenDetails(job)}>
                   <div className="latest-job-left">
                     <div className="featured-job-logo-box" style={{ width: '48px', height: '48px', fontSize: '20px' }}>

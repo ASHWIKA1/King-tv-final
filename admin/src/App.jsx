@@ -39,8 +39,6 @@ import Profile from './pages/admin/Profile';
 import AiConfiguration from './pages/admin/AiConfiguration';
 import CommunityModules from './pages/admin/CommunityModules';
 import LanguageFontSettings from './pages/admin/LanguageFontSettings';
-import EmployersManagement from './pages/admin/EmployersManagement';
-import CandidatesManagement from './pages/admin/CandidatesManagement';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -144,18 +142,6 @@ function App() {
           <Route path="/admin/community" element={
             <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
               <CommunityModules />
-            </ProtectedLayout>
-          } />
-
-          <Route path="/admin/jobs/employers" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
-              <EmployersManagement />
-            </ProtectedLayout>
-          } />
-
-          <Route path="/admin/jobs/candidates" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
-              <CandidatesManagement />
             </ProtectedLayout>
           } />
 

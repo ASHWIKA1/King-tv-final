@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../../api";
 import { TrendingUp, Users, Eye, Map, FileText, Download, Activity, CheckCircle2, Server } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Legend } from "recharts";
 
 const AnalyticsDashboard = () => {
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -103,7 +101,7 @@ const AnalyticsDashboard = () => {
         <div className="glass-panel" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Total Article Views</div>
-            <div onClick={() => navigate('/admin/news')} style={{ color: "#3B82F6", padding: "0.5rem", background: "#3B82F622", borderRadius: "8px", cursor: "pointer", transition: "transform 0.15s" }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} title="View Articles"><Eye size={18} /></div>
+            <div style={{ color: "#3B82F6", padding: "0.5rem", background: "#3B82F622", borderRadius: "8px" }}><Eye size={18} /></div>
           </div>
           <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)" }}>
             {loading ? "-" : totalPageViews.toLocaleString()}
@@ -113,7 +111,7 @@ const AnalyticsDashboard = () => {
         <div className="glass-panel" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Active Readers</div>
-            <div onClick={() => navigate('/admin/users')} style={{ color: "#10B981", padding: "0.5rem", background: "#10B98122", borderRadius: "8px", cursor: "pointer", transition: "transform 0.15s" }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} title="View Readers"><Users size={18} /></div>
+            <div style={{ color: "#10B981", padding: "0.5rem", background: "#10B98122", borderRadius: "8px" }}><Users size={18} /></div>
           </div>
           <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)" }}>
             {loading ? "-" : stats?.activeSessions}
@@ -123,7 +121,7 @@ const AnalyticsDashboard = () => {
         <div className="glass-panel" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Articles Published</div>
-            <div onClick={() => navigate('/admin/news')} style={{ color: "var(--primary)", padding: "0.5rem", background: "var(--primary-light, #B3732A22)", borderRadius: "8px", cursor: "pointer", transition: "transform 0.15s" }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} title="View Published Articles"><FileText size={18} /></div>
+            <div style={{ color: "var(--primary)", padding: "0.5rem", background: "var(--primary-light, #B3732A22)", borderRadius: "8px" }}><FileText size={18} /></div>
           </div>
           <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)" }}>
             {loading ? "-" : totalArticlesCount}
@@ -133,7 +131,7 @@ const AnalyticsDashboard = () => {
         <div className="glass-panel" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Live TV Viewers</div>
-            <div onClick={() => navigate('/admin/breaking-news')} style={{ color: "#EF4444", padding: "0.5rem", background: "#EF444422", borderRadius: "8px", cursor: "pointer", transition: "transform 0.15s" }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} title="Manage Live TV/Breaking News"><Activity size={18} /></div>
+            <div style={{ color: "#EF4444", padding: "0.5rem", background: "#EF444422", borderRadius: "8px" }}><Activity size={18} /></div>
           </div>
           <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)" }}>
             {loading ? "-" : stats?.liveStreamConcurrentViewers}

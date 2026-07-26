@@ -45,15 +45,6 @@ public class SeoGeneratorService {
         }
 
         // 4. Focus Keywords
-        if (article.getFocusKeywords() == null || article.getFocusKeywords().trim().isEmpty()) {
-            String cleanKeywords = headline.toLowerCase()
-                .replaceAll("[^a-zA-Z0-9\\sஅ-ஹ]", "")
-                .replaceAll("\\s+", ", ")
-                .trim();
-            article.setFocusKeywords("news, KINGS 24x7, Tamil news, " + cleanKeywords);
-        }
-
-        // 4b. Meta Keywords (News Tags)
         if (article.getMetaKeywords() == null || article.getMetaKeywords().trim().isEmpty()) {
             String cleanKeywords = headline.toLowerCase()
                 .replaceAll("[^a-zA-Z0-9\\sஅ-ஹ]", "")

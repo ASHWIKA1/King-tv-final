@@ -14,7 +14,6 @@ import com.kingstv.repository.ObituaryFrameTemplateRepository;
 import com.kingstv.models.ObituaryFrameTemplate;
 
 import com.kingstv.models.User;
-import com.kingstv.models.Role;
 import com.kingstv.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -57,25 +56,19 @@ public class BackendJavaApplication implements CommandLineRunner {
     @Autowired
     private CompanyRepository companyRepository;
 
-    @Autowired
-    private com.kingstv.repository.CandidateRepository candidateRepository;
-
     public static void main(String[] args) {
         System.setOut(new com.kingstv.services.MaskingPrintStream(System.out, System.out));
         System.setErr(new com.kingstv.services.MaskingPrintStream(System.err, System.err));
         SpringApplication.run(BackendJavaApplication.class, args);
     }
 
-    @Autowired
-    private com.kingstv.services.LoginAttemptService loginAttemptService;
-
     @Override
     public void run(String... args) throws Exception {
-        updatePasswordIfPresent("admin@king24x7.com", "admin123", Role.SUPER_ADMIN, "Super Admin");
-        updatePasswordIfPresent("vendor@king24x7.com", "vendor123", Role.INSTITUTION_LOGIN, "Government Vendor");
-        updatePasswordIfPresent("editor@king24x7.com", "editor123", Role.CHIEF_EDITOR, "Chief Editor");
-        updatePasswordIfPresent("reporter@king24x7.com", "reporter123", Role.MOBILE_JOURNALIST, "Mobile Journalist");
-        updatePasswordIfPresent("user@king24x7.com", "user123", Role.READER, "Public Reader");
+        updatePasswordIfPresent("admin@king24x7.com", "admin123");
+        updatePasswordIfPresent("vendor@king24x7.com", "vendor123");
+        updatePasswordIfPresent("editor@king24x7.com", "editor123");
+        updatePasswordIfPresent("reporter@king24x7.com", "reporter123");
+        updatePasswordIfPresent("user@king24x7.com", "user123");
 
         seedCategories();
         seedFrameTemplates();
@@ -129,27 +122,14 @@ public class BackendJavaApplication implements CommandLineRunner {
         wishFrameTemplateRepository.save(t);
     }
 
-    private void updatePasswordIfPresent(String email, String rawPassword, String defaultRole, String fullName) {
-        String cleanEmail = email.toLowerCase().trim();
-        Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
-        User user = userOpt.orElseGet(() -> {
-            User u = new User();
-            u.setEmail(cleanEmail);
-            u.setFullName(fullName);
-            u.setRole(defaultRole);
-            return u;
-        });
-
-        user.setPassword(passwordEncoder.encode(rawPassword));
-        user.setProvider("LOCAL");
-        user.setIsActive(true);
-        user.setIsVerified(true);
-        userRepository.save(user);
-
-        if (loginAttemptService != null) {
-            loginAttemptService.loginSucceeded(cleanEmail);
+    private void updatePasswordIfPresent(String email, String rawPassword) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userRepository.save(user);
+            System.out.println("Updated password for " + email);
         }
-        System.out.println("Seeded/Updated credentials and reset lockouts for: " + cleanEmail);
     }
 
 
@@ -187,16 +167,13 @@ public class BackendJavaApplication implements CommandLineRunner {
             System.out.println("Default job categories seeded.");
         }
 
-        saveCompany("Tata Consultancy Services", "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100", "Coimbatore, Tamil Nadu", "it", "hr@tcs.com", "+91 9876543210");
-        saveCompany("Zoho Corporation", "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100", "Chennai, Tamil Nadu", "it", "careers@zoho.com", "+91 9876543211");
-        saveCompany("HDFC Bank", "https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=100", "Salem, Tamil Nadu", "finance", "jobs@hdfc.com", "+91 9876543212");
-        saveCompany("Apollo Hospitals", "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=100", "Trichy, Tamil Nadu", "healthcare", "hr@apollo.com", "+91 9876543213");
-        System.out.println("Default companies seeded/updated.");
-
-        saveCandidate("Rahul Kumar", "rahul@example.com", "+91 9876543220", "React, Node.js, JavaScript", "Chennai, Tamil Nadu");
-        saveCandidate("Priya Sharma", "priya@example.com", "+91 9876543221", "Java, Spring Boot, MySQL", "Coimbatore, Tamil Nadu");
-        saveCandidate("Anil Patel", "anil@example.com", "+91 9876543222", "HTML, CSS, UI/UX Design", "Madurai, Tamil Nadu");
-        System.out.println("Default candidates seeded/updated.");
+        if (companyRepository.count() == 0) {
+            saveCompany("Tata Consultancy Services", "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100", "Coimbatore, Tamil Nadu", "it");
+            saveCompany("Zoho Corporation", "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100", "Chennai, Tamil Nadu", "it");
+            saveCompany("HDFC Bank", "https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=100", "Salem, Tamil Nadu", "finance");
+            saveCompany("Apollo Hospitals", "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=100", "Trichy, Tamil Nadu", "healthcare");
+            System.out.println("Default companies seeded.");
+        }
     }
 
     private void saveJobCategory(String name, String slug, String icon, int jobs, int companies) {
@@ -209,37 +186,14 @@ public class BackendJavaApplication implements CommandLineRunner {
         jobCategoryRepository.save(c);
     }
 
-    private void saveCompany(String name, String logo, String address, String industry, String email, String phone) {
-        Optional<Company> opt = companyRepository.findByCompanyName(name);
-        Company c = opt.orElseGet(() -> {
-            Company comp = new Company();
-            comp.setCompanyName(name);
-            comp.setUserId(1L);
-            return comp;
-        });
+    private void saveCompany(String name, String logo, String address, String industry) {
+        Company c = new Company();
+        c.setCompanyName(name);
         c.setLogo(logo);
         c.setAddress(address);
         c.setIndustry(industry);
-        c.setEmail(email);
-        c.setPhone(phone);
         c.setVerified(true);
-        c.setStatus("active");
         companyRepository.save(c);
-    }
-
-    private void saveCandidate(String name, String email, String phone, String skills, String location) {
-        Optional<com.kingstv.models.Candidate> opt = candidateRepository.findByEmail(email);
-        com.kingstv.models.Candidate c = opt.orElseGet(() -> {
-            com.kingstv.models.Candidate cand = new com.kingstv.models.Candidate();
-            cand.setEmail(email);
-            return cand;
-        });
-        c.setName(name);
-        c.setPhone(phone);
-        c.setSkills(skills);
-        c.setLocation(location);
-        c.setStatus("active");
-        candidateRepository.save(c);
     }
 
 

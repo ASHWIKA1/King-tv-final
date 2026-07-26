@@ -421,23 +421,7 @@ const Category = () => {
     }
   };
 
-  const matchedDbCat = navCategories.find(c => (c.slug || '').toLowerCase() === catKey);
-
-  const baseConfig = catConfigurations[catKey] || {
-    themeClass: 'theme-politics',
-    color: '#1D4ED8',
-    articles: []
-  };
-
-  const currentCat = matchedDbCat ? {
-    ...baseConfig,
-    titleTa: matchedDbCat.nameTa || matchedDbCat.name,
-    titleEn: matchedDbCat.name,
-    breadTa: matchedDbCat.nameTa || matchedDbCat.name,
-    breadEn: matchedDbCat.name,
-    subcatsTa: ['அனைத்தும்', ...(matchedDbCat.subcategories || []).map(s => s.nameTa || s.name)],
-    subcatsEn: ['All', ...(matchedDbCat.subcategories || []).map(s => s.name)]
-  } : baseConfig;
+  const currentCat = catConfigurations[catKey] || catConfigurations['politics'];
 
   useEffect(() => {
     // Dynamically apply category color theme class to body
@@ -452,17 +436,12 @@ const Category = () => {
     setSelectedSubcat('அனைத்தும்');
     setSelectedFilter('all');
 
-    const fallbackArticles = (currentCat.articles || []).map(art => ({
-      ...art,
-      id: `demo-${art.id}`
-    }));
-
     // Fetch dynamic database articles
     fetchApi('/articles')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, international: 7, world: 7 };
-          const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
+          const targetId = catIdMap[catKey] || 1;
 
           const filtered = data.filter(item => item.categoryId === targetId);
           const formatted = filtered.map(item => ({
@@ -481,16 +460,20 @@ const Category = () => {
             imageUrl: item.imageUrl,
             gradient: 'linear-gradient(135deg, #1E40AF, #3B82F6)'
           }));
-          setArticles(formatted.length > 0 ? formatted : fallbackArticles);
+          setArticles(formatted);
         } else {
-          setArticles(fallbackArticles);
+          setArticles([]);
         }
       })
       .catch(err => {
-        console.warn("Could not fetch categories from database, using mock array", err);
-        setArticles(fallbackArticles);
+        console.warn("Could not fetch categories from database", err);
+        setArticles([]);
       });
   }, [catKey]);
+
+  useEffect(() => {
+    document.title = `${lang === 'en' ? currentCat.titleEn : currentCat.titleTa} - KINGS 24x7`;
+  }, [lang, currentCat]);
 
   useEffect(() => {
     const subcatParam = searchParams.get('subcat');

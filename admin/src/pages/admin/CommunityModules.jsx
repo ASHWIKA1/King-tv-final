@@ -6,7 +6,7 @@ import {
   ChevronDown, ExternalLink, Eye, ToggleLeft, ToggleRight, X,
   Check, CheckCircle, AlertCircle, Filter, Shield, Activity,
   FileText, Calendar, MapPin, User, Phone, Mail, Globe, Lock,
-  Unlock, Settings, Flag, Clock, DollarSign, ArrowLeft
+  Unlock, Settings, Flag, Clock
 } from 'lucide-react';
 
 const MODULE_TABS = [
@@ -15,6 +15,7 @@ const MODULE_TABS = [
   { key: 'deals', label: 'Deals', icon: Tag, endpoint: '/deals', color: '#EF4444' },
   { key: 'rfq', label: 'RFQ', icon: FileQuestion, endpoint: '/rfq', color: '#06B6D4' },
   { key: 'classifieds', label: 'Classifieds', icon: ShoppingBag, endpoint: '/classifieds', color: '#F59E0B' },
+  { key: 'jobs', label: 'Jobs', icon: Briefcase, endpoint: '/jobs', color: '#10B981' },
   { key: 'obituaries', label: 'Obituaries', icon: Heart, endpoint: '/obituaries', color: '#8B5CF6' },
   { key: 'wishes', label: 'Wishes', icon: Gift, endpoint: '/wishes', color: '#EC4899' },
 ];
@@ -53,7 +54,6 @@ const CommunityModules = () => {
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState('all');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('');
 
   // Modals & form states
@@ -65,21 +65,6 @@ const CommunityModules = () => {
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [cardUidInput, setCardUidInput] = useState('');
   const [showCardUidModal, setShowCardUidModal] = useState(false);
-
-  // NFC Extended states
-  const [showUndeliveredModal, setShowUndeliveredModal] = useState(false);
-  const [undeliveredReason, setUndeliveredReason] = useState('wrong address');
-  const [undeliveredNote, setUndeliveredNote] = useState('');
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [blockReason, setBlockReason] = useState('');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({
-    paymentStatus: 'UNPAID',
-    paymentAmount: '',
-    paymentMethod: '',
-    paymentReference: '',
-    paidAt: ''
-  });
 
   // Template Form (used for Obituary & Wish Frame Templates)
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -112,7 +97,10 @@ const CommunityModules = () => {
         const listingsRes = await api.get('/directory/getAll?size=100');
         setItems(listingsRes.data?.content || listingsRes.data || []);
         
-        if (activeSubTab === 'reviews') {
+        if (activeSubTab === 'categories') {
+          const catRes = await api.get('/categories');
+          setCategories(catRes.data || []);
+        } else if (activeSubTab === 'reviews') {
           const revRes = await api.get('/directory/admin/reviews');
           setReviews(revRes.data || []);
         }
@@ -259,25 +247,17 @@ const CommunityModules = () => {
   // -----------------------------------------------------
   // NFC Card Handlers
   // -----------------------------------------------------
-  const handleNfcStatusTransition = async (card, nextStatus, payload = {}) => {
+  const handleNfcStatusTransition = async (card, nextStatus) => {
     if (nextStatus === 'issued') {
       setSelectedItem(card);
       setCardUidInput('');
       setShowCardUidModal(true);
       return;
     }
-    const cardId = card.card?.id || card.id;
     try {
-      const res = await api.patch(`/nfc/${cardId}/status`, { status: nextStatus, ...payload });
+      await api.patch(`/nfc/${card.id}/status`, { status: nextStatus });
       showSuccess(`Card status updated to ${nextStatus}`);
-      setSelectedItem(prev => {
-        if (prev && (prev.card?.id === cardId || prev.id === cardId)) {
-          return { ...prev, card: res.data };
-        }
-        return prev;
-      });
       fetchItems();
-      fetchNfcLogs(cardId);
     } catch (err) {
       showError(err.response?.data?.message || 'Failed to update NFC status');
     }
@@ -286,19 +266,12 @@ const CommunityModules = () => {
   const handleNfcIssueSubmit = async (e) => {
     e.preventDefault();
     if (!cardUidInput.trim()) return;
-    const cardId = selectedItem.card?.id || selectedItem.id;
     try {
-      const res = await api.patch(`/nfc/${cardId}/status`, { status: 'issued', cardUid: cardUidInput });
+      await api.patch(`/nfc/${selectedItem.id}/status`, { status: 'issued', cardUid: cardUidInput });
       showSuccess('Card issued successfully');
       setShowCardUidModal(false);
-      setSelectedItem(prev => {
-        if (prev && (prev.card?.id === cardId || prev.id === cardId)) {
-          return { ...prev, card: res.data };
-        }
-        return prev;
-      });
+      setSelectedItem(null);
       fetchItems();
-      fetchNfcLogs(cardId);
     } catch (err) {
       showError(err.response?.data?.message || 'Failed to issue card');
     }
@@ -306,81 +279,12 @@ const CommunityModules = () => {
 
   const fetchNfcLogs = async (cardId) => {
     try {
-      const logRes = await api.get(`/nfc/${cardId}/audit`);
-      setNfcLogs(logRes.data || []);
+      const logRes = await api.get(`/admin/audit-logs?entityType=NfcCard&size=100`);
+      const allLogs = logRes.data?.logs || [];
+      const cardLogs = allLogs.filter(log => log.entityId === cardId);
+      setNfcLogs(cardLogs);
     } catch {
       setNfcLogs([]);
-    }
-  };
-
-  const handleMarkAsRefunded = async (card) => {
-    if (!window.confirm("Mark this payment as Refunded?")) return;
-    try {
-      const res = await api.post(`/nfc/${card.id}/payment/refund`);
-      showSuccess("Payment marked as refunded");
-      setSelectedItem(prev => {
-        if (prev && prev.card?.id === card.id) {
-          return { ...prev, card: res.data };
-        }
-        return prev;
-      });
-      fetchItems();
-      fetchNfcLogs(card.id);
-    } catch {
-      showError("Failed to refund payment");
-    }
-  };
-
-  const handleEditPaymentInfo = (card) => {
-    setPaymentForm({
-      paymentStatus: card.paymentStatus || 'UNPAID',
-      paymentAmount: card.paymentAmount || '',
-      paymentMethod: card.paymentMethod || '',
-      paymentReference: card.paymentReference || '',
-      paidAt: card.paidAt ? card.paidAt.substring(0, 16) : ''
-    });
-    setShowPaymentModal(true);
-  };
-
-  const submitPaymentInfo = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.patch(`/nfc/${selectedItem.card.id}/payment`, paymentForm);
-      showSuccess("Payment info updated");
-      setShowPaymentModal(false);
-      setSelectedItem(prev => {
-        if (prev && prev.card?.id === selectedItem.card.id) {
-          return { ...prev, card: res.data };
-        }
-        return prev;
-      });
-      fetchItems();
-      fetchNfcLogs(selectedItem.card.id);
-    } catch {
-      showError("Failed to update payment details");
-    }
-  };
-
-  const submitBlockCard = async (e) => {
-    e.preventDefault();
-    if (!blockReason.trim()) return;
-    try {
-      await handleNfcStatusTransition(selectedItem.card, 'blocked', { reason: blockReason });
-      setShowBlockModal(false);
-      setBlockReason('');
-    } catch {
-      showError("Failed to block card");
-    }
-  };
-
-  const submitUndelivered = async (e) => {
-    e.preventDefault();
-    try {
-      await handleNfcStatusTransition(selectedItem.card, 'undelivered', { reason: undeliveredReason, note: undeliveredNote });
-      setShowUndeliveredModal(false);
-      setUndeliveredNote('');
-    } catch {
-      showError("Failed to mark card undelivered");
     }
   };
 
@@ -585,8 +489,7 @@ const CommunityModules = () => {
     }
     if (activeTab === 'nfc') {
       const statusMatch = statusFilter === 'all' || item.card?.cardStatus?.toLowerCase() === statusFilter.toLowerCase();
-      const paymentMatch = paymentStatusFilter === 'all' || item.card?.paymentStatus?.toLowerCase() === paymentStatusFilter.toLowerCase();
-      return matchesSearch && statusMatch && paymentMatch;
+      return matchesSearch && statusMatch;
     }
     if (activeTab === 'obituaries') {
       const statusMatch = statusFilter === 'all' || item.status?.toLowerCase() === statusFilter.toLowerCase();
@@ -665,6 +568,12 @@ const CommunityModules = () => {
             </button>
             {activeTab === 'directory' && (
               <>
+                <button 
+                  onClick={() => setActiveSubTab('categories')} 
+                  style={{ background: 'none', border: 'none', borderBottom: activeSubTab === 'categories' ? `2px solid ${activeMod.color}` : 'none', color: activeSubTab === 'categories' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600, paddingBottom: '0.5rem', cursor: 'pointer' }}
+                >
+                  Category Manager
+                </button>
                 <button 
                   onClick={() => setActiveSubTab('reviews')} 
                   style={{ background: 'none', border: 'none', borderBottom: activeSubTab === 'reviews' ? `2px solid ${activeMod.color}` : 'none', color: activeSubTab === 'reviews' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600, paddingBottom: '0.5rem', cursor: 'pointer' }}
@@ -754,34 +663,19 @@ const CommunityModules = () => {
             </select>
           )}
           {(activeTab === 'nfc' && activeSubTab === 'default') && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <select 
-                value={statusFilter} 
-                onChange={e => setStatusFilter(e.target.value)}
-                className="form-control"
-                style={{ width: '160px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }}
-              >
-                <option value="all">Status: All</option>
-                <option value="requested">Requested</option>
-                <option value="processing">Processing</option>
-                <option value="issued">Issued</option>
-                <option value="delivered">Delivered</option>
-                <option value="undelivered">Undelivered</option>
-                <option value="blocked">Blocked</option>
-              </select>
-              <select 
-                value={paymentStatusFilter} 
-                onChange={e => setPaymentStatusFilter(e.target.value)}
-                className="form-control"
-                style={{ width: '180px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }}
-              >
-                <option value="all">Payment: All</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
-                <option value="refunded">Refunded</option>
-                <option value="failed">Failed</option>
-              </select>
-            </div>
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value)}
+              className="form-control"
+              style={{ width: '160px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }}
+            >
+              <option value="all">Status: All</option>
+              <option value="requested">Requested</option>
+              <option value="processing">Processing</option>
+              <option value="issued">Issued</option>
+              <option value="delivered">Delivered</option>
+              <option value="blocked">Blocked</option>
+            </select>
           )}
           {(activeTab === 'obituaries' && activeSubTab === 'default') && (
             <select 
@@ -807,6 +701,75 @@ const CommunityModules = () => {
           </div>
         ) : (
           <div>
+            {/* -----------------------------------------------------
+                SUB-TAB: CATEGORIES (Directory Categories)
+                ----------------------------------------------------- */}
+            {activeTab === 'directory' && activeSubTab === 'categories' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3>Business Categories ({categories.length})</h3>
+                  <button 
+                    onClick={() => {
+                      setEditingTemplate(null);
+                      setTemplateForm({ name: '', nameTa: '', slug: '', displayOrder: 0, icon: '' });
+                      setShowTemplateModal(true);
+                    }}
+                    className="btn btn-primary"
+                    style={{ background: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.4rem', border: 'none' }}
+                  >
+                    <Plus size={16} /> Add Category
+                  </button>
+                </div>
+                <div className="table-container">
+                  <table className="custom-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name (EN)</th>
+                        <th>Name (TA)</th>
+                        <th>Slug</th>
+                        <th>Order</th>
+                        <th>Icon</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categories.map(cat => (
+                        <tr key={cat.id}>
+                          <td>#{cat.id}</td>
+                          <td>{cat.name}</td>
+                          <td>{cat.nameTa}</td>
+                          <td><code>{cat.slug}</code></td>
+                          <td>{cat.displayOrder}</td>
+                          <td>{cat.icon || '—'}</td>
+                          <td>
+                            <button 
+                              onClick={() => {
+                                setEditingTemplate(cat);
+                                setTemplateForm(cat);
+                                setShowTemplateModal(true);
+                              }}
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', marginRight: '6px' }}
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete('/api/v1/categories', cat.id)} 
+                              className="btn btn-danger" 
+                              style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* -----------------------------------------------------
                 SUB-TAB: REVIEWS (Directory Reviews)
                 ----------------------------------------------------- */}
@@ -1175,7 +1138,6 @@ const CommunityModules = () => {
                             <th>Link Type</th>
                             <th>Request Date</th>
                             <th>Card Status</th>
-                            <th>Payment Status</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         )}
@@ -1186,6 +1148,7 @@ const CommunityModules = () => {
                             <th>Category</th>
                             <th>Discount</th>
                             <th>Redemptions</th>
+                            <th>Status</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         )}
@@ -1206,6 +1169,17 @@ const CommunityModules = () => {
                             <th>Price</th>
                             <th>Condition</th>
                             <th>Views</th>
+                            <th>Featured</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        )}
+                        {activeTab === 'jobs' && (
+                          <tr>
+                            <th>ID</th>
+                            <th>Job Title</th>
+                            <th>Location</th>
+                            <th>Category</th>
+                            <th>Work Mode</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         )}
@@ -1276,20 +1250,9 @@ const CommunityModules = () => {
                                     <span className={`badge ${
                                       item.card?.cardStatus === 'delivered' ? 'badge-success' : 
                                       item.card?.cardStatus === 'issued' ? 'badge-info' : 
-                                      item.card?.cardStatus === 'processing' ? 'badge-warning' : 
-                                      item.card?.cardStatus === 'undelivered' ? 'badge-danger' : 
-                                      item.card?.cardStatus === 'blocked' ? 'badge-danger' : 'badge-muted'
+                                      item.card?.cardStatus === 'processing' ? 'badge-warning' : 'badge-muted'
                                     }`} style={{ background: item.card?.cardStatus === 'issued' ? 'rgba(59,130,246,0.15)' : '', color: item.card?.cardStatus === 'issued' ? '#3b82f6' : '' }}>
                                       {item.card?.cardStatus || 'requested'}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <span className={`badge ${
-                                      item.card?.paymentStatus === 'PAID' ? 'badge-success' : 
-                                      item.card?.paymentStatus === 'REFUNDED' ? 'badge-info' : 
-                                      item.card?.paymentStatus === 'FAILED' ? 'badge-danger' : 'badge-warning'
-                                    }`}>
-                                      {item.card?.paymentStatus || 'UNPAID'}
                                     </span>
                                   </td>
                                   <td style={{ textAlign: 'right' }}>
@@ -1320,6 +1283,11 @@ const CommunityModules = () => {
                                   <td>{item.category}</td>
                                   <td>{item.discountType === 'percentage' ? `${item.discountValue}%` : `₹${item.discountValue}`}</td>
                                   <td>{item.redemptionCount} / {item.usageLimit}</td>
+                                  <td>
+                                    <span className={`badge ${item.status === 'approved' ? 'badge-success' : 'badge-warning'}`}>
+                                      {item.status}
+                                    </span>
+                                  </td>
                                   <td style={{ textAlign: 'right' }}>
                                     <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
                                       {item.status === 'approved' && (
@@ -1392,6 +1360,19 @@ const CommunityModules = () => {
                                   <td><strong>₹{item.price}</strong></td>
                                   <td>{item.itemCondition || '—'}</td>
                                   <td>{item.viewsCount}</td>
+                                  <td>
+                                    {item.isFeatured ? (
+                                      <button 
+                                        onClick={() => handleRemoveFeaturedClassified(item.id)}
+                                        className="badge badge-success"
+                                        style={{ background: '#10b981', color: 'white', border: 'none', cursor: 'pointer' }}
+                                      >
+                                        Featured (Click Remove)
+                                      </button>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No</span>
+                                    )}
+                                  </td>
                                   <td style={{ textAlign: 'right' }}>
                                     <button 
                                       onClick={() => handleDelete('/api/classifieds', item.id)}
@@ -1399,6 +1380,32 @@ const CommunityModules = () => {
                                       style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
                                     >
                                       Remove Listing
+                                    </button>
+                                  </td>
+                                </>
+                              )}
+
+                              {/* 6. JOBS ROWS */}
+                              {activeTab === 'jobs' && (
+                                <>
+                                  <td>#{item.id}</td>
+                                  <td>
+                                    <span style={{ fontWeight: 700 }}>{item.jobTitle}</span>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Category: {item.category}</div>
+                                  </td>
+                                  <td>{item.location}</td>
+                                  <td>{item.category}</td>
+                                  <td><span className="badge badge-warning">{item.workMode}</span></td>
+                                  <td style={{ textAlign: 'right' }}>
+                                    <button 
+                                      onClick={() => {
+                                        setSelectedItem(item);
+                                        loadJobApplications(item.id);
+                                      }}
+                                      className="btn btn-secondary" 
+                                      style={{ padding: '6px 12px' }}
+                                    >
+                                      Oversight Applications
                                     </button>
                                   </td>
                                 </>
@@ -1486,18 +1493,9 @@ const CommunityModules = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button 
-                  onClick={() => setSelectedItem(null)} 
-                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
-                  title="Back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Building2 /> Review Business Directory Details
-                </h2>
-              </div>
+              <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Building2 /> Review Business Directory Details
+              </h2>
               <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
@@ -1602,77 +1600,32 @@ const CommunityModules = () => {
       {/* B. NFC Requests Fulfillment Workflows Modal */}
       {activeTab === 'nfc' && selectedItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div className="glass-panel" style={{ background: '#ffffff', color: '#000000', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button 
-                  onClick={() => setSelectedItem(null)} 
-                  style={{ background: 'none', border: 'none', color: '#000000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
-                  title="Back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Wifi /> NFC Fulfillment Dashboard
-                </h2>
-              </div>
-              <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: '#000000', cursor: 'pointer' }}><X size={20} /></button>
+          <div className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
+              <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Wifi /> NFC Fulfillment Dashboard
+              </h2>
+              <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
             <div style={{ padding: '1.5rem' }}>
               {/* Business details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <h4 style={{ color: activeMod.color, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Building2 size={16} /> Business Info</h4>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#000000' }}>{selectedItem.businessName}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Category: {selectedItem.business?.category || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedItem.business?.phoneNumber || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.5rem' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{selectedItem.businessName}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Category: {selectedItem.business?.category || '—'}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Phone: {selectedItem.business?.phoneNumber || '—'}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                     KYC Status: <span style={{ fontWeight: 600, color: '#10B981' }}>{selectedItem.business?.kycStatus || 'pending'}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    {selectedItem.business?.kycDocumentUrl ? (
-                      <a 
-                        href={selectedItem.business.kycDocumentUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style={{ color: '#3B82F6', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-                      >
-                        <ExternalLink size={12} /> View KYC Documents
-                      </a>
-                    ) : (
-                      <span style={{ color: '#EF4444', fontStyle: 'italic' }}>
-                        KYC Documents: No document URL stored (gap)
-                      </span>
-                    )}
-                  </div>
                 </div>
-                <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <h4 style={{ color: activeMod.color, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><User size={16} /> NFC Profile Submission</h4>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Designation: <strong>Owner</strong></div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Email: {selectedItem.business?.email || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Website: {selectedItem.business?.website || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Selected Template: <strong>Default Premium Frame</strong></div>
-                </div>
-                <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                  <h4 style={{ color: activeMod.color, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><DollarSign size={16} /> Payment</h4>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#000000' }}>
-                    Status: <span style={{ color: selectedItem.card?.paymentStatus === 'PAID' ? '#10B981' : '#EF4444' }}>{selectedItem.card?.paymentStatus || 'UNPAID'}</span>
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Amount: {selectedItem.card?.paymentAmount ? `₹${selectedItem.card.paymentAmount}` : '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Method: {selectedItem.card?.paymentMethod || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Ref: {selectedItem.card?.paymentReference || '—'}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>Paid At: {formatDate(selectedItem.card?.paidAt)}</div>
-                  <div style={{ marginTop: '0.5rem', display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }} onClick={() => handleEditPaymentInfo(selectedItem.card)}>
-                      Edit Payment
-                    </button>
-                    {selectedItem.card?.paymentStatus === 'PAID' && (
-                      <button className="btn btn-danger" style={{ padding: '2px 6px', fontSize: '0.7rem', background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }} onClick={() => handleMarkAsRefunded(selectedItem.card)}>
-                        Mark Refunded
-                      </button>
-                    )}
-                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Designation: <strong>Owner</strong></div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Email: {selectedItem.business?.email || '—'}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Website: {selectedItem.business?.website || '—'}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Selected Template: <strong>Default Premium Frame</strong></div>
                 </div>
               </div>
 
@@ -1682,10 +1635,10 @@ const CommunityModules = () => {
                   <h4 style={{ color: '#14B8A6', fontSize: '0.95rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Settings size={16} /> Encode NFC Tag Panel
                   </h4>
-                  <p style={{ fontSize: '0.85rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                     Write this target URL to the physical NFC chip using an NFC encoder:
                   </p>
-                  <code style={{ background: '#f3f4f6', padding: '6px 12px', display: 'block', borderRadius: '4px', border: '1px solid #e5e7eb', color: '#14B8A6' }}>
+                  <code style={{ background: 'var(--bg-secondary)', padding: '6px 12px', display: 'block', borderRadius: '4px', border: '1px solid var(--border-color)', color: '#14B8A6' }}>
                     https://kings-tv.vercel.app/card/{selectedItem.card?.shortCode}
                   </code>
                 </div>
@@ -1693,41 +1646,41 @@ const CommunityModules = () => {
 
               {/* Sequenced state workflow tracker */}
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#000000' }}><Clock size={16} /> Order Status Timeline</h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f9fafb', padding: '1rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.8rem' }}>
+                <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={16} /> Order Status Timeline</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: selectedItem.card?.requestedAt ? '#10B981' : '#9ca3af', fontWeight: 700 }}>Requested</div>
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{formatDate(selectedItem.card?.requestedAt)}</div>
+                    <div style={{ color: selectedItem.card?.requestedAt ? '#10B981' : 'var(--text-muted)', fontWeight: 700 }}>Requested</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(selectedItem.card?.requestedAt)}</div>
                   </div>
-                  <div style={{ color: '#9ca3af' }}>➔</div>
+                  <div style={{ color: 'var(--text-muted)' }}>➔</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: selectedItem.card?.processingAt ? '#10B981' : '#9ca3af', fontWeight: 700 }}>Processing</div>
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{formatDate(selectedItem.card?.processingAt)}</div>
+                    <div style={{ color: selectedItem.card?.processingAt ? '#10B981' : 'var(--text-muted)', fontWeight: 700 }}>Processing</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(selectedItem.card?.processingAt)}</div>
                   </div>
-                  <div style={{ color: '#9ca3af' }}>➔</div>
+                  <div style={{ color: 'var(--text-muted)' }}>➔</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: selectedItem.card?.issuedAt ? '#3b82f6' : '#9ca3af', fontWeight: 700 }}>Issued</div>
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{formatDate(selectedItem.card?.issuedAt)}</div>
+                    <div style={{ color: selectedItem.card?.issuedAt ? '#3b82f6' : 'var(--text-muted)', fontWeight: 700 }}>Issued</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(selectedItem.card?.issuedAt)}</div>
                   </div>
-                  <div style={{ color: '#9ca3af' }}>➔</div>
+                  <div style={{ color: 'var(--text-muted)' }}>➔</div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: selectedItem.card?.deliveredAt ? '#10B981' : '#9ca3af', fontWeight: 700 }}>Delivered</div>
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{formatDate(selectedItem.card?.deliveredAt)}</div>
+                    <div style={{ color: selectedItem.card?.deliveredAt ? '#10B981' : 'var(--text-muted)', fontWeight: 700 }}>Delivered</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(selectedItem.card?.deliveredAt)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Audit Logs list */}
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginBottom: '0.5rem', color: '#000000' }}>State Audit Log Records ({nfcLogs.length})</h4>
-                <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f9fafb', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.8rem', color: '#000000' }}>
+                <h4 style={{ marginBottom: '0.5rem' }}>State Audit Log Records ({nfcLogs.length})</h4>
+                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}>
                   {nfcLogs.length === 0 ? (
-                    <div style={{ color: '#9ca3af', padding: '0.5rem' }}>No audit transitions logged.</div>
+                    <div style={{ color: 'var(--text-muted)', padding: '0.5rem' }}>No audit transitions logged.</div>
                   ) : (
                     nfcLogs.map(log => (
-                      <div key={log.id} style={{ borderBottom: '1px solid #e5e7eb', padding: '6px 0', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Actor: <strong>{log.changedByEmail || 'system'}</strong> ({log.fromStatus} ➔ {log.toStatus} - {log.note})</span>
-                        <span style={{ color: '#9ca3af' }}>{formatDate(log.changedAt)}</span>
+                      <div key={log.id} style={{ borderBottom: '1px solid var(--border-color)', padding: '6px 0', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Actor: <strong>{log.actorEmail}</strong> ({log.details})</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{formatDate(log.timestamp)}</span>
                       </div>
                     ))
                   )}
@@ -1735,118 +1688,41 @@ const CommunityModules = () => {
               </div>
 
               {/* Action Fulfill workflow */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {selectedItem.card?.cardStatus !== 'blocked' ? (
-                    <button 
-                      onClick={() => setShowBlockModal(true)}
-                      className="btn btn-danger"
-                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
-                    >
-                      Block Card
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => handleNfcStatusTransition(selectedItem.card, 'unblocked')}
-                      className="btn btn-success"
-                      style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', color: '#10b981' }}
-                    >
-                      Unblock Card
-                    </button>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {selectedItem.card?.paymentStatus !== 'PAID' && selectedItem.card?.cardStatus === 'requested' && (
-                    <span style={{ color: '#F59E0B', fontSize: '0.85rem', alignSelf: 'center', fontWeight: 600 }}>
-                      ⚠️ Warning: Payment unpaid
-                    </span>
-                  )}
-                  {selectedItem.card?.cardStatus === 'requested' && (
-                    <button 
-                      onClick={() => handleNfcStatusTransition(selectedItem.card, 'processing')}
-                      className="btn btn-primary"
-                      style={{ background: '#F59E0B', color: 'white', border: 'none' }}
-                    >
-                      Start Processing Order
-                    </button>
-                  )}
-                  {selectedItem.card?.cardStatus === 'processing' && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => handleNfcStatusTransition(selectedItem.card, 'issued')}
-                        className="btn btn-primary"
-                        style={{ background: '#3B82F6', color: 'white', border: 'none' }}
-                      >
-                        Generate & Issue UID
-                      </button>
-                      <button 
-                        onClick={() => setShowUndeliveredModal(true)}
-                        className="btn btn-danger"
-                        style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
-                      >
-                        Mark Undelivered
-                      </button>
-                    </div>
-                  )}
-                  {selectedItem.card?.cardStatus === 'issued' && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => handleNfcStatusTransition(selectedItem.card, 'delivered')}
-                        className="btn btn-primary"
-                        style={{ background: '#10B981', color: 'white', border: 'none' }}
-                      >
-                        Confirm Delivery
-                      </button>
-                      <button 
-                        onClick={() => setShowUndeliveredModal(true)}
-                        className="btn btn-danger"
-                        style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
-                      >
-                        Mark Undelivered
-                      </button>
-                    </div>
-                  )}
-                  {selectedItem.card?.cardStatus === 'delivered' && (
-                    <button 
-                      onClick={() => setShowUndeliveredModal(true)}
-                      className="btn btn-danger"
-                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
-                    >
-                      Mark Undelivered
-                    </button>
-                  )}
-                  {selectedItem.card?.cardStatus === 'undelivered' && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => handleNfcStatusTransition(selectedItem.card, 'processing', { note: 'Delivery retry initiated by administrator.' })}
-                        className="btn btn-primary"
-                        style={{ background: '#3B82F6', color: 'white', border: 'none' }}
-                      >
-                        Retry Delivery
-                      </button>
-                      <button 
-                        onClick={() => {
-                          const confirmCancel = window.confirm(
-                            selectedItem.card?.paymentStatus === 'PAID' 
-                              ? "Refund payment before cancelling request?" 
-                              : "Are you sure you want to cancel this request?"
-                          );
-                          if (confirmCancel) {
-                            if (selectedItem.card?.paymentStatus === 'PAID') {
-                              handleMarkAsRefunded(selectedItem.card);
-                            }
-                            handleNfcStatusTransition(selectedItem.card, 'cancelled', { note: 'Request cancelled after delivery failure.' });
-                          }
-                        }}
-                        className="btn btn-danger"
-                        style={{ background: '#EF4444', color: 'white', border: 'none' }}
-                      >
-                        Cancel Request
-                      </button>
-                    </div>
-                  )}
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+                <button 
+                  onClick={() => handleNfcStatusTransition(selectedItem, 'blocked')}
+                  className="btn btn-danger"
+                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444' }}
+                >
+                  Block Card
+                </button>
+                {selectedItem.card?.cardStatus === 'requested' && (
+                  <button 
+                    onClick={() => handleNfcStatusTransition(selectedItem, 'processing')}
+                    className="btn btn-primary"
+                    style={{ background: '#F59E0B', color: 'white', border: 'none' }}
+                  >
+                    Start Processing Order
+                  </button>
+                )}
+                {selectedItem.card?.cardStatus === 'processing' && (
+                  <button 
+                    onClick={() => handleNfcStatusTransition(selectedItem, 'issued')}
+                    className="btn btn-primary"
+                    style={{ background: '#3B82F6', color: 'white', border: 'none' }}
+                  >
+                    Generate & Issue UID
+                  </button>
+                )}
+                {selectedItem.card?.cardStatus === 'issued' && (
+                  <button 
+                    onClick={() => handleNfcStatusTransition(selectedItem, 'delivered')}
+                    className="btn btn-primary"
+                    style={{ background: '#10B981', color: 'white', border: 'none' }}
+                  >
+                    Confirm Delivery
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1858,18 +1734,9 @@ const CommunityModules = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button 
-                  onClick={() => setSelectedItem(null)} 
-                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
-                  title="Back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Briefcase /> Applications Oversight: {selectedItem.jobTitle}
-                </h2>
-              </div>
+              <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Briefcase /> Applications Oversight: {selectedItem.jobTitle}
+              </h2>
               <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
@@ -1922,18 +1789,9 @@ const CommunityModules = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button 
-                  onClick={() => setSelectedItem(null)} 
-                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
-                  title="Back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Heart /> Obituary Notice Approval Queue
-                </h2>
-              </div>
+              <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Heart /> Obituary Notice Approval Queue
+              </h2>
               <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
@@ -2063,18 +1921,9 @@ const CommunityModules = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button 
-                  onClick={() => setSelectedItem(null)} 
-                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
-                  title="Back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Gift /> Wish Comment Moderation
-                </h2>
-              </div>
+              <h2 style={{ color: activeMod.color, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Gift /> Wish Comment Moderation
+              </h2>
               <button onClick={() => setSelectedItem(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
@@ -2389,147 +2238,6 @@ const CommunityModules = () => {
               <button type="button" onClick={() => setShowCardUidModal(false)} className="btn btn-secondary">Cancel</button>
               <button type="submit" className="btn btn-primary" style={{ background: '#3B82F6', color: 'white', border: 'none' }}>
                 Confirm Issue State
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* NFC Extended workflow dialog modals */}
-      {showUndeliveredModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <form onSubmit={submitUndelivered} className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '450px', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#EF4444', marginBottom: '0.5rem' }}>
-              <Flag /> Report Delivery Failure
-            </h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Reason for failure:</label>
-              <select 
-                value={undeliveredReason} 
-                onChange={e => setUndeliveredReason(e.target.value)}
-                className="form-control"
-                style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-              >
-                <option value="wrong address">Wrong Address / Returned to Sender</option>
-                <option value="recipient unavailable">Recipient Unavailable / Delivery Unanswered</option>
-                <option value="returned">Refused Delivery / Returned by Agent</option>
-                <option value="other">Other reason (explain in note)</option>
-              </select>
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Optional justification note:</label>
-              <textarea 
-                className="form-control"
-                style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', padding: '8px' }}
-                rows={3}
-                placeholder="Details of delivery attempt..."
-                value={undeliveredNote}
-                onChange={e => setUndeliveredNote(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button type="button" onClick={() => setShowUndeliveredModal(false)} className="btn btn-secondary">Cancel</button>
-              <button type="submit" className="btn btn-danger" style={{ background: '#EF4444', color: 'white', border: 'none' }}>
-                Confirm Failure
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showBlockModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <form onSubmit={submitBlockCard} className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '450px', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#EF4444', marginBottom: '0.5rem' }}>
-              <Lock /> Block NFC Card
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Blocking this card disables the physical NFC card's redirect link. Please provide a reason:
-            </p>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Block Reason:</label>
-              <select 
-                value={blockReason} 
-                onChange={e => setBlockReason(e.target.value)}
-                className="form-control"
-                style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-              >
-                <option value="">-- Select Reason --</option>
-                <option value="abuse">Abuse / Terms of service violation</option>
-                <option value="fraud">Fraudulent / Suspicious Activity</option>
-                <option value="business closed">Business Closed / Listing Deleted</option>
-                <option value="other">Other / Manual override</option>
-              </select>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button type="button" onClick={() => setShowBlockModal(false)} className="btn btn-secondary">Cancel</button>
-              <button type="submit" className="btn btn-danger" style={{ background: '#EF4444', color: 'white', border: 'none' }} disabled={!blockReason}>
-                Confirm Block
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showPaymentModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <form onSubmit={submitPaymentInfo} className="glass-panel" style={{ background: '#111827', width: '100%', maxWidth: '450px', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10B981', marginBottom: '1rem' }}>
-              <DollarSign /> Edit Card Payment Details
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Status:</label>
-                <select 
-                  value={paymentForm.paymentStatus} 
-                  onChange={e => setPaymentForm(prev => ({ ...prev, paymentStatus: e.target.value }))}
-                  className="form-control"
-                  style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-                >
-                  <option value="UNPAID">Unpaid</option>
-                  <option value="PAID">Paid</option>
-                  <option value="FAILED">Failed</option>
-                  <option value="REFUNDED">Refunded</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Amount (₹):</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  className="form-control"
-                  style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-                  value={paymentForm.paymentAmount}
-                  onChange={e => setPaymentForm(prev => ({ ...prev, paymentAmount: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Payment Method:</label>
-              <input 
-                type="text" 
-                placeholder="UPI, NetBanking, Card, COD..." 
-                className="form-control"
-                style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-                value={paymentForm.paymentMethod}
-                onChange={e => setPaymentForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
-              />
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Payment Reference / Gateway ID:</label>
-              <input 
-                type="text" 
-                placeholder="txn_948190348" 
-                className="form-control"
-                style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px', height: '36px', padding: '0 8px' }}
-                value={paymentForm.paymentReference}
-                onChange={e => setPaymentForm(prev => ({ ...prev, paymentReference: e.target.value }))}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
-              <button type="button" onClick={() => setShowPaymentModal(false)} className="btn btn-secondary">Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ background: '#10B981', color: 'white', border: 'none' }}>
-                Save Details
               </button>
             </div>
           </form>

@@ -6,36 +6,22 @@ import UptimeStatus from "../components/common/UptimeStatus";
 import { Users, FileText, Activity, TrendingUp, BarChart2, Plus, Radio, Clock, Eye, AlertCircle, Send, Inbox, ShieldAlert, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid, Legend } from "recharts";
 
-const StatCard = ({ label, value, icon: Icon, color, subLabel, subColor, onClick }) => (
-  <div
-    className="glass-panel stat-card"
-    onClick={onClick}
-    style={{
-      padding: "1.5rem",
-      borderRadius: "12px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5rem",
-      cursor: onClick ? "pointer" : "default",
-      transition: "transform 0.15s, box-shadow 0.15s"
-    }}
-    onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; } }}
-    onMouseLeave={e => { if (onClick) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; } }}
-  >
+const StatCard = ({ label, value, icon: Icon, color, subLabel, subColor }) => (
+  <div className="glass-panel stat-card" style={{ padding: "1.5rem", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{label}</div>
       <div style={{ color, padding: "0.5rem", background: `${color}15`, borderRadius: "8px" }}>
         <Icon size={20} />
       </div>
-      </div>
-      <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>{value ?? "-"}</div>
-      {subLabel && (
-        <div style={{ fontSize: "0.75rem", color: subColor || "var(--text-muted)", fontWeight: 500 }}>
-          {subLabel}
-        </div>
-      )}
     </div>
-  );
+    <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>{value ?? "-"}</div>
+    {subLabel && (
+      <div style={{ fontSize: "0.75rem", color: subColor || "var(--text-muted)", fontWeight: 500 }}>
+        {subLabel}
+      </div>
+    )}
+  </div>
+);
 
 const QuickPublishWidget = ({ onPublished }) => {
   const [form, setForm] = useState({ titleTa: "", titleEn: "", categoryId: "", isBreaking: false });
@@ -58,45 +44,19 @@ const QuickPublishWidget = ({ onPublished }) => {
       return;
     }
     setLoading(true);
-    let createdBreakingId = null;
     try {
+      await api.post("/articles", { ...form, contentTa: "", status: "published" });
       if (form.isBreaking) {
         const expiresAt = new Date(Date.now() + 6 * 3600000).toISOString();
-        const breakingRes = await api.post("/breaking-news", {
-          title: form.titleEn || form.titleTa,
-          titleTa: form.titleTa,
-          titleEn: form.titleEn,
-          status: "published",
-          isActive: true,
-          expiresAt,
-          priority: 1 // HIGH priority maps to integer 1
-        });
-        
-        if (!breakingRes || !breakingRes.data || !breakingRes.data.id) {
-          throw new Error("Failed to create breaking news ticker alert.");
-        }
-        createdBreakingId = breakingRes.data.id;
+        await api.post("/breaking-news", { titleTa: form.titleTa, titleEn: form.titleEn, isActive: true, expiresAt, priority: "HIGH" });
       }
-      
-      try {
-        await api.post("/articles", { ...form, contentTa: "", status: "published" });
-      } catch (articleErr) {
-        if (createdBreakingId) {
-          await api.delete(`/breaking-news/${createdBreakingId}`).catch(err => {
-            console.error("Failed to rollback breaking news:", err);
-          });
-        }
-        throw articleErr;
-      }
-
       setMsg({ text: "Article published live!", err: false });
       setForm({ titleTa: "", titleEn: "", categoryId: "", isBreaking: false });
       if (onPublished) onPublished();
       setTimeout(() => setMsg(null), 3000);
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || "Publish failed.";
-      setMsg({ text: errMsg, err: true });
-      setTimeout(() => setMsg(null), 5000);
+      setMsg({ text: "Publish failed.", err: true });
+      setTimeout(() => setMsg(null), 3000);
     }
     setLoading(false);
   };
@@ -140,24 +100,13 @@ const Dashboard = () => {
 
   const fetchAll = async () => {
     try {
-      const requests = [
+      const [kpiRes, perfRes, catRes, logsRes, countsRes] = await Promise.allSettled([
         api.get("/admin/analytics/dashboard"),
         api.get("/admin/analytics/news-performance"),
         api.get("/admin/analytics/content-by-category"),
+        api.get("/admin/audit-logs?page=0&size=6&sortBy=timestamp&direction=desc"),
         api.get("/admin/sidebar/counts")
-      ];
-      
-      if (user?.role === 'SUPER_ADMIN') {
-        requests.push(api.get("/admin/audit-logs?page=0&size=6&sortBy=timestamp&direction=desc"));
-      }
-
-      const results = await Promise.allSettled(requests);
-      
-      const kpiRes = results[0];
-      const perfRes = results[1];
-      const catRes = results[2];
-      const countsRes = results[3];
-      const logsRes = user?.role === 'SUPER_ADMIN' ? results[4] : { status: 'rejected' };
+      ]);
       if (kpiRes.status === "fulfilled") setKpis(kpiRes.value.data);
       if (perfRes.status === "fulfilled") setNewsPerf(perfRes.value.data);
       if (catRes.status === "fulfilled") setCategoryData(catRes.value.data || []);
@@ -199,10 +148,10 @@ const Dashboard = () => {
         <>
           {/* KPI Stat Cards Grid */}
           <div className="stats-grid">
-            <StatCard label="Total Views" value={newsPerf?.totalViews?.toLocaleString() || "0"} icon={Eye} color="#3B82F6" subLabel="Total video & article views" onClick={() => navigate("/admin/analytics")} />
-            <StatCard label="Published News" value={newsPerf?.publishedCount?.toLocaleString() || "0"} icon={FileText} color="var(--primary)" subLabel="Articles live on portal" onClick={() => navigate("/admin/news")} />
-            <StatCard label="Pending Review" value={counts.pendingArticles || "0"} icon={Inbox} color="#F59E0B" subLabel="Submitted for approval" onClick={() => navigate("/admin/news?status=pending")} />
-            <StatCard label="Active Authors" value={kpis?.activeUsers || "0"} icon={Users} color="#10B981" subLabel="Content creators online" onClick={() => navigate("/admin/users")} />
+            <StatCard label="Total Views" value={newsPerf?.totalViews?.toLocaleString() || "0"} icon={Eye} color="#3B82F6" subLabel="Total video & article views" />
+            <StatCard label="Published News" value={newsPerf?.publishedCount?.toLocaleString() || "0"} icon={FileText} color="var(--primary)" subLabel="Articles live on portal" />
+            <StatCard label="Pending Review" value={counts.pendingArticles || "0"} icon={Inbox} color="#F59E0B" subLabel="Submitted for approval" />
+            <StatCard label="Active Authors" value={kpis?.activeUsers || "0"} icon={Users} color="#10B981" subLabel="Content creators online" />
           </div>
 
           {/* Charts & Graphs Row */}
@@ -310,8 +259,7 @@ const Dashboard = () => {
           </div>
 
           {/* Activity Logs */}
-          {user?.role === 'SUPER_ADMIN' && (
-            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+          <div className="glass-panel" style={{ padding: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Clock size={18} /> Recent Newsroom Activity</h3>
               <NavLink to="/admin/audit-logs" style={{ fontSize: "0.8rem", color: "var(--primary)", textDecoration: "none" }}>View All Logs →</NavLink>
@@ -334,7 +282,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          )}
         </>
       )}
     </div>

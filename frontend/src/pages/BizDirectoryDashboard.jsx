@@ -62,9 +62,16 @@ const BizDirectoryDashboard = () => {
   const [sentQuotes, setSentQuotes] = useState([]);
   const [rfqLoading, setRfqLoading] = useState(false);
   const [selectedRfq, setSelectedRfq] = useState(null);
-  const [quotePrice, setQuotePrice] = useState('');
-  const [quoteTimeline, setQuoteTimeline] = useState('');
-  const [quoteNotes, setQuoteNotes] = useState('');
+  
+  // Post RFQ States
+  const [showPostRfqModal, setShowPostRfqModal] = useState(false);
+  const [newRfqTitle, setNewRfqTitle] = useState('');
+  const [newRfqCategory, setNewRfqCategory] = useState('Printing');
+  const [newRfqQty, setNewRfqQty] = useState(1);
+  const [newRfqBudget, setNewRfqBudget] = useState('');
+  const [newRfqLoc, setNewRfqLoc] = useState('');
+  const [newRfqDeadline, setNewRfqDeadline] = useState('');
+  const [newRfqDesc, setNewRfqDesc] = useState('');
 
   // Trigger alert toast
   const triggerToast = (msg, type = 'success') => {
@@ -223,13 +230,11 @@ const BizDirectoryDashboard = () => {
   const loadRfqsAndQuotes = async () => {
     setRfqLoading(true);
     try {
-      // Get all marketplace RFQs
-      const rfqs = await fetchApi('/rfq');
-      // Filter for this business's category
-      const filtered = rfqs.filter(r => r.rfq && r.rfq.category.toLowerCase() === business.category.toLowerCase());
-      setOpenRfqs(filtered);
+      // Get all owner's posted RFQs
+      const rfqs = await fetchApi('/rfq/my-rfqs');
+      setOpenRfqs(Array.isArray(rfqs) ? rfqs : []);
 
-      // Get quotations sent by this seller business
+      // Get quotations sent by this seller business (acting as seller elsewhere)
       const quotes = await fetchApi(`/rfq/seller/quotes?businessId=${business.id}`);
       setSentQuotes(Array.isArray(quotes) ? quotes : []);
     } catch (e) {
@@ -240,32 +245,57 @@ const BizDirectoryDashboard = () => {
     }
   };
 
-  const handleSubmitQuote = async (e) => {
+  const handlePostRfq = async (e) => {
     e.preventDefault();
-    if (!selectedRfq || !quotePrice || !quoteTimeline) return;
-
-    setRfqLoading(true);
-    const payload = {
-      sellerBusinessId: business.id,
-      quotedPrice: parseFloat(quotePrice),
-      timelineDays: parseInt(quoteTimeline),
-      notes: quoteNotes,
-      proposalUrl: ''
-    };
-
     try {
-      await fetchApi(`/rfq/${selectedRfq.rfq.id}/quotes`, {
+      setRfqLoading(true);
+      await fetchApi('/rfq', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          title: newRfqTitle,
+          category: newRfqCategory,
+          quantity: Number(newRfqQty),
+          budget: newRfqBudget,
+          location: newRfqLoc,
+          deadline: newRfqDeadline ? new Date(newRfqDeadline).toISOString() : new Date(Date.now() + 7*24*60*60*1000).toISOString(),
+          description: newRfqDesc
+        })
       });
-      triggerToast(lang === 'en' ? 'Quote submitted successfully!' : 'மதிப்பீட்டு சலுகை சமர்ப்பிக்கப்பட்டது!');
-      setSelectedRfq(null);
-      setQuotePrice('');
-      setQuoteTimeline('');
-      setQuoteNotes('');
+      triggerToast(lang === 'en' ? 'RFQ posted successfully!' : 'RFQ வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!');
+      setShowPostRfqModal(false);
+      setNewRfqTitle('');
+      setNewRfqDesc('');
+      setNewRfqQty(1);
+      setNewRfqBudget('');
+      setNewRfqLoc('');
+      setNewRfqDeadline('');
       loadRfqsAndQuotes();
     } catch (err) {
-      triggerToast('Quote submission failed', 'error');
+      triggerToast(err.message || 'Failed to post RFQ', 'error');
+    } finally {
+      setRfqLoading(false);
+    }
+  };
+
+  const handleUpdateQuoteStatus = async (quoteId, status) => {
+    try {
+      setRfqLoading(true);
+      await fetchApi(`/rfq/quotes/${quoteId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      triggerToast(lang === 'en' ? `Quote status updated to ${status}!` : `சலுகை நிலை ${status} ஆக மாற்றப்பட்டது!`);
+      // Reload selected RFQ and overall RFQs
+      const rfqs = await fetchApi('/rfq/my-rfqs');
+      setOpenRfqs(Array.isArray(rfqs) ? rfqs : []);
+      const updatedRfq = rfqs.find(r => r.rfq.id === selectedRfq.rfq.id);
+      if (updatedRfq) {
+        setSelectedRfq(updatedRfq);
+      } else {
+        setSelectedRfq(null);
+      }
+    } catch (err) {
+      triggerToast('Failed to update quote status', 'error');
     } finally {
       setRfqLoading(false);
     }
@@ -359,7 +389,6 @@ const BizDirectoryDashboard = () => {
           </button>
           <button className={`sidebar-tab ${activeTab === 'rfq' ? 'active' : ''}`} onClick={() => setActiveTab('rfq')}>
             <i className="fas fa-comments-dollar"></i> {lang === 'en' ? 'RFQ Proposals' : 'RFQ சலுகைகள்'}
-            {isPendingKyc && <i className="fas fa-lock tab-lock-icon"></i>}
           </button>
         </aside>
 
@@ -661,74 +690,127 @@ const BizDirectoryDashboard = () => {
           {/* TAB: RFQ */}
           {activeTab === 'rfq' && (
             <div className="tab-pane-content relative-pane">
-              {isPendingKyc && (
-                <div className="module-lock-overlay">
-                  <div className="lock-overlay-content">
-                    <i className="fas fa-lock lock-icon"></i>
-                    <h3>{lang === 'en' ? 'Module Locked' : 'பிரிவு பூட்டப்பட்டுள்ளது'}</h3>
-                    <p>{lang === 'en' ? 'Locked until KYC approval.' : 'KYC சரிபார்ப்பு முடியும் வரை பூட்டப்பட்டிருக்கும்.'}</p>
-                  </div>
-                </div>
-              )}
-
-              <h2 className="pane-title">{lang === 'en' ? 'Request for Quotations (RFQ) Marketplace' : 'வாடிக்கையாளர் RFQ சந்தை'}</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <h2 className="pane-title">{lang === 'en' ? 'RFQ Proposals & Demands' : 'எனது RFQ கோரிக்கைகள்'}</h2>
+                <button 
+                  className="wizard-btn-primary" 
+                  disabled={isPendingKyc} 
+                  onClick={() => setShowPostRfqModal(true)}
+                  title={isPendingKyc ? "Complete KYC verification to post an RFQ" : ""}
+                  style={{ opacity: isPendingKyc ? 0.6 : 1, cursor: isPendingKyc ? 'not-allowed' : 'pointer' }}
+                >
+                  <i className="fas fa-plus"></i> {lang === 'en' ? 'Post an RFQ' : 'புதிய RFQ போஸ்ட் செய்'}
+                </button>
+              </div>
               
               {rfqLoading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}><i className="fas fa-spinner fa-spin fa-2x"></i></div>
               ) : selectedRfq ? (
-                /* Submit Quote Form */
-                <form className="nfc-request-form animate-fade-in" onSubmit={handleSubmitQuote}>
-                  <h3 className="sub-title">Submit Quote for: {selectedRfq.rfq.title}</h3>
-                  <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>{selectedRfq.rfq.description}</p>
+                /* Review Quotes View */
+                <div className="nfc-request-form animate-fade-in" style={{ maxWidth: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 className="sub-title" style={{ margin: 0 }}>Review Quotes for: {selectedRfq.rfq.title}</h3>
+                    <button className="wizard-btn-secondary" type="button" onClick={() => setSelectedRfq(null)}>Back to Dashboard</button>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>{selectedRfq.rfq.description}</p>
                   
-                  <div className="grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Quoted Price (INR) *</label>
-                      <input type="number" className="form-control" placeholder="e.g., 25000" value={quotePrice} onChange={(e)=>setQuotePrice(e.target.value)} required />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Timeline to Deliver (Days) *</label>
-                      <input type="number" className="form-control" placeholder="e.g., 5" value={quoteTimeline} onChange={(e)=>setQuoteTimeline(e.target.value)} required />
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {(!selectedRfq.quotes || selectedRfq.quotes.length === 0) ? (
+                      <div className="empty-panel" style={{ padding: '30px' }}>
+                        <i className="fas fa-gavel"></i>
+                        <p>No quotation proposals received for this RFQ yet.</p>
+                      </div>
+                    ) : (
+                      selectedRfq.quotes.map(qData => (
+                        <div key={qData.quote.id} style={{ padding: '20px', borderRadius: '16px', border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0', backgroundColor: theme === 'dark' ? '#1f2937' : '#f8fafc' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '12px' }}>
+                            <div>
+                              <h4 style={{ margin: 0, color: '#4f46e5', fontWeight: 'bold' }}>{qData.seller ? qData.seller.businessName : 'Anonymous Submitter'}</h4>
+                              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                <i className="fas fa-map-marker-alt"></i> {qData.seller ? qData.seller.addressLocality : 'Local'}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#ef4444' }}>₹{qData.quote.quotedPrice.toLocaleString()}</span>
+                              <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>Timeline: {qData.quote.timelineDays} days</p>
+                            </div>
+                          </div>
+                          {qData.quote.notes && (
+                            <p style={{ fontSize: '13px', color: '#64748b', margin: '12px 0 0 0', fontStyle: 'italic' }}>
+                              "{qData.quote.notes}"
+                            </p>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
+                              qData.quote.status === 'shortlisted' ? 'bg-amber-600/10 text-amber-500' : 
+                              (qData.quote.status === 'accepted' || qData.quote.status === 'approved') ? 'bg-green-600/10 text-green-500' : 
+                              qData.quote.status === 'rejected' ? 'bg-red-600/10 text-red-500' : 'bg-gray-600/10 text-gray-500'
+                            }`}>
+                              {qData.quote.status === 'accepted' ? 'approved' : qData.quote.status}
+                            </span>
+                            
+                            {(qData.quote.status === 'pending' || qData.quote.status === 'shortlisted') && (
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                  type="button" 
+                                  className="wizard-btn-primary" 
+                                  style={{ padding: '6px 12px', fontSize: '11px' }}
+                                  onClick={() => handleUpdateQuoteStatus(qData.quote.id, 'approved')}
+                                >
+                                  Accept &amp; Award
+                                </button>
+                                <button 
+                                  type="button" 
+                                  className="wizard-btn-secondary" 
+                                  style={{ padding: '6px 12px', fontSize: '11px', color: '#ef4444', borderColor: '#ef4444' }}
+                                  onClick={() => handleUpdateQuoteStatus(qData.quote.id, 'rejected')}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Proposal Notes / Cover Letter</label>
-                    <textarea className="form-control" rows="4" placeholder="Detail your experience, materials used, warranty, etc..." value={quoteNotes} onChange={(e)=>setQuoteNotes(e.target.value)} />
-                  </div>
-
-                  <div className="wizard-actions">
-                    <button className="wizard-btn-secondary" type="button" onClick={() => setSelectedRfq(null)}>Back to Marketplace</button>
-                    <button className="wizard-btn-submit" type="submit">Submit Quotation Proposal</button>
-                  </div>
-                </form>
+                </div>
               ) : (
-                /* Open RFQs and Sent Quotes lists */
+                /* Posted RFQs and Sent Quotes lists */
                 <div>
                   <h3 className="sub-title" style={{ marginTop: '16px' }}><i className="fas fa-bullhorn text-gold"></i> Open Customer RFQs ({openRfqs.length})</h3>
                   <div className="rfq-marketplace-list">
                     {openRfqs.map(rfqData => (
-                      <div key={rfqData.rfq.id} className="rfq-market-card">
-                        <div className="rfq-market-header">
-                          <h4>{rfqData.rfq.title}</h4>
-                          <span className="rfq-budget-badge">Budget: {rfqData.rfq.budget || 'Open'}</span>
+                      <div key={rfqData.rfq.id} className="rfq-market-card" style={{ padding: '20px', borderRadius: '16px', border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #e2e8f0', backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff', marginBottom: '16px' }}>
+                        <div className="rfq-market-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ margin: 0, fontWeight: 'bold' }}>{rfqData.rfq.title}</h4>
+                          <span className="rfq-budget-badge">Budget: ₹{rfqData.rfq.budget || 'Open'}</span>
                         </div>
-                        <p className="rfq-market-desc">{rfqData.rfq.description}</p>
-                        <div className="rfq-market-meta">
+                        <p className="rfq-market-desc" style={{ fontSize: '13px', color: '#64748b', margin: '10px 0' }}>{rfqData.rfq.description}</p>
+                        <div className="rfq-market-meta" style={{ display: 'flex', gap: '15px', fontSize: '12px', color: '#94a3b8' }}>
                           <span>Qty: <strong>{rfqData.rfq.quantity}</strong></span>
                           <span>Location: <strong>{rfqData.rfq.location}</strong></span>
                           <span>Deadline: <strong>{new Date(rfqData.rfq.deadline).toLocaleDateString()}</strong></span>
                         </div>
-                        <button className="quote-action-btn" onClick={() => setSelectedRfq(rfqData)}>
-                          Submit Quote
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                            <i className="far fa-comments"></i> {rfqData.quotes ? rfqData.quotes.length : 0} quotations received
+                          </span>
+                          <button 
+                            className="quote-action-btn" 
+                            style={{ padding: '6px 16px', background: '#4f46e5', color: '#white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                            onClick={() => setSelectedRfq(rfqData)}
+                          >
+                            Review Quotes
+                          </button>
+                        </div>
                       </div>
                     ))}
 
                     {openRfqs.length === 0 && (
                       <div className="empty-panel">
                         <i className="fas fa-comments-dollar"></i>
-                        <p>No open customer RFQs match your category ({business.category}) at the moment.</p>
+                        <p>You have not posted any RFQ requests yet.</p>
                       </div>
                     )}
                   </div>
@@ -759,6 +841,62 @@ const BizDirectoryDashboard = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* POST RFQ FORM MODAL */}
+              {showPostRfqModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <form onSubmit={handlePostRfq} className={`w-full max-w-xl rounded-3xl p-6 md:p-8 shadow-2xl border max-h-[90vh] overflow-y-auto ${
+                    theme === 'dark' ? 'bg-[#0f172a] text-white border-gray-800' : 'bg-white text-gray-900 border-gray-200'
+                  }`}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-md font-bold uppercase tracking-wider text-red-500">Post RFQ Requirement</h3>
+                      <button type="button" onClick={() => setShowPostRfqModal(false)} className="text-2xl font-bold">&times;</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-6">
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="font-bold">RFQ Title *</label>
+                        <input type="text" required placeholder="e.g. Need 500 Custom T-Shirts" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqTitle} onChange={(e)=>setNewRfqTitle(e.target.value)}/>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold">Category *</label>
+                        <select className={`bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-white'}`} value={newRfqCategory} onChange={(e)=>setNewRfqCategory(e.target.value)}>
+                          <option value="Printing">{lang === 'en' ? 'Printing' : 'அச்சிடுதல்'}</option>
+                          <option value="Construction">{lang === 'en' ? 'Construction' : 'கட்டுமானம்'}</option>
+                          <option value="Fabrication">{lang === 'en' ? 'Fabrication' : 'உலோக தயாரிப்பு'}</option>
+                          <option value="Events">{lang === 'en' ? 'Events' : 'நிகழ்ச்சிகள்'}</option>
+                          <option value="Services">{lang === 'en' ? 'Services' : 'சேவைகள்'}</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold">Quantity Required *</label>
+                        <input type="number" required className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqQty} onChange={(e)=>setNewRfqQty(Number(e.target.value))}/>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold">Target Budget (₹) *</label>
+                        <input type="text" required placeholder="e.g. 50,000 - 80,000" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqBudget} onChange={(e)=>setNewRfqBudget(e.target.value)}/>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold">Delivery Location *</label>
+                        <input type="text" required placeholder="e.g. Chennai, TN" className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqLoc} onChange={(e)=>setNewRfqLoc(e.target.value)}/>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold">Bidding Deadline *</label>
+                        <input type="date" required className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqDeadline} onChange={(e)=>setNewRfqDeadline(e.target.value)}/>
+                      </div>
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="font-bold">Detailed Requirements Description *</label>
+                        <textarea required rows="4" placeholder="Detail out all specifications, dimensions, material quality details, etc..." className="bg-transparent border border-gray-700/30 p-2.5 rounded-lg focus:outline-none" value={newRfqDesc} onChange={(e)=>setNewRfqDesc(e.target.value)}></textarea>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 justify-end">
+                      <button type="button" onClick={() => setShowPostRfqModal(false)} className="px-5 py-2.5 rounded-lg border border-gray-700/30">Cancel</button>
+                      <button type="submit" className="bg-red-600 text-white font-bold px-5 py-2.5 rounded-lg hover:bg-red-700 transition">Publish RFQ</button>
+                    </div>
+                  </form>
                 </div>
               )}
             </div>

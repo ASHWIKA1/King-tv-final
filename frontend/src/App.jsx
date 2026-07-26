@@ -49,6 +49,7 @@ import Weather from './pages/Weather';
 import BizDirectoryRegister from './pages/BizDirectoryRegister';
 import BizDirectoryDashboard from './pages/BizDirectoryDashboard';
 import MyRfqs from './pages/MyRfqs';
+import MyQuotes from './pages/MyQuotes';
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
@@ -68,29 +69,9 @@ function AppContent() {
       .then(res => {
         if (res) {
           const root = document.documentElement;
-          const loadFont = (fontName) => {
-            if (!fontName) return;
-            const linkId = `dynamic-font-${fontName.replace(/\s+/g, '-')}`;
-            if (document.getElementById(linkId)) return;
-            const link = document.createElement('link');
-            link.id = linkId;
-            link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}:wght@400;500;600;700;800;900&display=swap`;
-            link.rel = 'stylesheet';
-            document.head.appendChild(link);
-          };
-
-          if (res['font.primary']) {
-             root.style.setProperty('--font-primary', `"${res['font.primary']}", sans-serif`);
-             loadFont(res['font.primary']);
-          }
-          if (res['font.secondary']) {
-             root.style.setProperty('--font-secondary', `"${res['font.secondary']}", sans-serif`);
-             loadFont(res['font.secondary']);
-          }
-          if (res['font.tertiary']) {
-             root.style.setProperty('--font-tertiary', `"${res['font.tertiary']}", sans-serif`);
-             loadFont(res['font.tertiary']);
-          }
+          if (res['font.primary']) root.style.setProperty('--font-primary', res['font.primary']);
+          if (res['font.secondary']) root.style.setProperty('--font-secondary', res['font.secondary']);
+          if (res['font.tertiary']) root.style.setProperty('--font-tertiary', res['font.tertiary']);
         }
       })
       .catch(() => {});
@@ -98,7 +79,7 @@ function AppContent() {
 
   useEffect(() => {
     if (window.gtag) {
-      window.gtag('config', 'G-LYPDQ9LFS3', {
+      window.gtag('config', 'G-XXXXXXX', {
         page_path: location.pathname + location.search
       });
     } else {
@@ -168,6 +149,11 @@ function AppContent() {
           <Route path="/my-rfqs" element={
             <ProtectedRoute>
               <MyRfqs />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-quotes" element={
+            <ProtectedRoute>
+              <MyQuotes />
             </ProtectedRoute>
           } />
            <Route path="/privacy-policy" element={<PrivacyPolicy />} />

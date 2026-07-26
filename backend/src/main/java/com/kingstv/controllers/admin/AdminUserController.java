@@ -83,41 +83,20 @@ public class AdminUserController {
         return ResponseEntity.ok(response);
     }
 
-    private static final java.util.regex.Pattern EMAIL_PATTERN = 
-            java.util.regex.Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-
-    private static final java.util.regex.Pattern PHONE_PATTERN = 
-            java.util.regex.Pattern.compile("^\\+?[0-9]{10,15}$");
-
     /**
      * Create a new user account (#1, #23, #30)
      */
     @PostMapping
-    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
+    @RequiresPermission(Permission.USER_CREATE)
     public ResponseEntity<?> createUser(@RequestBody Map<String, Object> request) {
-        String email = request.get("email") != null ? ((String) request.get("email")).trim().toLowerCase() : null;
-        String fullName = request.get("fullName") != null ? ((String) request.get("fullName")).trim() : null;
+        String email = (String) request.get("email");
+        String fullName = (String) request.get("fullName");
         String password = (String) request.get("password");
         String role = (String) request.get("role");
 
         if (email == null || fullName == null || password == null || role == null) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "email, fullName, password, and role are required"));
-        }
-
-        if (fullName.length() < 2) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Full Name must be at least 2 characters long"));
-        }
-
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Invalid email address format (e.g. user@example.com)"));
-        }
-
-        if (password.length() < 6) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Password must be at least 6 characters long"));
         }
 
         // Validate role exists
@@ -130,39 +109,31 @@ public class AdminUserController {
                     .body(Map.of("message", "Invalid role: " + role));
         }
 
-        if (userRepository.findByEmail(email).isPresent()) {
+        if (userRepository.findByEmail(email.toLowerCase()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("message", "Email is already registered"));
         }
 
+        // Check caller's permissions: Chief Editor can only create DA and MJ
         String callerRole = getCallerRole();
-        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
-            if (!Role.MOBILE_JOURNALIST.equals(role.toUpperCase())) {
+        if (Role.CHIEF_EDITOR.equals(callerRole)) {
+            if (!Role.DISTRICT_ADMIN.equals(role) && !Role.MOBILE_JOURNALIST.equals(role)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "District Admin can only create Mobile Journalist accounts"));
+                        .body(Map.of("message", "Chief Editor can only create District Admin and Mobile Journalist accounts"));
             }
         }
 
         User user = new User();
         user.setFullName(fullName);
-        user.setEmail(email);
+        user.setEmail(email.toLowerCase());
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role.toUpperCase());
         user.setProvider("LOCAL");
         user.setIsVerified(true);
         user.setIsActive(true);
 
-        if (request.containsKey("phoneNumber") && request.get("phoneNumber") != null) {
-            String rawPhone = ((String) request.get("phoneNumber")).trim().replaceAll("[\\s\\-()]", "");
-            if (!rawPhone.isEmpty()) {
-                if (!PHONE_PATTERN.matcher(rawPhone).matches()) {
-                    return ResponseEntity.badRequest()
-                            .body(Map.of("message", "Invalid phone number format. Please enter 10 to 15 digits (e.g. 9876543210 or +919876543210)."));
-                }
-                user.setPhoneNumber(rawPhone);
-            }
-        }
-
+        if (request.containsKey("phoneNumber"))
+            user.setPhoneNumber((String) request.get("phoneNumber"));
         if (request.containsKey("websiteUrl"))
             user.setWebsiteUrl((String) request.get("websiteUrl"));
         if (request.containsKey("location"))
@@ -180,7 +151,7 @@ public class AdminUserController {
      * Update user account (#1, #23, #31)
      */
     @PutMapping("/{id}")
-    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
+    @RequiresPermission(Permission.USER_UPDATE)
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
@@ -189,58 +160,14 @@ public class AdminUserController {
 
         User user = userOpt.get();
 
-        String callerRole = getCallerRole();
-        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
-            if (!Role.MOBILE_JOURNALIST.equals(user.getRole())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "District Admin can only update Mobile Journalist accounts"));
-            }
-            if (request.containsKey("role") && request.get("role") != null) {
-                String newRole = ((String) request.get("role")).toUpperCase();
-                if (!Role.MOBILE_JOURNALIST.equals(newRole)) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                            .body(Map.of("message", "District Admin cannot change role to anything other than Mobile Journalist"));
-                }
-            }
-        }
-
-        if (request.containsKey("fullName") && request.get("fullName") != null) {
-            String cleanName = ((String) request.get("fullName")).trim();
-            if (cleanName.length() < 2) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Full Name must be at least 2 characters long"));
-            }
-            user.setFullName(cleanName);
-        }
-
-        if (request.containsKey("role") && request.get("role") != null) {
-            user.setRole(((String) request.get("role")).toUpperCase());
-        }
-
-        if (request.containsKey("isActive") && request.get("isActive") != null) {
-            user.setIsActive((Boolean) request.get("isActive"));
-        }
-
-        if (request.containsKey("phoneNumber") && request.get("phoneNumber") != null) {
-            String rawPhone = ((String) request.get("phoneNumber")).trim().replaceAll("[\\s\\-()]", "");
-            if (!rawPhone.isEmpty()) {
-                if (!PHONE_PATTERN.matcher(rawPhone).matches()) {
-                    return ResponseEntity.badRequest().body(Map.of("message", "Invalid phone number format. Please enter 10 to 15 digits (e.g. 9876543210 or +919876543210)."));
-                }
-                user.setPhoneNumber(rawPhone);
-            } else {
-                user.setPhoneNumber("");
-            }
-        }
-
+        if (request.containsKey("fullName")) user.setFullName((String) request.get("fullName"));
+        if (request.containsKey("role")) user.setRole(((String) request.get("role")).toUpperCase());
+        if (request.containsKey("isActive")) user.setIsActive((Boolean) request.get("isActive"));
+        if (request.containsKey("phoneNumber")) user.setPhoneNumber((String) request.get("phoneNumber"));
         if (request.containsKey("websiteUrl")) user.setWebsiteUrl((String) request.get("websiteUrl"));
         if (request.containsKey("location")) user.setLocation((String) request.get("location"));
-        
-        if (request.containsKey("password") && request.get("password") != null) {
-            String pass = (String) request.get("password");
-            if (pass.length() < 6) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Password must be at least 6 characters long"));
-            }
-            user.setPassword(passwordEncoder.encode(pass));
+        if (request.containsKey("password")) {
+            user.setPassword(passwordEncoder.encode((String) request.get("password")));
         }
 
         User saved = userRepository.save(user);
@@ -252,7 +179,7 @@ public class AdminUserController {
      * Suspend user account (#31 - District Admin can suspend MJ)
      */
     @PatchMapping("/{id}/suspend")
-    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN})
+    @RequiresPermission(Permission.USER_SUSPEND)
     public ResponseEntity<?> suspendUser(@PathVariable Long id) {
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
@@ -260,15 +187,6 @@ public class AdminUserController {
         }
 
         User user = userOpt.get();
-
-        String callerRole = getCallerRole();
-        if (Role.DISTRICT_ADMIN.equals(callerRole)) {
-            if (!Role.MOBILE_JOURNALIST.equals(user.getRole())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "District Admin can only suspend Mobile Journalist accounts"));
-            }
-        }
-
         user.setIsActive(false);
         userRepository.save(user);
         logAudit("SUSPEND", "User", id, "Suspended user: " + user.getEmail());

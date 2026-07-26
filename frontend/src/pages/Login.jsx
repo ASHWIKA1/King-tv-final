@@ -194,10 +194,7 @@ const Login = () => {
           const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
           if (res.user && adminRoles.includes(res.user.role)) {
             const getAdminPortalUrl = () => {
-              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                return 'http://localhost:3001/admin/dashboard';
-              }
-              return `${window.location.origin}/admin/dashboard`;
+              return `${window.location.origin}/admin/layout`;
             };
             setTimeout(() => {
               window.location.href = getAdminPortalUrl();
@@ -231,10 +228,7 @@ const Login = () => {
       const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
-          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3001/admin/dashboard';
-          }
-          return `${window.location.origin}/admin/dashboard`;
+          return `${window.location.origin}/admin/layout`;
         };
         setTimeout(() => {
           window.location.href = getAdminPortalUrl();
@@ -266,10 +260,7 @@ const Login = () => {
           const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
           if (res.user && adminRoles.includes(res.user.role)) {
             const getAdminPortalUrl = () => {
-              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                return 'http://localhost:3001/admin/dashboard';
-              }
-              return `${window.location.origin}/admin/dashboard`;
+              return `${window.location.origin}/admin/layout`;
             };
             setTimeout(() => {
               window.location.href = getAdminPortalUrl();
@@ -311,10 +302,7 @@ const Login = () => {
       const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
-          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3001/admin/dashboard';
-          }
-          return `${window.location.origin}/admin/dashboard`;
+          return `${window.location.origin}/admin/layout`;
         };
         setTimeout(() => {
           window.location.href = getAdminPortalUrl();

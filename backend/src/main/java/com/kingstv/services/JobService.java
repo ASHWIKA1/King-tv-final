@@ -26,12 +26,6 @@ public class JobService {
     private CompanyRepository companyRepository;
 
     @Autowired
-    private CandidateRepository candidateRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private JobApplicationRepository applicationRepository;
 
     @Autowired
@@ -63,13 +57,6 @@ public class JobService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("deleted"), false));
             predicates.add(cb.equal(root.get("status"), "active"));
-
-            // Filter out postings of suspended employers
-            Join<JobPosting, Company> companyJoinSpec = root.join("company", JoinType.LEFT);
-            predicates.add(cb.or(
-                cb.isNull(companyJoinSpec.get("id")),
-                cb.notEqual(companyJoinSpec.get("status"), "suspended")
-            ));
 
             if (companyId != null) {
                 predicates.add(cb.equal(root.get("company").get("id"), companyId));
@@ -185,61 +172,8 @@ public class JobService {
         jobRepository.save(existing);
     }
 
-    public Candidate getOrCreateCandidateForUser(Long userId) {
-        return candidateRepository.findByUserId(userId).orElseGet(() -> {
-            User u = userRepository.findById(userId).orElse(null);
-            Candidate c = new Candidate();
-            c.setUserId(userId);
-            c.setName(u != null ? u.getFullName() : "Unknown");
-            c.setEmail(u != null ? u.getEmail() : "");
-            c.setPhone(u != null && u.getPhoneNumber() != null ? u.getPhoneNumber() : "");
-            c.setLocation(u != null && u.getLocation() != null ? u.getLocation() : "N/A");
-            c.setStatus("active");
-            
-            candidateProfileRepository.findByUserId(userId).ifPresent(cp -> {
-                c.setSkills(cp.getSkills());
-                c.setLocation(cp.getPreferredLocation() != null ? cp.getPreferredLocation() : c.getLocation());
-            });
-            
-            return candidateRepository.save(c);
-        });
-    }
-
     public JobApplication applyToJob(Long jobId, Long candidateId, Long resumeId, String name, String phone, String exp, String summary) throws Exception {
-        Candidate candidate = null;
-        
-        if (candidateId != null) {
-            Optional<CandidateProfile> cpOpt = candidateProfileRepository.findById(candidateId);
-            if (cpOpt.isPresent()) {
-                candidate = getOrCreateCandidateForUser(cpOpt.get().getUserId());
-            } else {
-                Optional<Candidate> candOpt = candidateRepository.findById(candidateId);
-                if (candOpt.isPresent()) {
-                    candidate = candOpt.get();
-                }
-            }
-        }
-        
-        if (candidate == null) {
-            Optional<Candidate> existingCand = candidateRepository.findByPhone(phone);
-            if (existingCand.isPresent()) {
-                candidate = existingCand.get();
-            } else {
-                candidate = new Candidate();
-                candidate.setName(name);
-                candidate.setEmail(phone + "@guest.com");
-                candidate.setPhone(phone);
-                candidate.setLocation("N/A");
-                candidate.setStatus("active");
-                candidate = candidateRepository.save(candidate);
-            }
-        }
-
-        if ("suspended".equalsIgnoreCase(candidate.getStatus())) {
-            throw new Exception("Your candidate account is suspended for policy violations. You are blocked from applying to jobs.");
-        }
-
-        Optional<JobApplication> existing = applicationRepository.findByJobIdAndCandidateId(jobId, candidate.getId());
+        Optional<JobApplication> existing = applicationRepository.findByJobIdAndCandidateId(jobId, candidateId);
         if (existing.isPresent()) {
             throw new Exception("You have already applied for this job.");
         }
@@ -247,13 +181,9 @@ public class JobService {
         JobPosting job = jobRepository.findById(jobId)
             .orElseThrow(() -> new Exception("Job posting not found"));
 
-        if (job.getCompany() != null && "suspended".equalsIgnoreCase(job.getCompany().getStatus())) {
-            throw new Exception("This job posting is no longer active.");
-        }
-
         JobApplication app = new JobApplication();
         app.setJobId(jobId);
-        app.setCandidateId(candidate.getId());
+        app.setCandidateId(candidateId);
         app.setResumeId(resumeId);
         app.setApplicantName(name);
         app.setApplicantPhone(phone);
@@ -270,56 +200,33 @@ public class JobService {
         return saved;
     }
 
-    public SavedJob saveJob(Long jobId, Long profileId) throws Exception {
-        Long resolvedCandidateId = profileId;
-        Optional<CandidateProfile> cpOpt = candidateProfileRepository.findById(profileId);
-        if (cpOpt.isPresent()) {
-            Candidate c = getOrCreateCandidateForUser(cpOpt.get().getUserId());
-            resolvedCandidateId = c.getId();
-        }
-
-        Optional<SavedJob> existing = savedJobRepository.findByJobIdAndCandidateId(jobId, resolvedCandidateId);
+    public SavedJob saveJob(Long jobId, Long candidateId) throws Exception {
+        Optional<SavedJob> existing = savedJobRepository.findByJobIdAndCandidateId(jobId, candidateId);
         if (existing.isPresent()) {
             return existing.get();
         }
         SavedJob sj = new SavedJob();
         sj.setJobId(jobId);
-        sj.setCandidateId(resolvedCandidateId);
+        sj.setCandidateId(candidateId);
         sj.setSavedAt(LocalDateTime.now());
         return savedJobRepository.save(sj);
     }
 
-    public void unsaveJob(Long jobId, Long profileId) throws Exception {
-        Long resolvedCandidateId = profileId;
-        Optional<CandidateProfile> cpOpt = candidateProfileRepository.findById(profileId);
-        if (cpOpt.isPresent()) {
-            Candidate c = getOrCreateCandidateForUser(cpOpt.get().getUserId());
-            resolvedCandidateId = c.getId();
-        }
-        savedJobRepository.findByJobIdAndCandidateId(jobId, resolvedCandidateId)
+    public void unsaveJob(Long jobId, Long candidateId) throws Exception {
+        savedJobRepository.findByJobIdAndCandidateId(jobId, candidateId)
             .ifPresent(savedJobRepository::delete);
     }
 
-    public List<SavedJob> getSavedJobs(Long profileId) {
-        Optional<CandidateProfile> cpOpt = candidateProfileRepository.findById(profileId);
-        if (cpOpt.isPresent()) {
-            Candidate c = getOrCreateCandidateForUser(cpOpt.get().getUserId());
-            return savedJobRepository.findByCandidateId(c.getId());
-        }
-        return savedJobRepository.findByCandidateId(profileId);
+    public List<SavedJob> getSavedJobs(Long candidateId) {
+        return savedJobRepository.findByCandidateId(candidateId);
     }
 
     public List<JobApplication> getJobApplications(Long jobId) {
         return applicationRepository.findByJobId(jobId);
     }
 
-    public List<JobApplication> getCandidateApplications(Long profileId) {
-        Optional<CandidateProfile> cpOpt = candidateProfileRepository.findById(profileId);
-        if (cpOpt.isPresent()) {
-            Candidate c = getOrCreateCandidateForUser(cpOpt.get().getUserId());
-            return applicationRepository.findByCandidateId(c.getId());
-        }
-        return applicationRepository.findByCandidateId(profileId);
+    public List<JobApplication> getCandidateApplications(Long candidateId) {
+        return applicationRepository.findByCandidateId(candidateId);
     }
 
     public void logView(Long jobId, String ipAddress, String userAgent) {
@@ -360,25 +267,17 @@ public class JobService {
         return companyRepository.findById(id);
     }
 
-    public Resume uploadResume(Long profileId, String fileUrl, String parsedData, Integer score) {
-        Optional<Resume> existing = resumeRepository.findByCandidateId(profileId);
+    public Resume uploadResume(Long candidateId, String fileUrl, String parsedData, Integer score) {
+        Optional<Resume> existing = resumeRepository.findByCandidateId(candidateId);
         Resume resume = existing.orElseGet(Resume::new);
         
-        resume.setCandidateId(profileId);
+        resume.setCandidateId(candidateId);
         resume.setFileUrl(fileUrl);
         resume.setParsedData(parsedData);
         resume.setAtsScore(score != null ? score : 75);
         resume.setUploadedAt(LocalDateTime.now());
         
-        Resume saved = resumeRepository.save(resume);
-
-        candidateProfileRepository.findById(profileId).ifPresent(cp -> {
-            Candidate c = getOrCreateCandidateForUser(cp.getUserId());
-            c.setResumeUrl(fileUrl);
-            candidateRepository.save(c);
-        });
-        
-        return saved;
+        return resumeRepository.save(resume);
     }
 
     public CandidateProfile getCandidateProfile(Long userId) {

@@ -20,9 +20,6 @@ public class AiConfigurationService {
     @Autowired
     private EncryptionService encryptionService;
 
-    @Autowired
-    private SystemConfigService systemConfigService;
-
     private final Map<String, LLMProvider> providerInstances = new HashMap<>();
 
     public AiConfigurationService() {
@@ -220,65 +217,6 @@ public class AiConfigurationService {
         }
 
         return client.testConnection(config);
-    }
-
-    public String generateArticleDraft(String baseContent, String categoryList) throws Exception {
-        String promptTemplate = systemConfigService.getConfigValueOrDefault(
-            com.kingstv.models.SystemConfig.AI_PROMPT_GENERATE_DRAFT,
-            "You are a professional news editor. Given the following source notes/documents, generate a complete, ready-to-publish news article in both English and Tamil. Return ONLY a valid JSON object matching this exact schema, with no markdown formatting or explanation outside the JSON:\n\n{\n  \"titleEn\": \"English Title (max 12 words)\",\n  \"titleTa\": \"Tamil Title (max 12 words)\",\n  \"contentEn\": \"Full professional English news article with HTML paragraphs <p>\",\n  \"contentTa\": \"Full professional Tamil news article with HTML paragraphs <p>\",\n  \"excerptEn\": \"1-2 sentence English summary\",\n  \"excerptTa\": \"1-2 sentence Tamil summary\",\n  \"seoTitle\": \"SEO optimized title max 60 chars\",\n  \"metaDescription\": \"SEO description max 160 chars\",\n  \"metaKeywords\": \"comma, separated, tags\",\n  \"focusKeywords\": \"primary, keywords\",\n  \"slug\": \"english-url-slug\",\n  \"categoryId\": \"Suggest the best category ID from this list: {catNames}\"\n}\n\nSource Notes:\n\"{baseContent}\""
-        );
-
-        String catNames = (categoryList != null && !categoryList.isBlank()) ? categoryList : "1:General";
-        String prompt = promptTemplate.replace("{catNames}", catNames).replace("{baseContent}", baseContent != null ? baseContent.substring(0, Math.min(baseContent.length(), 4000)) : "");
-
-        return executeAiPrompt(prompt);
-    }
-
-    public String proofreadAndAutoFill(String baseContent, String categoryList) throws Exception {
-        String promptTemplate = systemConfigService.getConfigValueOrDefault(
-            com.kingstv.models.SystemConfig.AI_PROMPT_PROOFREAD_AUTOFILL,
-            "You are a world-class news editor and SEO expert.\nGiven the following draft news content (which may contain spelling, grammar, punctuation, or formatting mistakes), perform the following:\n1. Proofread and correct all spelling, grammar, typography, and phrasing mistakes. Return production-ready HTML for both Tamil and English versions.\n2. Generate optimized headlines (Tamil Title & English Title).\n3. Generate concise 1-2 sentence excerpts (Tamil & English).\n4. Generate complete SEO metadata: Meta Title (max 60 chars), Meta Description (max 160 chars), Focus Keywords, News Tags, clean English URL Slug.\n5. Suggest the best category ID from this list: {catNames}.\n6. Infer or suggest News Source/Agency (e.g. Kings TV Desk) and News Location/City (e.g. Chennai).\n\nReturn ONLY a valid JSON object matching this schema with NO markdown formatting outside the JSON:\n\n{\n  \"titleTa\": \"Tamil Title\",\n  \"titleEn\": \"English Title\",\n  \"contentTa\": \"Proofread corrected HTML for Tamil\",\n  \"contentEn\": \"Proofread corrected HTML for English\",\n  \"shortDescTa\": \"1-2 sentence Tamil summary\",\n  \"shortDescEn\": \"1-2 sentence English summary\",\n  \"metaTitle\": \"SEO Meta Title max 60 chars\",\n  \"metaDescription\": \"SEO Meta Description max 160 chars\",\n  \"focusKeywords\": \"primary, keywords\",\n  \"metaKeywords\": \"news, tags, comma, separated\",\n  \"slug\": \"english-url-slug\",\n  \"categoryId\": \"suggested category ID\",\n  \"suggestedSource\": \"Kings TV Desk\",\n  \"suggestedLocation\": \"Chennai\"\n}\n\nDraft Content to Proofread & Process:\n\"{baseContent}\""
-        );
-
-        String catNames = (categoryList != null && !categoryList.isBlank()) ? categoryList : "1:General";
-        String prompt = promptTemplate.replace("{catNames}", catNames).replace("{baseContent}", baseContent != null ? baseContent.substring(0, Math.min(baseContent.length(), 4000)) : "");
-
-        return executeAiPrompt(prompt);
-    }
-
-    private String executeAiPrompt(String prompt) throws Exception {
-        AiConfiguration config = getActiveConfigurationDecrypted()
-            .orElseGet(() -> {
-                AiConfiguration gemini = aiConfigurationRepository.findByProvider("gemini").orElse(null);
-                if (gemini != null && gemini.getApiKey() != null && Boolean.TRUE.equals(gemini.getIsEncrypted())) {
-                    try {
-                        gemini.setApiKey(encryptionService.decrypt(gemini.getApiKey()));
-                    } catch (Exception e) {}
-                }
-                return gemini;
-            });
-
-        if (config == null) {
-            String sysKey = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_API_KEY);
-            if (sysKey != null && !sysKey.isBlank()) {
-                config = new AiConfiguration();
-                config.setProvider("gemini");
-                config.setApiKey(sysKey);
-                config.setModel(systemConfigService.getConfigValueOrDefault(com.kingstv.models.SystemConfig.AI_LLM_MODEL, "gemini-2.0-flash"));
-                config.setBaseUrl("https://generativelanguage.googleapis.com/v1beta");
-            }
-        }
-
-        if (config == null || config.getApiKey() == null || config.getApiKey().isBlank() || "[SECURED]".equals(config.getApiKey())) {
-            throw new IllegalArgumentException("Gemini API Key is missing. Please configure your API key in AI Configuration settings.");
-        }
-
-        LLMProvider providerClient = getProviderClient(config.getProvider());
-        if (providerClient == null) {
-            providerClient = getProviderClient("gemini");
-        }
-
-        return providerClient.generateContent(prompt, config);
     }
 
     public LLMProvider getProviderClient(String provider) {

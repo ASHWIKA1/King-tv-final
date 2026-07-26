@@ -72,15 +72,15 @@
 }
 
 body {
-  font-family: var(--font-primary, 'Noto Sans Tamil', 'Segoe UI', sans-serif);
+  font-family: 'Noto Sans Tamil', 'Segoe UI', sans-serif;
 }
 
 html[lang="en"] body {
-  font-family: var(--font-primary, 'Outfit', 'Segoe UI', sans-serif);
+  font-family: 'Outfit', 'Segoe UI', sans-serif;
 }
 
 html[lang="ta"] body {
-  font-family: var(--font-primary, 'Noto Sans Tamil', 'Mukta Malar', 'Segoe UI', sans-serif);
+  font-family: 'Noto Sans Tamil', 'Mukta Malar', 'Segoe UI', sans-serif;
 }
 
 body {
@@ -1017,46 +1017,6 @@ ul {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-}
-
-.news-grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 1024px) {
-  .news-grid-3 {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 640px) {
-  .news-grid-3 {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-.video-grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 1024px) {
-  .video-grid-4 {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-  }
-}
-
-@media (max-width: 640px) {
-  .video-grid-4 {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
 }
 
 .news-card {
@@ -3582,7 +3542,7 @@ ul {
 .article-hero-img-container img {
   width: 100%;
   max-height: 480px;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: var(--radius-md);
 }
 
@@ -5766,19 +5726,4 @@ h1, h2, h3, h4, h5, h6 {
   padding-left: 20px !important;
   padding-right: 20px !important;
   width: 100% !important;
-}
-
-/* Responsive media for article body content */
-.article-body-text video,
-.article-body-text audio {
-  max-width: 100% !important;
-  width: 100% !important;
-  height: auto !important;
-  border-radius: 8px !important;
-}
-
-.article-body-text img {
-  max-width: 100% !important;
-  height: auto !important;
-  border-radius: 8px !important;
 }

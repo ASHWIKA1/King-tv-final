@@ -94,13 +94,13 @@ const AuditLogs = () => {
   };
 
   return (
-    <div className="page-container" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="page-container">
+      <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ fontSize: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-            <Activity className="icon" size={24} color="var(--primary)" /> System Audit Logs
+          <h1 className="page-title">
+            <Activity className="icon" /> System Audit Logs
           </h1>
-          <p className="page-description" style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: 0 }}>Review all system activities, authorization trails, and administrative events.</p>
+          <p className="page-description">Review all system activities, authorization trails, and administrative events.</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-secondary" onClick={handleRefresh} disabled={loading}>
@@ -110,9 +110,9 @@ const AuditLogs = () => {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '1.5rem', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
+      <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <div className="filter-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          <div className="form-group" style={{ flex: '1 1 200px' }}>
+          <div className="form-group" style={{ flex: '2 1 300px' }}>
             <label className="form-label">Search Logs</label>
             <div style={{ position: 'relative' }}>
               <input 
@@ -175,7 +175,7 @@ const AuditLogs = () => {
           </div>
         ) : (
           <>
-            <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflowX: 'auto', width: '100%', maxWidth: '100%' }}>
+            <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
               <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -279,7 +279,7 @@ const AuditLogs = () => {
             </div>
             
             {totalPages > 1 && (
-              <div className="pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div className="pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                   Showing page <strong>{page + 1}</strong> of <strong>{totalPages}</strong> ({totalElements} total entries)
                 </div>

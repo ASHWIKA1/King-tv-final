@@ -10,15 +10,7 @@ const Header = () => {
   const { toggleLang, t } = useI18n();
   const navigate = useNavigate();
 
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('admin_theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      return saved;
-    }
-    document.documentElement.setAttribute('data-theme', 'light');
-    return 'light';
-  });
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -36,7 +28,6 @@ const Header = () => {
     const next = theme === 'light' ? 'dark' : 'light';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('admin_theme', next);
   };
 
   // Keyboard shortcut Ctrl+K / Cmd+K

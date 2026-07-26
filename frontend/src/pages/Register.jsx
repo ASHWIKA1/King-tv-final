@@ -12,8 +12,6 @@ const Register = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
-  const [locationStr, setLocationStr] = useState('');
-  const [interests, setInterests] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -54,7 +52,7 @@ const Register = () => {
     }
 
     try {
-      const res = await authService.register(fullName, email, pwd, locationStr, interests);
+      const res = await authService.register(fullName, email, pwd);
       login(res.user, res.accessToken, res.refreshToken, rememberMe);
       triggerToast(
         lang === 'en' 
@@ -67,39 +65,14 @@ const Register = () => {
     }
   };
 
-  const handleSocialClick = async (provider) => {
+  const handleSocialClick = (provider) => {
     setSocialProvider(provider);
-    
     if (provider === 'google') {
-      import('../utils/firebase').then(async ({ auth: firebaseAuth, GoogleAuthProvider, signInWithPopup }) => {
-        if (firebaseAuth) {
-          try {
-            const authProvider = new GoogleAuthProvider();
-            const result = await signInWithPopup(firebaseAuth, authProvider);
-            const user = result.user;
-            
-            const res = await authService.googleLogin(user.email, user.displayName, user.photoURL);
-            login(res.user, res.accessToken, res.refreshToken, rememberMe);
-            triggerToast(
-              lang === 'en' 
-                ? 'Successfully signed up with Google!' 
-                : 'கூகிள் மூலம் வெற்றிகரமாக பதிவு செய்தீர்கள்!'
-            );
-            setTimeout(() => navigate('/'), 1200);
-          } catch (error) {
-            console.error("Firebase Google Sign-Up Error:", error);
-            triggerToast(`Google Signup Failed: ${error.message}`, '#EF4444');
-          }
-        } else {
-          setSocialName('Google Tester');
-          setSocialEmail('google.tester@gmail.com');
-          setSocialImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150');
-          setShowSocialModal(true);
-        }
-      });
-    } else {
-      setShowSocialModal(true);
+      setSocialName('Google Tester');
+      setSocialEmail('google.tester@gmail.com');
+      setSocialImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150');
     }
+    setShowSocialModal(true);
   };
 
   const submitSocialAuth = async (e) => {
@@ -256,58 +229,6 @@ const Register = () => {
                 >
                   <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                 </button>
-              </div>
-            </div>
-
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.7)', display: 'block', marginBottom: '8px' }}>
-                {lang === 'en' ? 'Preferred Location' : 'விருப்பமான இடம்'}
-              </label>
-              <div style={{ position: 'relative' }}>
-                <i className="fas fa-map-marker-alt" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255, 255, 255, 0.4)' }}></i>
-                <input 
-                  type="text" 
-                  value={locationStr}
-                  onChange={(e) => setLocationStr(e.target.value)}
-                  placeholder={lang === 'en' ? 'e.g. Chennai' : 'உம்: சென்னை'} 
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px 14px 44px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    outline: 'none',
-                    fontSize: '14px',
-                    transition: 'all 0.3s'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.7)', display: 'block', marginBottom: '8px' }}>
-                {lang === 'en' ? 'News Interests' : 'செய்தி விருப்பங்கள்'}
-              </label>
-              <div style={{ position: 'relative' }}>
-                <i className="fas fa-newspaper" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255, 255, 255, 0.4)' }}></i>
-                <input 
-                  type="text" 
-                  value={interests}
-                  onChange={(e) => setInterests(e.target.value)}
-                  placeholder={lang === 'en' ? 'e.g. Politics, Sports' : 'உம்: அரசியல், விளையாட்டு'} 
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px 14px 44px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    outline: 'none',
-                    fontSize: '14px',
-                    transition: 'all 0.3s'
-                  }}
-                />
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Upload, X, Eye, Image as ImageIcon } from 'lucide-react';
 import api from '../../api';
 
@@ -30,23 +30,15 @@ const ImageUploadPreview = ({
   label = "Featured Image",
   value = "",
   onChange,
-  imageUrl,
-  onUploadSuccess,
   uploadEndpoint = "/articles/upload",
   accept = "image/*",
   placeholder = "Image URL or upload file...",
   isVideo = false,
   required = false
 }) => {
-  const finalValue = value || imageUrl || "";
-  const finalOnChange = onChange || onUploadSuccess;
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [zoomOpen, setZoomOpen] = useState(false);
-
-  useEffect(() => {
-    setError(null);
-  }, [finalValue]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -62,7 +54,7 @@ const ImageUploadPreview = ({
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data && res.data.url) {
-        if (finalOnChange) finalOnChange(res.data.url);
+        onChange(res.data.url);
       } else {
         setError('Upload succeeded but server did not return a valid URL.');
       }
@@ -74,7 +66,7 @@ const ImageUploadPreview = ({
     }
   };
 
-  const previewSrc = getPreviewUrl(finalValue);
+  const previewSrc = getPreviewUrl(value);
 
   const inputStyle = {
     width: '100%',
@@ -100,8 +92,8 @@ const ImageUploadPreview = ({
         <input
           type="text"
           style={{ ...inputStyle, flex: 1 }}
-          value={finalValue}
-          onChange={(e) => finalOnChange && finalOnChange(e.target.value)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
         />
         <label
@@ -134,7 +126,7 @@ const ImageUploadPreview = ({
         </div>
       )}
 
-      {finalValue && (
+      {value && (
         <div
           style={{
             position: 'relative',
@@ -143,30 +135,32 @@ const ImageUploadPreview = ({
             overflow: 'hidden',
             border: '1px solid var(--border-color)',
             background: 'var(--bg-secondary)',
-            maxHeight: '500px',
+            maxHeight: '300px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
           {isVideo ? (
-            !error && (
-              <video
-                src={previewSrc}
-                controls
-                onError={() => setError('Failed to load video preview from URL.')}
-                style={{ width: '100%', maxHeight: '500px', objectFit: 'contain' }}
-              />
-            )
+            <video
+              src={previewSrc}
+              controls
+              onError={(e) => {
+                e.target.style.display = 'none';
+                setError('Failed to load video preview from URL.');
+              }}
+              style={{ width: '100%', maxHeight: '300px', objectFit: 'contain' }}
+            />
           ) : (
-            !error && (
-              <img
-                src={previewSrc}
-                alt="Upload Preview"
-                onError={() => setError('Failed to load image preview from URL.')}
-                style={{ width: '100%', maxHeight: '500px', objectFit: 'contain' }}
-              />
-            )
+            <img
+              src={previewSrc}
+              alt="Upload Preview"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                setError('Failed to load image preview from URL.');
+              }}
+              style={{ width: '100%', maxHeight: '300px', objectFit: 'contain' }}
+            />
           )}
 
           <div
@@ -192,7 +186,7 @@ const ImageUploadPreview = ({
             </button>
             <button
               type="button"
-              onClick={() => finalOnChange && finalOnChange('')}
+              onClick={() => onChange('')}
               style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px' }}
               title="Remove Image"
             >
@@ -202,7 +196,7 @@ const ImageUploadPreview = ({
         </div>
       )}
 
-      {zoomOpen && finalValue && (
+      {zoomOpen && value && (
         <div
           onClick={() => setZoomOpen(false)}
           style={{
@@ -215,7 +209,7 @@ const ImageUploadPreview = ({
             zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justify: 'center',
             padding: '2rem'
           }}
         >

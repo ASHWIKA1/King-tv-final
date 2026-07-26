@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/breaking-news")
@@ -24,14 +23,14 @@ public class BreakingNewsController {
     @Autowired
     private BreakingNewsRepository breakingNewsRepository;
 
-    @GetMapping({"", "/", "/getAll"})
+    @GetMapping("/getAll")
     public Page<BreakingNews> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String districtId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
         
@@ -42,87 +41,43 @@ public class BreakingNewsController {
     }
 
     @GetMapping("/getAllWeb")
-    public ResponseEntity<?> getAllWeb(
+    public Page<BreakingNews> getAllWeb(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String districtId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
         
-        Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Specification<BreakingNews> spec = SpecificationBuilder.build(search, "published", categoryId, districtId);
-        Page<BreakingNews> pageResult = breakingNewsRepository.findAll(spec, pageable);
-        List<BreakingNews> items = pageResult.getContent();
-        
-        return ResponseEntity.ok(Map.of(
-            "content", items,
-            "totalElements", pageResult.getTotalElements(),
-            "totalPages", pageResult.getTotalPages(),
-            "number", pageResult.getNumber()
-        ));
+        return getAll(search, "published", categoryId, districtId, page, size, sortBy, direction);
     }
 
-    @PostMapping({"/saveUpdate", "", "/"})
+    @PostMapping("/saveUpdate")
     public ResponseEntity<?> save(@RequestBody BreakingNews entity) {
-        if ((entity.getTitle() == null || entity.getTitle().trim().isEmpty()) && 
-            (entity.getTitleTa() == null || entity.getTitleTa().trim().isEmpty())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Title or Title (Tamil) is required"));
+        if (entity.getTitle() == null || entity.getTitleTa() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Title and Title (Tamil) are required"));
         }
-        if (entity.getTitle() == null) entity.setTitle(entity.getTitleTa());
-        if (entity.getTitleTa() == null) entity.setTitleTa(entity.getTitle());
-        
-        if (entity.getPriority() == null) {
-            entity.setPriority(1); // default to 1 (HIGH)
-        } else if (entity.getPriority() < 1 || entity.getPriority() > 3) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Priority must be between 1 (High) and 3 (Low)"));
-        }
-        
-        if (entity.getStatus() == null || entity.getStatus().isEmpty()) {
-            entity.setStatus("published");
-        } else if (!List.of("draft", "published", "archived", "deleted", "inactive").contains(entity.getStatus())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
-        }
-        
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(LocalDateTime.now());
-        }
-        if (entity.getPublishedAt() == null) {
-            entity.setPublishedAt(LocalDateTime.now());
         }
         entity.setUpdatedAt(LocalDateTime.now());
         BreakingNews saved = breakingNewsRepository.save(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    @PutMapping({"/saveUpdate", "", "/"})
+    @PutMapping("/saveUpdate")
     public ResponseEntity<?> update(@RequestBody BreakingNews entity) {
         if (entity.getId() == null) {
-            return save(entity);
+            return ResponseEntity.badRequest().body(Map.of("message", "Id is required for update"));
         }
         Optional<BreakingNews> opt = breakingNewsRepository.findById(entity.getId());
         if (opt.isEmpty()) {
-            return save(entity);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "BreakingNews not found"));
         }
-        
-        if ((entity.getTitle() == null || entity.getTitle().trim().isEmpty()) && 
-            (entity.getTitleTa() == null || entity.getTitleTa().trim().isEmpty())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Title or Title (Tamil) is required"));
-        }
-        
-        if (entity.getPriority() != null && (entity.getPriority() < 1 || entity.getPriority() > 3)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Priority must be between 1 (High) and 3 (Low)"));
-        }
-        
-        if (entity.getStatus() != null && !List.of("draft", "published", "archived", "deleted", "inactive").contains(entity.getStatus())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid status value: " + entity.getStatus()));
-        }
-
         BreakingNews existing = opt.get();
-        existing.setTitle(entity.getTitle() != null && !entity.getTitle().trim().isEmpty() ? entity.getTitle() : entity.getTitleTa());
-        existing.setTitleTa(entity.getTitleTa() != null && !entity.getTitleTa().trim().isEmpty() ? entity.getTitleTa() : entity.getTitle());
+        existing.setTitle(entity.getTitle());
+        existing.setTitleTa(entity.getTitleTa());
         existing.setShortDescription(entity.getShortDescription());
         existing.setContent(entity.getContent());
         existing.setImageUrl(entity.getImageUrl());
@@ -131,16 +86,10 @@ public class BreakingNewsController {
         existing.setCategoryId(entity.getCategoryId());
         existing.setSubcategoryId(entity.getSubcategoryId());
         existing.setDistrictId(entity.getDistrictId());
-        
-        if (entity.getPriority() != null) {
-            existing.setPriority(entity.getPriority());
-        }
-        if (entity.getStatus() != null) {
-            existing.setStatus(entity.getStatus());
-        }
-        
-        existing.setBreaking(entity.getBreaking() != null ? entity.getBreaking() : true);
-        existing.setPublishedAt(entity.getPublishedAt() != null ? entity.getPublishedAt() : LocalDateTime.now());
+        existing.setPriority(entity.getPriority());
+        existing.setStatus(entity.getStatus());
+        existing.setBreaking(entity.getBreaking());
+        existing.setPublishedAt(entity.getPublishedAt());
         existing.setUpdatedBy(entity.getUpdatedBy());
         existing.setUpdatedAt(LocalDateTime.now());
         
