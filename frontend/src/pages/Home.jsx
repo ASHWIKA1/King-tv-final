@@ -5,7 +5,91 @@ import { ThemeContext } from '../context/ThemeContext';
 import { fetchApi, getImageUrl } from '../utils/api';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
+const MOCK_ARTICLES = [
+  {
+    id: 1,
+    article_id: 1,
+    titleTa: 'தமிழக சட்டமன்ற பட்ஜெட் கூட்டத்தொடர் 2026: முக்கிய அறிவிப்புகள் வெளியீடு',
+    titleEn: 'Tamil Nadu Assembly Budget Session 2026 Key Announcements',
+    shortDescTa: 'மாண்புமிகு முதலமைச்சர் பட்ஜெட் உரையில் பல்வேறு மக்கள் நலத் திட்டங்களை அறிவித்தார்.',
+    shortDescEn: 'Chief Minister announced key welfare schemes in the budget speech.',
+    categoryId: 1,
+    authorName: 'செல்வகுமார்',
+    viewsCount: 12500,
+    imageUrl: null
+  },
+  {
+    id: 2,
+    article_id: 2,
+    titleTa: 'சென்னை கோயம்பேட்டில் புதிய பேருந்து நிலையம் - அமைச்சர் அறிவிப்பு',
+    titleEn: 'New Koyambedu Bus Terminal Announcement',
+    shortDescTa: 'போக்குவரத்து நெரிசலை குறைக்க புதிய நவீன பேருந்து முனையம் அமைக்கும் பணி விரைவு.',
+    shortDescEn: 'Modern bus terminal project initiated to reduce traffic congestion.',
+    categoryId: 1,
+    authorName: 'செல்வகுமார்',
+    viewsCount: 8200,
+    imageUrl: null
+  },
+  {
+    id: 3,
+    article_id: 3,
+    titleTa: 'ஐபிஎல் 2026: சிஎஸ்கே அணி அடுத்த சுற்றுக்கு தகுதி',
+    titleEn: 'IPL 2026: CSK Qualifies for Next Round',
+    shortDescTa: 'அபார வெற்றியுடன் சென்னை சூப்பர் கிங்ஸ் அணி புள்ளிகள் பட்டியலில் முதலிடம் பிடித்தது.',
+    shortDescEn: 'CSK secures top spot in points table with a dominant win.',
+    categoryId: 3,
+    authorName: 'விளையாட்டு நிருபர்',
+    viewsCount: 15700,
+    imageUrl: null
+  },
+  {
+    id: 4,
+    article_id: 4,
+    titleTa: 'விவசாயிகளுக்கு ரூ.12,000 நிவாரணம் - மத்திய அரசு அறிவிப்பு',
+    titleEn: 'Rs 12,000 Relief for Farmers Announced',
+    shortDescTa: 'வேளாண் பெருமக்களுக்கு நிதியுதவி வழங்கும் திட்டத்தில் புதிய தவணைத் தொகை.',
+    shortDescEn: 'New instalment released under farmer financial assistance scheme.',
+    categoryId: 2,
+    authorName: 'விவசாய நிருபர்',
+    viewsCount: 11300,
+    imageUrl: null
+  },
+  {
+    id: 5,
+    article_id: 5,
+    titleTa: 'நடிகர் விக்ரம் அடுத்த படம் குறித்த அதிகாரப்பூர்வ அறிவிப்பு',
+    titleEn: 'Actor Vikram Next Film Official Update',
+    shortDescTa: 'பிரமாண்டமாக உருவாகும் புதிய திரைப்படத்தின் படப்பிடிப்பு குறித்த தகவல்.',
+    shortDescEn: 'Official announcement regarding grand upcoming movie shooting.',
+    categoryId: 4,
+    authorName: 'சினிமா நிருபர்',
+    viewsCount: 22100,
+    imageUrl: null
+  }
+];
+
+const MOCK_VIDEOS = [
+  {
+    id: 1,
+    title: 'சென்னை பட்ஜெட் 2026 நேரலை செய்திகள்',
+    videoUrl: 'https://www.youtube.com/embed/live_stream?channel=UCking24x7',
+    thumbnailUrl: null,
+    duration: '15:20',
+    publishedAt: '2026-07-26T10:00:00Z',
+    isLive: true,
+    categoryId: 1
+  },
+  {
+    id: 2,
+    title: 'விவசாயம் & சந்தை நிலவரம் - சிறப்பு அலசல்',
+    videoUrl: 'https://www.youtube.com/embed/live_stream?channel=UCking24x7',
+    thumbnailUrl: null,
+    duration: '08:45',
+    publishedAt: '2026-07-26T08:30:00Z',
+    isLive: false,
+    categoryId: 2
+  }
+];
 
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
