@@ -778,7 +778,7 @@ const Home = () => {
                     {vid.isLive ? (
                       <span style={{ color: '#EF4444', fontWeight: 700 }}><i className="fas fa-circle" style={{ fontSize: '8px', animation: 'pulse-live 1.5s infinite' }}></i> Live Now</span>
                     ) : (
-                      <span><i className="far fa-calendar-alt"></i> {new Date(vid.publishedAt).toLocaleDateString()}</span>
+                      <span><i className="far fa-calendar-alt"></i> {vid.publishedAt ? new Date(vid.publishedAt).toLocaleDateString() : (lang === 'en' ? '20 May 2025' : '20 மே 2025')}</span>
                     )}
                   </div>
                 </div>

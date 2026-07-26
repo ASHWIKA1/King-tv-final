@@ -55,11 +55,21 @@ const GenericPageRenderer = ({ layoutType = 'WEB', renderSectionCallback }) => {
     );
   }
 
+  const renderSafeSection = (sec) => {
+    try {
+      if (!sec || !sec.sectionKey) return null;
+      return renderSectionCallback ? renderSectionCallback(sec.sectionKey, sec.sectionLabel, sec.configJson) : null;
+    } catch (err) {
+      console.error(`[GenericPageRenderer] Error rendering section ${sec?.sectionKey}:`, err);
+      return null;
+    }
+  };
+
   return (
     <div className="generic-page-container" style={{ width: '100%' }}>
       {sections.map((sec) => (
         <div key={sec.id || sec.sectionKey} className={`generic-section-block section-${sec.sectionKey}`}>
-          {renderSectionCallback ? renderSectionCallback(sec.sectionKey, sec.sectionLabel, sec.configJson) : null}
+          {renderSafeSection(sec)}
         </div>
       ))}
     </div>
