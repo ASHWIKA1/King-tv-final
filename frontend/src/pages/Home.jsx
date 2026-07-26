@@ -416,36 +416,61 @@ const Home = () => {
     }
 
     const pPersonalized = new Promise((resolve) => {
+      let resolved = false;
+      const safeResolve = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      };
+
+      // Safety timeout: if geolocation hangs (e.g. user ignores prompt), resolve anyway after 3s
+      setTimeout(() => {
+        if (!resolved) {
+          fetchApi(newsUrl)
+            .then(data => {
+              const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+              if (list.length > 0) setArticles(list);
+              safeResolve();
+            })
+            .catch(() => safeResolve());
+        }
+      }, 3000);
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+            if (resolved) return;
             const { latitude, longitude } = pos.coords;
             fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
               .then(data => {
                 const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
                 if (list.length > 0) setArticles(list);
-                resolve();
+                safeResolve();
               })
-              .catch(() => { resolve(); });
+              .catch(() => { safeResolve(); });
           },
           () => {
+            if (resolved) return;
             fetchApi(newsUrl)
               .then(data => {
                 const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
                 if (list.length > 0) setArticles(list);
-                resolve();
+                safeResolve();
               })
-              .catch(() => { resolve(); });
-          }
+              .catch(() => { safeResolve(); });
+          },
+          { timeout: 5000 }
         );
       } else {
+        if (resolved) return;
         fetchApi(newsUrl)
           .then(data => {
             const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
             if (list.length > 0) setArticles(list);
-            resolve();
+            safeResolve();
           })
-          .catch(() => { resolve(); });
+          .catch(() => { safeResolve(); });
       }
     });
 
@@ -1348,6 +1373,31 @@ const Home = () => {
       </div>
     );
   }
+
+  
+  const renderNewsletterStrip = () => {
+    return (
+      <section className="newsletter-section" style={{ background: theme === 'dark' ? '#1E293B' : '#EFF6FF', padding: '40px 0', borderTop: theme === 'dark' ? '1px solid #334155' : '1px solid #E2E8F0', marginTop: '40px' }}>
+        <div className="container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
+          <div className="newsletter-text" style={{ flex: '1 1 300px' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 10px 0', color: theme === 'dark' ? '#fff' : '#1e293b' }}>
+              <i className="fas fa-envelope-open-text" style={{ color: 'var(--primary, #B3732A)', marginRight: '10px' }}></i>
+              {lang === 'en' ? 'Subscribe to our Newsletter' : 'எங்கள் செய்தி மடலுக்கு குழுசேரவும்'}
+            </h3>
+            <p style={{ margin: 0, color: theme === 'dark' ? '#94A3B8' : '#64748B', fontSize: '15px' }}>
+              {lang === 'en' ? 'Get the latest news and updates delivered straight to your inbox.' : 'சமீபத்திய செய்திகள் மற்றும் புதுப்பிப்புகளை நேரடியாக உங்கள் இன்பாக்ஸில் பெறுங்கள்.'}
+            </p>
+          </div>
+          <form className="newsletter-form" style={{ display: 'flex', gap: '10px', flex: '1 1 400px' }} onSubmit={(e) => { e.preventDefault(); alert(lang === 'en' ? 'Subscribed successfully!' : 'வெற்றிகரமாக குழுசேரப்பட்டது!'); }}>
+            <input type="email" placeholder={lang === 'en' ? 'Enter your email address' : 'உங்கள் மின்னஞ்சல் முகவரியை உள்ளிடவும்'} required style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: theme === 'dark' ? '1px solid #334155' : '1px solid #CBD5E1', background: theme === 'dark' ? '#0F172A' : '#fff', color: theme === 'dark' ? '#fff' : '#000', outline: 'none' }} />
+            <button type="submit" style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: 'var(--primary, #B3732A)', color: '#fff', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }}>
+              {lang === 'en' ? 'Subscribe' : 'குழுசேர'}
+            </button>
+          </form>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <div style={{ width: '100%' }}>

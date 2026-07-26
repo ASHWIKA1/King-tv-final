@@ -1,6 +1,6 @@
 :root {
   --font-sans: 'Inter', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
-  --font-title: 'Outfit', 'Noto Sans Tamil', sans-serif;
+  --font-title: 'Playfair Display', 'Noto Sans Tamil', serif;
 
   /* Custom Color Palette (Modern Deep Royal Dark Mode & Warm Slate Light Mode) */
   --bg-primary: #0B0F19;
@@ -40,10 +40,6 @@
   --transition-normal: 0.25s ease;
 }
 
-html[lang="ta"] {
-  --font-sans: 'Noto Sans Tamil', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-title: 'Mukta Malar', 'Outfit', sans-serif;
-}
 
 [data-theme="light"] {
   --bg-primary: #FAF9F6;
