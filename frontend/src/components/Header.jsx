@@ -1506,38 +1506,7 @@ const Header = () => {
           }
         }
       `}</style>
-      {/* Desktop Main Top Header (Blue Top Bar + Logo Header + Right Market/Dam Widget Slider) */}
-      <div className="header-desktop-wrapper" style={{ display: 'block' }}>
-        {/* Blue Top Bar */}
-        <div style={{ background: '#0040B8', color: '#ffffff', fontSize: '12px', padding: '6px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <span><i className="far fa-calendar-alt"></i> {new Date().toLocaleDateString(lang === 'ta' ? 'ta-IN' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              <span><i className="far fa-clock"></i> {new Date().toLocaleTimeString(lang === 'ta' ? 'ta-IN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <i className="fas fa-map-marker-alt"></i> {renderDistrictSelector(true)}
-              </span>
-              <span><i className="fas fa-thermometer-half"></i> 30°C</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-facebook-f"></i></a>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-twitter"></i></a>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-instagram"></i></a>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-youtube"></i></a>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-whatsapp"></i></a>
-              <a href="#" style={{ color: '#ffffff', textDecoration: 'none' }}><i className="fab fa-telegram"></i></a>
-              <button onClick={toggleTheme} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-                <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'}></i> {theme === 'light' ? 'இருள்' : 'ஒளி'}
-              </button>
-              <button onClick={() => setLang(lang === 'en' ? 'ta' : 'en')} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-                {lang === 'en' ? 'தமிழ்' : 'English'}
-              </button>
-            </div>
-          </div>
-        </div>
 
-
-      </div>
 
       <nav
         className={`main-nav ${isRegionalPage ? 'regional-theme' : ''}`}
