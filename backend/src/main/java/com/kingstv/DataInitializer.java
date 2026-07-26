@@ -165,8 +165,9 @@ public class DataInitializer {
 
         seedAdvertisements();
 
-        // Ensure default sitemaps and Chief Editor permissions are initialized/updated on every boot
+        // Ensure default sitemaps, home layout configs, and Chief Editor permissions are initialized/updated on every boot
         seedSitemapConfigs();
+        seedHomeLayoutConfigs();
         updateChiefEditorPermissions();
 
         if (categoryRepository.count() > 0) {
@@ -949,6 +950,37 @@ public class DataInitializer {
                 roleRepository.save(chiefEditor);
                 System.out.println("Updated Chief Editor permissions successfully.");
             }
+        }
+    }
+
+    private void seedHomeLayoutConfigs() {
+        try {
+            if (homeLayoutConfigRepository.count() == 0) {
+                System.out.println("Seeding Default Home Layout Configs...");
+                String[][] webSections = {
+                    {"hero", "Hero Section", "1"},
+                    {"quick_access", "Quick Access", "2"},
+                    {"latest_news", "Latest News", "3"},
+                    {"video_news", "Video News", "4"},
+                    {"web_stories", "Web Stories", "5"},
+                    {"crowd_reporter_highlight", "Reporter Highlight", "6"},
+                    {"institution_news", "Institution News", "7"},
+                    {"business_case", "Business Studies", "8"},
+                    {"news_digest", "News Digest", "9"}
+                };
+                for (String[] sec : webSections) {
+                    com.kingstv.models.HomeLayoutConfig c = new com.kingstv.models.HomeLayoutConfig();
+                    c.setLayoutType("WEB");
+                    c.setSectionKey(sec[0]);
+                    c.setSectionLabel(sec[1]);
+                    c.setDisplayOrder(Integer.parseInt(sec[2]));
+                    c.setIsVisible(true);
+                    c.setConfigJson("{}");
+                    homeLayoutConfigRepository.save(c);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to seed home layout configs: " + e.getMessage());
         }
     }
 }

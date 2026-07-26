@@ -712,51 +712,53 @@ const Home = () => {
       : videos.filter(vid => vid.categoryId === homeCatIdMap[videoTab]);
 
     return (
-      <section className="video-section" id="section-video">
-        <div className="section-title">
-          <h2><i className="fas fa-video" style={{ color: '#EF4444' }}></i> {lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்'}</h2>
-          <Link to="/videos" className="view-all">{lang === 'en' ? 'More Videos' : 'மேலும் வீடியோக்கள்'} <i className="fas fa-arrow-right"></i></Link>
-        </div>
-        {/* Video categories tabs removed */}
-        <div className="video-grid-4">
-          {filteredHomeVideos.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748B' }}>
-              <i className="fas fa-video-slash fa-3x" style={{ marginBottom: '15px', opacity: 0.5 }}></i>
-              <h3>{lang === 'en' ? 'No videos published yet' : 'இன்னும் வீடியோக்கள் வெளியிடப்படவில்லை'}</h3>
-            </div>
-          ) : filteredHomeVideos.slice(0, 4).map((vid, idx) => (
-            <Link 
-              to="/videos" 
-              state={{ selectVideoId: vid.id }} 
-              className="video-card" 
-              key={vid.id || vid.videoId || idx}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <div className="thumb-area">
-                {vid.thumbnailUrl ? (
-                  <img src={getImageUrl(vid.thumbnailUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={vid.title} />
-                ) : (
-                  <div style={{ background: gradients[idx % gradients.length], width: '100%', height: '100%' }}></div>
-                )}
-                <div className="play-overlay"><i className="fas fa-play"></i></div>
-                {vid.isLive ? (
-                  <span className="duration" style={{ backgroundColor: '#EF4444' }}>LIVE</span>
-                ) : (
-                  <span className="duration">{vid.duration || '3:15'}</span>
-                )}
+      <section className="video-section" id="section-video" style={{ margin: '30px 0' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-video" style={{ color: '#EF4444' }}></i> {lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்'}</h2>
+            <Link to="/videos" className="view-all">{lang === 'en' ? 'More Videos' : 'மேலும் வீடியோக்கள்'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          {/* Video categories tabs removed */}
+          <div className="video-grid-4">
+            {filteredHomeVideos.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748B' }}>
+                <i className="fas fa-video-slash fa-3x" style={{ marginBottom: '15px', opacity: 0.5 }}></i>
+                <h3>{lang === 'en' ? 'No videos published yet' : 'இன்னும் வீடியோக்கள் வெளியிடப்படவில்லை'}</h3>
               </div>
-              <div className="body">
-                <h5>{vid.title}</h5>
-                <div className="meta">
-                  {vid.isLive ? (
-                    <span style={{ color: '#EF4444', fontWeight: 700 }}><i className="fas fa-circle" style={{ fontSize: '8px', animation: 'pulse-live 1.5s infinite' }}></i> Live Now</span>
+            ) : filteredHomeVideos.slice(0, 4).map((vid, idx) => (
+              <Link 
+                to="/videos" 
+                state={{ selectVideoId: vid.id }} 
+                className="video-card" 
+                key={vid.id || vid.videoId || idx}
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                <div className="thumb-area">
+                  {vid.thumbnailUrl ? (
+                    <img src={getImageUrl(vid.thumbnailUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={vid.title} />
                   ) : (
-                    <span><i className="far fa-calendar-alt"></i> {new Date(vid.publishedAt).toLocaleDateString()}</span>
+                    <div style={{ background: gradients[idx % gradients.length], width: '100%', height: '100%' }}></div>
+                  )}
+                  <div className="play-overlay"><i className="fas fa-play"></i></div>
+                  {vid.isLive ? (
+                    <span className="duration" style={{ backgroundColor: '#EF4444' }}>LIVE</span>
+                  ) : (
+                    <span className="duration">{vid.duration || '3:15'}</span>
                   )}
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div className="body">
+                  <h5>{vid.title}</h5>
+                  <div className="meta">
+                    {vid.isLive ? (
+                      <span style={{ color: '#EF4444', fontWeight: 700 }}><i className="fas fa-circle" style={{ fontSize: '8px', animation: 'pulse-live 1.5s infinite' }}></i> Live Now</span>
+                    ) : (
+                      <span><i className="far fa-calendar-alt"></i> {new Date(vid.publishedAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -764,36 +766,38 @@ const Home = () => {
 
   const renderWebStories = () => {
     return (
-      <section className="stories-section" id="section-stories">
-        <div className="section-title">
-          <h2><i className="fas fa-sticky-note"></i> {lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்'}</h2>
-          <Link to="/web-stories" className="view-all">{lang === 'en' ? 'View All' : 'அனைத்தும் காண'} <i className="fas fa-arrow-right"></i></Link>
-        </div>
-        <div className="stories-track">
-          {stories.map(story => {
-            const catSlug = story.cat === 'tech' ? 'technology' : story.cat === 'agri' ? 'agriculture' : story.cat;
-            const catNames = {
-              sports: { en: 'Sports', ta: 'விளையாட்டு' },
-              cinema: { en: 'Cinema', ta: 'சினிமா' },
-              politics: { en: 'Politics', ta: 'அரசியல்' },
-              tech: { en: 'Technology', ta: 'தொழில்நுட்பம்' },
-              agri: { en: 'Agriculture', ta: 'விவசாயம்' },
-              business: { en: 'Business', ta: 'வணிகம்' }
-            }[story.cat] || { en: story.cat, ta: story.cat };
+      <section className="stories-section" id="section-stories" style={{ margin: '30px 0' }}>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-sticky-note"></i> {lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்'}</h2>
+            <Link to="/web-stories" className="view-all">{lang === 'en' ? 'View All' : 'அனைத்தும் காண'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div className="stories-track">
+            {stories.map(story => {
+              const catSlug = story.cat === 'tech' ? 'technology' : story.cat === 'agri' ? 'agriculture' : story.cat;
+              const catNames = {
+                sports: { en: 'Sports', ta: 'விளையாட்டு' },
+                cinema: { en: 'Cinema', ta: 'சினிமா' },
+                politics: { en: 'Politics', ta: 'அரசியல்' },
+                tech: { en: 'Technology', ta: 'தொழில்நுட்பம்' },
+                agri: { en: 'Agriculture', ta: 'விவசாயம்' },
+                business: { en: 'Business', ta: 'வணிகம்' }
+              }[story.cat] || { en: story.cat, ta: story.cat };
 
-            return (
-              <Link to="/web-stories" className="story-card" style={{ background: story.gradient, textDecoration: 'none' }} key={story.id}>
-                <span className="badge-tag" style={{ background: story.badge === 'NEW' ? '#EF4444' : '#F97316' }}>{story.badge}</span>
-                <div className="story-overlay">
-                  <span className={`story-cat cat-${catSlug}`}>
-                    {lang === 'en' ? catNames.en : catNames.ta}
-                  </span>
-                  <h5>{lang === 'en' ? story.titleEn : story.titleTa}</h5>
-                  <span className="views"><i className="far fa-eye"></i> {story.views}</span>
-                </div>
-              </Link>
-            );
-          })}
+              return (
+                <Link to="/web-stories" className="story-card" style={{ background: story.gradient, textDecoration: 'none' }} key={story.id}>
+                  <span className="badge-tag" style={{ background: story.badge === 'NEW' ? '#EF4444' : '#F97316' }}>{story.badge}</span>
+                  <div className="story-overlay">
+                    <span className={`story-cat cat-${catSlug}`}>
+                      {lang === 'en' ? catNames.en : catNames.ta}
+                    </span>
+                    <h5>{lang === 'en' ? story.titleEn : story.titleTa}</h5>
+                    <span className="views"><i className="far fa-eye"></i> {story.views}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
     );
@@ -982,44 +986,46 @@ const Home = () => {
   const renderCrowdReporterHighlight = () => {
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
-        <div className="section-title">
-          <h2><i className="fas fa-bullhorn" style={{ color: '#F59E0B' }}></i> {lang === 'en' ? 'Crowd Reports (Public Submissions)' : 'மக்கள் செய்தியாளர் பதிவுகள்'}</h2>
-          <Link to="/submit-report" className="view-all">{lang === 'en' ? 'Submit Report' : 'செய்தி அனுப்ப'} <i className="fas fa-arrow-right"></i></Link>
-        </div>
-        <div className="news-grid-3">
-          {crowdReports.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              {lang === 'en' ? 'No crowd reports approved yet.' : 'மக்கள் செய்தியாளர் பதிவுகள் இன்னும் இல்லை.'}
-            </div>
-          ) : crowdReports.slice(0, 3).map((report, idx) => (
-            <div 
-              className="news-card" 
-              key={report.id || idx}
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px' }}
-            >
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-bullhorn" style={{ color: '#F59E0B' }}></i> {lang === 'en' ? 'Crowd Reports (Public Submissions)' : 'மக்கள் செய்தியாளர் பதிவுகள்'}</h2>
+            <Link to="/submit-report" className="view-all">{lang === 'en' ? 'Submit Report' : 'செய்தி அனுப்ப'} <i className="fas fa-arrow-right"></i></Link>
+          </div>
+          <div className="news-grid-3">
+            {crowdReports.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                {lang === 'en' ? 'No crowd reports approved yet.' : 'மக்கள் செய்தியாளர் பதிவுகள் இன்னும் இல்லை.'}
+              </div>
+            ) : crowdReports.slice(0, 3).map((report, idx) => (
               <div 
-                className="card-img" 
-                style={{ 
-                  background: report.imageUrl ? `url(${getImageUrl(report.imageUrl)}) center/cover` : gradients[idx % gradients.length]
-                }}
+                className="news-card" 
+                key={report.id || idx}
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px' }}
               >
-                <span className="cat-badge" style={{ background: '#F59E0B' }}>
-                  {lang === 'en' ? 'Public Report' : 'பொது மக்கள்'}
-                </span>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: report.imageUrl ? `url(${getImageUrl(report.imageUrl)}) center/cover` : gradients[idx % gradients.length]
+                  }}
+                >
+                  <span className="cat-badge" style={{ background: '#F59E0B' }}>
+                    {lang === 'en' ? 'Public Report' : 'பொது மக்கள்'}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    <i className="far fa-user"></i> {report.reporterName} ({report.location || (lang === 'en' ? 'Tamil Nadu' : 'தமிழகம்')})
+                  </span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 8px 0' }}>
+                    {report.title}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    {report.details}
+                  </p>
+                </div>
               </div>
-              <div className="card-body">
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  <i className="far fa-user"></i> {report.reporterName} ({report.location || (lang === 'en' ? 'Tamil Nadu' : 'தமிழகம்')})
-                </span>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 8px 0' }}>
-                  {report.title}
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {report.details}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -1028,44 +1034,46 @@ const Home = () => {
   const renderInstitutionNews = () => {
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
-        <div className="section-title">
-          <h2><i className="fas fa-university" style={{ color: '#1E40AF' }}></i> {lang === 'en' ? 'Institution & Press Releases' : 'நிறுவனங்களின் செய்திகள்'}</h2>
-        </div>
-        <div className="news-grid-3">
-          {institutionNews.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-              {lang === 'en' ? 'No institutional announcements published yet.' : 'நிறுவனங்களின் செய்திகள் இன்னும் இல்லை.'}
-            </div>
-          ) : institutionNews.slice(0, 3).map((art, idx) => {
-            const gridCat = getCategoryDetails(art.categoryId);
-            return (
-              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id}>
-                <div 
-                  className="card-img" 
-                  style={{ 
-                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 4) % gradients.length]
-                  }}
-                >
-                  <span className="cat-badge" style={{ background: '#1E40AF' }}>
-                    {lang === 'en' ? 'Press Release' : 'பத்திரிகை செய்தி'}
-                  </span>
-                </div>
-                <div className="card-body">
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    <i className="far fa-building"></i> {art.authorName}
-                  </span>
-                  <h3>
-                    <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {lang === 'en' ? art.titleEn : art.titleTa}
-                    </Link>
-                  </h3>
-                  <p>
-                    {lang === 'en' ? art.shortDescEn : art.shortDescTa}
-                  </p>
-                </div>
+        <div className="container">
+          <div className="section-title">
+            <h2><i className="fas fa-university" style={{ color: '#1E40AF' }}></i> {lang === 'en' ? 'Institution & Press Releases' : 'நிறுவனங்களின் செய்திகள்'}</h2>
+          </div>
+          <div className="news-grid-3">
+            {institutionNews.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                {lang === 'en' ? 'No institutional announcements published yet.' : 'நிறுவனங்களின் செய்திகள் இன்னும் இல்லை.'}
               </div>
-            );
-          })}
+            ) : institutionNews.slice(0, 3).map((art, idx) => {
+              const gridCat = getCategoryDetails(art.categoryId);
+              return (
+                <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id}>
+                  <div 
+                    className="card-img" 
+                    style={{ 
+                      background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 4) % gradients.length]
+                    }}
+                  >
+                    <span className="cat-badge" style={{ background: '#1E40AF' }}>
+                      {lang === 'en' ? 'Press Release' : 'பத்திரிகை செய்தி'}
+                    </span>
+                  </div>
+                  <div className="card-body">
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                      <i className="far fa-building"></i> {art.authorName}
+                    </span>
+                    <h3>
+                      <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {lang === 'en' ? art.titleEn : art.titleTa}
+                      </Link>
+                    </h3>
+                    <p>
+                      {lang === 'en' ? art.shortDescEn : art.shortDescTa}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
     );
