@@ -961,12 +961,17 @@ public class DataInitializer {
                     {"hero", "Hero Section", "1"},
                     {"quick_access", "Quick Access", "2"},
                     {"latest_news", "Latest News", "3"},
-                    {"video_news", "Video News", "4"},
-                    {"web_stories", "Web Stories", "5"},
-                    {"crowd_reporter_highlight", "Reporter Highlight", "6"},
-                    {"institution_news", "Institution News", "7"},
-                    {"business_case", "Business Studies", "8"},
-                    {"news_digest", "News Digest", "9"}
+                    {"web_stories", "Web Stories", "4"},
+                    {"video_news", "Video News", "5"},
+                    {"agri", "Agriculture & Market Rates", "6"},
+                    {"business", "Business Dashboard", "7"},
+                    {"district", "District News", "8"},
+                    {"election", "Election Center 2026", "9"},
+                    {"live_tv", "Live TV", "10"},
+                    {"poll", "Opinion Poll", "11"},
+                    {"news_digest", "Readers Page", "12"},
+                    {"crowd_reporter_highlight", "Reporter Highlight", "13"},
+                    {"institution_news", "Institution News", "14"}
                 };
                 for (String[] sec : webSections) {
                     com.kingstv.models.HomeLayoutConfig c = new com.kingstv.models.HomeLayoutConfig();
