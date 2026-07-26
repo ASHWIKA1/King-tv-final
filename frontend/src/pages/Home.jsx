@@ -216,6 +216,7 @@ const Home = () => {
   const [videoTab, setVideoTab] = useState('all');
   const [liveVideo, setLiveVideo] = useState(null);
   const [tickerIndex, setTickerIndex] = useState(0);
+  const [topSliderIndex, setTopSliderIndex] = useState(0);
   const [categoriesMap, setCategoriesMap] = useState({});
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
@@ -688,6 +689,112 @@ const Home = () => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    const sliderInterval = setInterval(() => {
+      setTopSliderIndex(prev => (prev + 1) % 8);
+    }, 4000);
+    return () => clearInterval(sliderInterval);
+  }, []);
+
+  const renderTopCommoditySlider = () => {
+    const sliderCards = [
+      {
+        titleTa: '🪙 சென்னை தங்கம் விலை',
+        titleEn: '🪙 Chennai Gold Rate',
+        items: [
+          { labelTa: '22K:', labelEn: '22K:', val: '₹8,950/g', color: '#10B981' },
+          { labelTa: '24K:', labelEn: '24K:', val: '₹9,760/g', color: '#10B981' },
+          { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: '₹118/g', color: '#1E293B' },
+          { labelTa: 'பிளாட்டினம்:', labelEn: 'Platinum:', val: '₹3,420/g', color: '#EF4444' }
+        ]
+      },
+      {
+        titleTa: '📈 பங்குச் சந்தை நிலவரம்',
+        titleEn: '📈 Stock Market Today',
+        items: [
+          { labelTa: 'சென்செக்ஸ்:', labelEn: 'Sensex:', val: '82,450 ▲ (+340)', color: '#10B981' },
+          { labelTa: 'நிஃப்டி 50:', labelEn: 'Nifty 50:', val: '25,120 ▲ (+110)', color: '#10B981' },
+          { labelTa: 'பேங்க் நிஃப்டி:', labelEn: 'Bank Nifty:', val: '51,800 ▼ (-45)', color: '#EF4444' },
+          { labelTa: 'ஐடி இன்டெக்ஸ்:', labelEn: 'IT Index:', val: '38,900 ▲ (+220)', color: '#10B981' }
+        ]
+      },
+      {
+        titleTa: '⛽ சென்னை எரிபொருள் விலை',
+        titleEn: '⛽ Fuel Prices Chennai',
+        items: [
+          { labelTa: 'பெட்ரோல்:', labelEn: 'Petrol:', val: '₹100.75/L', color: '#1E293B' },
+          { labelTa: 'டீசல்:', labelEn: 'Diesel:', val: '₹92.34/L', color: '#1E293B' },
+          { labelTa: 'எல்பிஜி உருளை:', labelEn: 'LPG Cylinder:', val: '₹818.50', color: '#EF4444' },
+          { labelTa: 'சிஎன்ஜி:', labelEn: 'CNG:', val: '₹85.00/kg', color: '#10B981' }
+        ]
+      },
+      {
+        titleTa: '🌾 காய்கறி சந்தை விலை',
+        titleEn: '🌾 Vegetable Market Price',
+        items: [
+          { labelTa: 'தக்காளி:', labelEn: 'Tomato:', val: '₹35/kg', color: '#10B981' },
+          { labelTa: 'வெங்காயம்:', labelEn: 'Onion:', val: '₹42/kg', color: '#EF4444' },
+          { labelTa: 'உருளைக்கிழங்கு:', labelEn: 'Potato:', val: '₹28/kg', color: '#10B981' },
+          { labelTa: 'பூண்டு:', labelEn: 'Garlic:', val: '₹180/kg', color: '#1E293B' }
+        ]
+      }
+    ];
+
+    const activeSlide = sliderCards[topSliderIndex % sliderCards.length];
+
+    return (
+      <div className="container" style={{ margin: '14px auto 0 auto', padding: '0 15px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div 
+          style={{ 
+            background: '#F0F5FF', 
+            borderRadius: '16px', 
+            padding: '14px 20px', 
+            border: '1px solid #E2E8F0', 
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
+            maxWidth: '420px',
+            width: '100%',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '13.5px', fontWeight: 800, color: '#2563EB', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}
+          </h4>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: '12px' }}>
+            {activeSlide.items.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: '#64748B', fontWeight: 600 }}>{lang === 'en' ? item.labelEn : item.labelTa}</span>
+                <span style={{ color: item.color, fontWeight: 800 }}>{item.val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Slider Dots Pagination Row matching reference screenshot */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setTopSliderIndex(idx)}
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  width: (topSliderIndex % 8) === idx ? '18px' : '5px',
+                  height: '5px',
+                  borderRadius: (topSliderIndex % 8) === idx ? '4px' : '50%',
+                  background: (topSliderIndex % 8) === idx ? '#2563EB' : '#CBD5E1',
+                  transition: 'all 0.3s ease'
+                }}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -1399,6 +1506,9 @@ const Home = () => {
     <div style={{ width: '100%' }}>
       {/* COMMODITY TICKER */}
       {renderCommodityTicker()}
+
+      {/* TOP RIGHT HERO COMMODITY RATES SLIDER CARD (1-to-1 matching Reference Screenshot) */}
+      {renderTopCommoditySlider()}
 
       {/* BREAKING NEWS TICKER (Always rendered directly below Commodity Ticker) */}
       {renderNewsTicker()}
