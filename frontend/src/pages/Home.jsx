@@ -168,6 +168,44 @@ const MOCK_INSTITUTION = [
   }
 ];
 
+const MOCK_TRENDING = [
+  {
+    id: 1,
+    titleTa: 'சென்னை பெருநகரில் புதிய மெட்ரோ ரயில் திட்டம் அறிவிப்பு',
+    titleEn: 'New Metro Rail Project Announcement in Chennai City',
+    viewsCount: 45200,
+    growthRate: '+2.4K/hr'
+  },
+  {
+    id: 2,
+    titleTa: 'காவிரி நீர் மேலாண்மை குறித்த உச்சநீதிமன்ற முக்கிய உத்தரவு',
+    titleEn: 'Supreme Court Important Order on Cauvery Water Management',
+    viewsCount: 38700,
+    growthRate: '+1.8K/hr'
+  },
+  {
+    id: 3,
+    titleTa: 'இந்திய பொருளாதாரம் 8% வளர்ச்சி - உலக வங்கி அறிக்கை',
+    titleEn: 'Indian Economy 8% Growth - World Bank Report',
+    viewsCount: 32100,
+    growthRate: '+1.5K/hr'
+  },
+  {
+    id: 4,
+    titleTa: 'தமிழ் சினிமாவில் புதிய படங்களின் அணிவகுப்பு',
+    titleEn: 'New Movies Lineup in Tamil Cinema Industry',
+    viewsCount: 28500,
+    growthRate: '+1.2K/hr'
+  },
+  {
+    id: 5,
+    titleTa: 'பள்ளி மாணவர்களுக்கு காலை உணவு திட்டம் விரிவாக்கம்',
+    titleEn: 'Breakfast Scheme Expansion for School Students',
+    viewsCount: 24300,
+    growthRate: '+980/hr'
+  }
+];
+
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
   const { widgetWidth, slideSpeed, sections } = useContext(ThemeContext);
@@ -178,6 +216,7 @@ const Home = () => {
   const [videoTab, setVideoTab] = useState('all');
   const [liveVideo, setLiveVideo] = useState(null);
   const [tickerIndex, setTickerIndex] = useState(0);
+  const [topSliderIndex, setTopSliderIndex] = useState(0);
   const [categoriesMap, setCategoriesMap] = useState({});
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
@@ -681,6 +720,112 @@ const Home = () => {
     );
   };
 
+  useEffect(() => {
+    const sliderInterval = setInterval(() => {
+      setTopSliderIndex(prev => (prev + 1) % 8);
+    }, 4000);
+    return () => clearInterval(sliderInterval);
+  }, []);
+
+  const renderTopCommoditySlider = () => {
+    const sliderCards = [
+      {
+        titleTa: '🪙 சென்னை தங்கம் விலை',
+        titleEn: '🪙 Chennai Gold Rate',
+        items: [
+          { labelTa: '22K:', labelEn: '22K:', val: '₹8,950/g', color: '#10B981' },
+          { labelTa: '24K:', labelEn: '24K:', val: '₹9,760/g', color: '#10B981' },
+          { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: '₹118/g', color: '#1E293B' },
+          { labelTa: 'பிளாட்டினம்:', labelEn: 'Platinum:', val: '₹3,420/g', color: '#EF4444' }
+        ]
+      },
+      {
+        titleTa: '📈 பங்குச் சந்தை நிலவரம்',
+        titleEn: '📈 Stock Market Today',
+        items: [
+          { labelTa: 'சென்செக்ஸ்:', labelEn: 'Sensex:', val: '82,450 ▲ (+340)', color: '#10B981' },
+          { labelTa: 'நிஃப்டி 50:', labelEn: 'Nifty 50:', val: '25,120 ▲ (+110)', color: '#10B981' },
+          { labelTa: 'பேங்க் நிஃப்டி:', labelEn: 'Bank Nifty:', val: '51,800 ▼ (-45)', color: '#EF4444' },
+          { labelTa: 'ஐடி இன்டெக்ஸ்:', labelEn: 'IT Index:', val: '38,900 ▲ (+220)', color: '#10B981' }
+        ]
+      },
+      {
+        titleTa: '⛽ சென்னை எரிபொருள் விலை',
+        titleEn: '⛽ Fuel Prices Chennai',
+        items: [
+          { labelTa: 'பெட்ரோல்:', labelEn: 'Petrol:', val: '₹100.75/L', color: '#1E293B' },
+          { labelTa: 'டீசல்:', labelEn: 'Diesel:', val: '₹92.34/L', color: '#1E293B' },
+          { labelTa: 'எல்பிஜி உருளை:', labelEn: 'LPG Cylinder:', val: '₹818.50', color: '#EF4444' },
+          { labelTa: 'சிஎன்ஜி:', labelEn: 'CNG:', val: '₹85.00/kg', color: '#10B981' }
+        ]
+      },
+      {
+        titleTa: '🌾 காய்கறி சந்தை விலை',
+        titleEn: '🌾 Vegetable Market Price',
+        items: [
+          { labelTa: 'தக்காளி:', labelEn: 'Tomato:', val: '₹35/kg', color: '#10B981' },
+          { labelTa: 'வெங்காயம்:', labelEn: 'Onion:', val: '₹42/kg', color: '#EF4444' },
+          { labelTa: 'உருளைக்கிழங்கு:', labelEn: 'Potato:', val: '₹28/kg', color: '#10B981' },
+          { labelTa: 'பூண்டு:', labelEn: 'Garlic:', val: '₹180/kg', color: '#1E293B' }
+        ]
+      }
+    ];
+
+    const activeSlide = sliderCards[topSliderIndex % sliderCards.length];
+
+    return (
+      <div className="container" style={{ margin: '14px auto 0 auto', padding: '0 15px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div 
+          style={{ 
+            background: '#F0F5FF', 
+            borderRadius: '16px', 
+            padding: '14px 20px', 
+            border: '1px solid #E2E8F0', 
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
+            maxWidth: '420px',
+            width: '100%',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '13.5px', fontWeight: 800, color: '#2563EB', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}
+          </h4>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: '12px' }}>
+            {activeSlide.items.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: '#64748B', fontWeight: 600 }}>{lang === 'en' ? item.labelEn : item.labelTa}</span>
+                <span style={{ color: item.color, fontWeight: 800 }}>{item.val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Slider Dots Pagination Row matching reference screenshot */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setTopSliderIndex(idx)}
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  width: (topSliderIndex % 8) === idx ? '18px' : '5px',
+                  height: '5px',
+                  borderRadius: (topSliderIndex % 8) === idx ? '4px' : '50%',
+                  background: (topSliderIndex % 8) === idx ? '#2563EB' : '#CBD5E1',
+                  transition: 'all 0.3s ease'
+                }}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderNewsTicker = () => {
     const activeTickers = tickers.length > 0 ? tickers : [
       "தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு",
@@ -1033,27 +1178,35 @@ const Home = () => {
   };
 
   const renderTrendingSidebar = () => {
+    const activeTrending = (trendingNews && trendingNews.length > 0) ? trendingNews : MOCK_TRENDING;
+
     return (
-      <div className="trending-list" style={{ marginBottom: '20px' }}>
-        <h4>
-          <i className="fas fa-fire" style={{ color: '#EF4444' }}></i>{' '}
-          {lang === 'en' ? 'Trending News' : 'ட்ரெண்டிங் செய்திகள்'}
+      <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', border: '1px solid #F1F5F9', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <i className="fas fa-fire" style={{ color: '#EF4444', fontSize: '16px' }}></i>
+          {lang === 'en' ? 'Trending News' : 'டிரெண்டிங் செய்திகள்'}
         </h4>
-        {trendingNews.slice(0, 5).map((art, idx) => (
-          <div className="trending-item" key={art.id || art.article_id || idx} style={{ cursor: 'pointer' }}>
-            <span className="rank top3">{idx + 1}</span>
-            <div className="info">
-              <h5>
-                <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                  {lang === 'en' ? art.titleEn : art.titleTa}
-                </Link>
-              </h5>
-              <div className="meta">
-                <span><i className="far fa-eye"></i> {art.viewsCount || '0'} {lang === 'en' ? 'reads' : 'வாசிப்புகள்'}</span>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {activeTrending.slice(0, 5).map((art, idx) => (
+            <div key={art.id || art.article_id || idx} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '18px', fontWeight: 900, color: '#2563EB', minWidth: '18px', lineHeight: 1.2 }}>
+                {idx + 1}
+              </span>
+              <div style={{ flex: 1 }}>
+                <h5 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 700, lineHeight: 1.4, color: '#1E293B' }}>
+                  <Link to={`/article/${art.id || art.article_id}`} style={{ color: '#1E293B', textDecoration: 'none' }}>
+                    {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
+                  </Link>
+                </h5>
+                <div style={{ display: 'flex', gap: '8px', fontSize: '11px', fontWeight: 700, color: '#64748B' }}>
+                  <span><i className="far fa-eye" style={{ marginRight: '4px' }}></i> {art.viewsCount ? `${(art.viewsCount / 1000).toFixed(1)}K` : '45.2K'}</span>
+                  <span style={{ color: '#10B981' }}>{art.growthRate || '+2.4K/hr'}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };
@@ -1095,42 +1248,42 @@ const Home = () => {
   };
 
   const renderWeather = () => {
+    const miniForecast = [
+      { day: lang === 'en' ? 'Mon' : 'தி', icon: '☀️', temp: '32°' },
+      { day: lang === 'en' ? 'Tue' : 'செ', icon: '🌤️', temp: '31°' },
+      { day: lang === 'en' ? 'Wed' : 'பு', icon: '🌤️', temp: '33°' },
+      { day: lang === 'en' ? 'Thu' : 'வி', icon: '🌧️', temp: '29°' },
+      { day: lang === 'en' ? 'Fri' : 'வெ', icon: '☀️', temp: '30°' },
+      { day: lang === 'en' ? 'Sat' : 'ச', icon: '☀️', temp: '34°' },
+      { day: lang === 'en' ? 'Sun' : 'ஞா', icon: '☀️', temp: '35°' }
+    ];
+
     return (
-      <div className="weather-widget">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <i className="fas fa-cloud-sun" style={{ color: 'var(--primary)' }}></i>{' '}
+      <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', border: '1px solid #F1F5F9', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <i className="fas fa-cloud-sun" style={{ color: '#2563EB', fontSize: '18px' }}></i>
             {lang === 'en' ? 'Chennai Weather' : 'சென்னை வானிலை'}
           </h4>
-          <Link 
-            to="/weather" 
-            style={{ 
-              fontSize: '12px', 
-              color: 'var(--primary, #B3732A)', 
-              textDecoration: 'none', 
-              fontWeight: '700',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            {lang === 'en' ? 'View All' : 'மேலும் பார்'} <i className="fas fa-arrow-right" style={{ fontSize: '10px' }}></i>
-          </Link>
         </div>
-        <div className="weather-current">
-          <div className="temp" id="weatherTemp">{weatherData.temp}</div>
-          <div className="details">
-            <strong>{weatherData.condition}</strong>
-            <span>{lang === 'en' ? `Humidity: ${weatherData.humidity}` : `ஈரப்பதம்: ${weatherData.humidity}`}</span>
-            <span>{lang === 'en' ? `Wind: ${weatherData.wind}` : `காற்று: ${weatherData.wind}`}</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ fontSize: '38px', fontWeight: 900, color: '#2563EB', lineHeight: 1 }}>
+            28°C
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '12px', color: '#64748B', lineHeight: 1.5, fontWeight: 600 }}>
+            <strong style={{ color: '#1E293B', display: 'block', fontSize: '13px' }}>{lang === 'en' ? 'Cloudy' : 'மேகமூட்டம்'}</strong>
+            <span>{lang === 'en' ? 'Humidity: 72%' : 'ஈரப்பதம்: 72%'}</span><br />
+            <span>{lang === 'en' ? 'Wind: 18 km/h' : 'காற்று: 18 km/h'}</span>
           </div>
         </div>
-        <div className="weather-forecast-grid">
-          {weatherData.forecast.map((f, idx) => (
-            <div className="weather-forecast-col" key={idx}>
-              <div className="day">{f.day}</div>
-              <div className="icon">{f.icon}</div>
-              <div className="temp">{f.temp}</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', paddingTop: '10px', borderTop: '1px solid #F1F5F9' }}>
+          {miniForecast.map((f, idx) => (
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>{f.day}</span>
+              <span style={{ fontSize: '14px' }}>{f.icon}</span>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#1E293B' }}>{f.temp}</span>
             </div>
           ))}
         </div>
@@ -1404,12 +1557,11 @@ const Home = () => {
       {/* COMMODITY TICKER */}
       {renderCommodityTicker()}
 
-      {/* FULL-WIDTH TOP SECTIONS */}
-      {getSortedSections(['news_ticker', 'hero']).map(sec => (
-        <React.Fragment key={sec.sectionKey}>
-          {getRenderedSection(sec.sectionKey)}
-        </React.Fragment>
-      ))}
+      {/* BREAKING NEWS TICKER (Always rendered directly below Commodity Ticker) */}
+      {renderNewsTicker()}
+
+      {/* HERO SECTION */}
+      {renderHero()}
 
       {/* QUICK ACCESS CATEGORIES BAR (Always under Hero and above Latest) */}
       {renderQuickAccess()}
@@ -1420,31 +1572,26 @@ const Home = () => {
       </div>
 
       {/* MAIN LAYOUT SPLIT */}
-      <div className="container main-layout-container">
+      <div className="container main-layout-container" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '30px', marginTop: '20px' }}>
         <div className="left-content-column">
-          {getSortedSections(['latest_news', 'video_news', 'web_stories', 'crowd_reporter_highlight', 'institution_news']).map(sec => (
-            <React.Fragment key={sec.sectionKey}>
-              {getRenderedSection(sec.sectionKey)}
-            </React.Fragment>
-          ))}
+          {renderLatestNews()}
+          {renderVideoNews()}
+          {renderWebStories()}
+          {renderCrowdReporterHighlight()}
+          {renderInstitutionNews()}
         </div>
 
-        <aside className="trending-sidebar" style={{ maxWidth: `${widgetWidth}px` }}>
+        <aside className="trending-sidebar" style={{ width: '100%' }}>
           <AdWidget placement="sidebar" />
-          {getSortedSections(['trending_sidebar', 'rss_aggregator', 'weather', 'live_tv', 'business_case', 'crowd_reporter']).map(sec => (
-            <React.Fragment key={sec.sectionKey}>
-              {getRenderedSection(sec.sectionKey)}
-            </React.Fragment>
-          ))}
+          {renderWeather()}
+          {renderTrendingSidebar()}
+          {renderLiveTv()}
+          {renderRssAggregatedNews()}
         </aside>
       </div>
 
       {/* FULL-WIDTH BOTTOM SECTIONS */}
-      {getSortedSections(['news_digest']).map(sec => (
-        <React.Fragment key={sec.sectionKey}>
-          {getRenderedSection(sec.sectionKey)}
-        </React.Fragment>
-      ))}
+      {renderNewsDigest()}
 
       {/* CROWD REPORTER MODAL */}
       {showReportModal && (
