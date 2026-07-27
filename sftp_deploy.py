@@ -88,11 +88,11 @@ def main():
 
     # 1. Upload React Frontend to REMOTE king-tv root
     local_frontend_dist = os.path.join(local_root, "frontend", "dist")
-    upload_dir_contents(sftp, local_frontend_dist, ROOT_REMOTE_DIR)
+    upload_dir_contents(sftp, local_frontend_dist, ROOT_REMOTE_DIR, force_all=True)
 
     # 2. Upload React Admin Dashboard to REMOTE king-tv/admin
     local_admin_dist = os.path.join(local_root, "admin", "dist")
-    upload_dir_contents(sftp, local_admin_dist, ADMIN_REMOTE_DIR)
+    upload_dir_contents(sftp, local_admin_dist, ADMIN_REMOTE_DIR, force_all=True)
 
     # Upload local .htaccess rules
     try:
