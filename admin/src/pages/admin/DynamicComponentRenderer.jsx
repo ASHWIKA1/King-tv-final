@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { generateBlockStyles } from './HomeLayoutBuilder'; // We will need to export this or move it
 
-const extractStyles = (config) => {
-  // Use the existing generateBlockStyles function by faking a layout item
-  // But wait, generateBlockStyles takes a stringified configJson.
-  // We can just use it or write a simpler one for nodes.
-  return generateBlockStyles(JSON.stringify(config || {}));
+const extractStyles = (config, viewMode) => {
+  return generateBlockStyles(JSON.stringify(config || {}), viewMode, true);
 };
 
 export const DynamicComponentRenderer = ({ 
@@ -15,6 +12,8 @@ export const DynamicComponentRenderer = ({
   onUpdateNode,
   onDeleteNode,
   onDuplicateNode,
+  viewMode = 'desktop',
+  activeConfigParams,
   // Drag and drop props
   draggedNodeId,
   onDragStart,
@@ -46,7 +45,8 @@ export const DynamicComponentRenderer = ({
     onSelectNode(node.id);
   };
 
-  const styles = extractStyles(node.config);
+  const configToUse = (activeNodeId === node.id && activeConfigParams) ? activeConfigParams : node.config;
+  const styles = extractStyles(configToUse, viewMode);
   
   // Base outline for edit mode
   const editorStyles = {
@@ -109,6 +109,8 @@ export const DynamicComponentRenderer = ({
                 onUpdateNode={onUpdateNode}
                 onDeleteNode={onDeleteNode}
                 onDuplicateNode={onDuplicateNode}
+                viewMode={viewMode}
+                activeConfigParams={activeConfigParams}
                 draggedNodeId={draggedNodeId}
                 onDragStart={onDragStart}
                 onDragOver={onDragOver}

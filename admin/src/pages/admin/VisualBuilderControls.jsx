@@ -244,8 +244,65 @@ export const ButtonEditor = ({ config, setConfig }) => {
     <div>
       <ControlText label="Button Text" value={config.text} onChange={v => setConfig(prev => ({ ...prev, text: v }))} />
       <ControlText label="URL / Link" value={config.link} onChange={v => setConfig(prev => ({ ...prev, link: v }))} />
-      <ControlSelect label="Variant" value={config.variant} onChange={v => setConfig(prev => ({ ...prev, variant: v }))} options={['solid', 'outline', 'ghost', 'link']} />
-      <ControlSelect label="Size" value={config.size} onChange={v => setConfig(prev => ({ ...prev, size: v }))} options={['sm', 'md', 'lg']} />
     </div>
   );
 };
+
+export const GridLayoutEditor = ({ config, setConfig, viewMode }) => {
+  const g = config.gridLayout?.[viewMode] || {};
+  // Fallback defaults
+  const columns = g.columns || 1;
+  const rows = g.rows !== undefined ? g.rows : 1;
+  const gap = g.gap !== undefined ? g.gap : 16;
+  const displayMode = g.displayMode || 'grid';
+  const cardWidth = g.cardWidth || 'auto';
+  
+  const update = (key, val) => {
+    setConfig(prev => {
+      const gl = prev.gridLayout || {};
+      const modeObj = gl[viewMode] || {};
+      return {
+        ...prev,
+        gridLayout: {
+          ...gl,
+          [viewMode]: { ...modeObj, [key]: val }
+        }
+      };
+    });
+  };
+  
+  return (
+    <div>
+      <ControlSelect 
+        label="Display Type" 
+        value={displayMode} 
+        onChange={v => update('displayMode', v)} 
+        options={['grid', 'carousel', 'horizontal-slider', 'stack']} 
+      />
+      {displayMode === 'grid' && (
+        <>
+          <ControlSelect 
+            label="Columns" 
+            value={columns} 
+            onChange={v => update('columns', parseInt(v, 10))} 
+            options={[0, 1, 2, 3, 4, 5, 6]} 
+          />
+          <ControlSelect 
+            label="Rows" 
+            value={rows} 
+            onChange={v => update('rows', parseInt(v, 10))} 
+            options={[0, 1, 2, 3, 4, 5, 6]} 
+          />
+        </>
+      )}
+      <ControlSlider label="Gap" value={gap} onChange={v => update('gap', v)} min={0} max={100} unit="px" />
+      <ControlSelect 
+        label="Card Width" 
+        value={cardWidth} 
+        onChange={v => update('cardWidth', v)} 
+        options={['auto', 'stretch', 'fixed']} 
+      />
+    </div>
+  );
+};
+

@@ -15,6 +15,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kingstv.controllers.CategoryController;
 
 /**
  * Taxonomy CRUD (#18) - categories, subcategories, locations, sub-locations.
@@ -33,6 +36,31 @@ public class TaxonomyAndConfigController {
     @Autowired private FontConfigRepository fontConfigRepository;
     @Autowired private SurveyPollRepository surveyPollRepository;
     @Autowired private WebstoreItemRepository webstoreItemRepository;
+    @Autowired private HomeLayoutConfigRepository layoutRepository;
+    @Autowired private CategoryController categoryController;
+
+    private void syncCategoriesToHomeLayout() {
+        try {
+            List<Map<String, Object>> navCategories = categoryController.getNavMenu();
+            List<HomeLayoutConfig> layouts = layoutRepository.findByLayoutTypeOrderByDisplayOrderAsc("WEB");
+            for (HomeLayoutConfig layout : layouts) {
+                if ("website_navigation".equals(layout.getSectionKey())) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map<String, Object> config = new HashMap<>();
+                    if (layout.getConfigJson() != null && !layout.getConfigJson().isEmpty()) {
+                        try {
+                            config = mapper.readValue(layout.getConfigJson(), new TypeReference<Map<String,Object>>() {});
+                        } catch(Exception e) {}
+                    }
+                    config.put("categories", navCategories);
+                    layout.setConfigJson(mapper.writeValueAsString(config));
+                    layoutRepository.save(layout);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     // --- Taxonomy: Categories (#18) ---
     @GetMapping("/taxonomy/categories")
@@ -51,7 +79,9 @@ public class TaxonomyAndConfigController {
         if (req.containsKey("color")) cat.setColor((String) req.get("color"));
         cat.setIsNav(req.containsKey("isNav") ? (Boolean) req.get("isNav") : true);
         cat.setIsActive(req.containsKey("isActive") ? (Boolean) req.get("isActive") : true);
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoryRepository.save(cat));
+        Category savedCat = categoryRepository.save(cat);
+        syncCategoriesToHomeLayout();
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedCat);
     }
 
     @PutMapping("/taxonomy/categories/{id}")
@@ -66,7 +96,9 @@ public class TaxonomyAndConfigController {
             if (req.containsKey("color")) cat.setColor((String) req.get("color"));
             if (req.containsKey("isNav")) cat.setIsNav((Boolean) req.get("isNav"));
             if (req.containsKey("isActive")) cat.setIsActive((Boolean) req.get("isActive"));
-            return ResponseEntity.ok((Object) categoryRepository.save(cat));
+            Category savedCat = categoryRepository.save(cat);
+            syncCategoriesToHomeLayout();
+            return ResponseEntity.ok((Object) savedCat);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -75,6 +107,7 @@ public class TaxonomyAndConfigController {
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
         if (!categoryRepository.existsById(id)) return ResponseEntity.notFound().build();
         categoryRepository.deleteById(id);
+        syncCategoriesToHomeLayout();
         return ResponseEntity.ok(Map.of("message", "Category deleted"));
     }
 
@@ -86,7 +119,9 @@ public class TaxonomyAndConfigController {
     @PostMapping("/taxonomy/subcategories")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
     public ResponseEntity<?> createSubCategory(@RequestBody SubCategory subcat) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(subCategoryRepository.save(subcat));
+        SubCategory savedSubCat = subCategoryRepository.save(subcat);
+        syncCategoriesToHomeLayout();
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedSubCat);
     }
 
     @PutMapping("/taxonomy/subcategories/{id}")
@@ -100,7 +135,9 @@ public class TaxonomyAndConfigController {
             if (req.containsKey("categoryId")) sub.setCategoryId(Long.valueOf(req.get("categoryId").toString()));
             if (req.containsKey("parentId")) sub.setParentId(req.get("parentId") != null ? Long.valueOf(req.get("parentId").toString()) : null);
             if (req.containsKey("status")) sub.setStatus((String) req.get("status"));
-            return ResponseEntity.ok((Object) subCategoryRepository.save(sub));
+            SubCategory savedSub = subCategoryRepository.save(sub);
+            syncCategoriesToHomeLayout();
+            return ResponseEntity.ok((Object) savedSub);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -109,6 +146,7 @@ public class TaxonomyAndConfigController {
     public ResponseEntity<?> deleteSubCategory(@PathVariable Long id) {
         if (!subCategoryRepository.existsById(id)) return ResponseEntity.notFound().build();
         subCategoryRepository.deleteById(id);
+        syncCategoriesToHomeLayout();
         return ResponseEntity.ok(Map.of("message", "SubCategory deleted"));
     }
 

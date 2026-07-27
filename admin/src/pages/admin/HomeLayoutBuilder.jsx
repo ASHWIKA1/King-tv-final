@@ -9,7 +9,7 @@ import {
   TypographyEditor, ColorsEditor, BackgroundEditor, 
   BorderEditor, AnimationEditor, LayoutEditor, 
   SpacingEditor, Accordion, ControlText, ControlToggle,
-  TextEditor, ButtonEditor, ControlColor
+  TextEditor, ButtonEditor, ControlColor, ControlSelect, ControlSlider, GridLayoutEditor
 } from './VisualBuilderControls';
 import { ComponentLibraryModal } from './ComponentLibraryModal';
 import { DynamicComponentRenderer } from './DynamicComponentRenderer';
@@ -17,7 +17,8 @@ import { findNode, deleteNode, updateNode, insertNode, removeAndGetNode } from '
 import { 
   Save, Eye, EyeOff, Trash2, Sliders, CheckCircle, 
   RotateCcw, Undo2, X, PlusCircle, ArrowUp, ArrowDown, Settings, 
-  HelpCircle, Sparkles, Move, History, FileText, Wand2, Layers
+  HelpCircle, Sparkles, Move, History, FileText, Wand2, Layers,
+  Menu, Edit2, Search, Languages, Moon, Monitor, User, ChevronRight, ChevronLeft
 } from 'lucide-react';
 
 const PREDEFINED_SECTIONS = Object.values(WIDGET_REGISTRY).map(w => ({
@@ -27,7 +28,7 @@ const PREDEFINED_SECTIONS = Object.values(WIDGET_REGISTRY).map(w => ({
   desc: w.description
 }));
 
-export const generateBlockStyles = (configStr, viewMode = 'desktop') => {
+export const generateBlockStyles = (configStr, viewMode = 'desktop', includeGrid = false) => {
   let styles = {};
   try {
     const config = typeof configStr === 'string' ? JSON.parse(configStr || '{}') : (configStr || {});
@@ -67,13 +68,267 @@ export const generateBlockStyles = (configStr, viewMode = 'desktop') => {
       if (config.colors.text) styles.color = config.colors.text;
     }
 
+    // Grid Layout
+    if (includeGrid && config.gridLayout) {
+      const g = config.gridLayout[viewMode] || config.gridLayout['desktop'] || {};
+      const displayMode = g.displayMode || 'grid';
+      const columns = g.columns || 1;
+      const rows = g.rows !== undefined ? g.rows : 1;
+      const gap = g.gap !== undefined ? g.gap : 16;
+
+      if (displayMode === 'carousel' || displayMode === 'horizontal-slider') {
+        styles.display = 'flex';
+        styles.gap = `${gap}px`;
+        styles.overflowX = 'auto';
+        styles.scrollSnapType = 'x mandatory';
+        styles.paddingBottom = '8px';
+        styles.WebkitOverflowScrolling = 'touch';
+        styles.scrollbarWidth = 'none';
+        styles.msOverflowStyle = 'none';
+      } else if (displayMode === 'stack') {
+        styles.display = 'flex';
+        styles.flexDirection = 'column';
+        styles.gap = `${gap}px`;
+      } else if (columns > 0 || rows > 0) {
+        styles.display = 'grid';
+        if (columns > 0) styles.gridTemplateColumns = `repeat(${columns}, minmax(min(120px, 100%), 1fr))`;
+        if (rows > 0) styles.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        styles.gap = `${gap}px`;
+        // Make it horizontally draggable if columns exceed screen width
+        styles.overflowX = 'auto';
+        styles.WebkitOverflowScrolling = 'touch';
+      } else {
+        styles.display = 'flex';
+        styles.flexDirection = 'column';
+        styles.gap = `${gap}px`;
+      }
+    }
+
     return styles;
   } catch(e) {
     return {};
   }
 };
+const PremiumScrollContainer = ({ children, style, className }) => {
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  // Velocity tracking
+  const velocityRef = useRef(0);
+  const lastTimeRef = useRef(0);
+  const lastXRef = useRef(0);
+  const rafRef = useRef(null);
+
+  const updateScrollArrows = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setShowLeft(scrollLeft > 5);
+      setShowRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => updateScrollArrows());
+    observer.observe(el);
+    updateScrollArrows();
+    window.addEventListener('resize', updateScrollArrows);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScrollArrows);
+    };
+  }, [children]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    const handleNativeWheel = (e) => {
+      // If user is scrolling vertically with wheel, map it to horizontal
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    if (el) {
+      el.addEventListener('wheel', handleNativeWheel, { passive: false });
+    }
+    return () => {
+      if (el) el.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, []);
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+    velocityRef.current = 0;
+    lastXRef.current = e.pageX;
+    lastTimeRef.current = performance.now();
+    cancelAnimationFrame(rafRef.current);
+  };
+
+  const handleTouchStart = (e) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+    velocityRef.current = 0;
+    lastXRef.current = e.touches[0].pageX;
+    lastTimeRef.current = performance.now();
+    cancelAnimationFrame(rafRef.current);
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+    
+    const now = performance.now();
+    const dt = now - lastTimeRef.current;
+    if (dt > 0) {
+      const dx = e.pageX - lastXRef.current;
+      velocityRef.current = dx / dt;
+    }
+    lastXRef.current = e.pageX;
+    lastTimeRef.current = now;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+    
+    const now = performance.now();
+    const dt = now - lastTimeRef.current;
+    if (dt > 0) {
+      const dx = e.touches[0].pageX - lastXRef.current;
+      velocityRef.current = dx / dt;
+    }
+    lastXRef.current = e.touches[0].pageX;
+    lastTimeRef.current = now;
+  };
+
+  const applyMomentum = () => {
+    let velocity = velocityRef.current * 15; // scalar
+    
+    const momentumLoop = () => {
+      if (Math.abs(velocity) > 0.5) {
+        scrollRef.current.scrollLeft -= velocity;
+        velocity *= 0.92; // friction
+        rafRef.current = requestAnimationFrame(momentumLoop);
+      }
+    };
+    rafRef.current = requestAnimationFrame(momentumLoop);
+  };
+
+  const scrollByAmount = (amount) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', ...style }} className={className}>
+      {/* Left Gradient & Arrow */}
+      {showLeft && (
+        <div style={{ 
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: '60px', 
+          background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)', 
+          zIndex: 10, display: 'flex', alignItems: 'center', pointerEvents: 'none'
+        }}>
+          <button 
+            onClick={() => scrollByAmount(-350)}
+            style={{ 
+              pointerEvents: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '50%', 
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              marginLeft: '4px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+            }}
+          >
+            <ChevronLeft size={16} color="#374151" />
+          </button>
+        </div>
+      )}
+
+      {/* Scrollable Container */}
+      <div
+        ref={scrollRef}
+        className="hide-scrollbar"
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          scrollBehavior: isDragging ? 'auto' : 'smooth',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          width: '100%',
+          padding: '0 10px',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onScroll={updateScrollArrows}
+      >
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        {children}
+      </div>
+
+      {/* Right Gradient & Arrow */}
+      {showRight && (
+        <div style={{ 
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: '60px', 
+          background: 'linear-gradient(to left, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)', 
+          zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', pointerEvents: 'none'
+        }}>
+          <button 
+            onClick={() => scrollByAmount(350)}
+            style={{ 
+              pointerEvents: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '50%', 
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              marginRight: '4px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+            }}
+          >
+            <ChevronRight size={16} color="#374151" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const HomeLayoutBuilder = () => {
+  const getMappedName = (name) => {
+    return name;
+  };
   const [layout, setLayout] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +354,8 @@ const HomeLayoutBuilder = () => {
   const [activeRootSectionId, setActiveRootSectionId] = useState(null);
   
   // Configuration sidebar state
-  const [activeConfigSection, setActiveConfigSection] = useState(null); // Now stores the entire selected node (or root section if id < 100000)
+  const [activeConfigSection, setActiveConfigSection] = useState(null);
+  const [insertIndex, setInsertIndex] = useState(null); // Now stores the entire selected node (or root section if id < 100000)
   const [configTitle, setConfigTitle] = useState('');
   const [configParams, setConfigParams] = useState({ limit: 6, categoryId: '', type: 'grid', provider: 'latest_news' });
 
@@ -110,6 +366,25 @@ const HomeLayoutBuilder = () => {
   const [openAccordion, setOpenAccordion] = useState('General');
   const settingsScrollRef = useRef(null);
   const sectionRefs = useRef({});
+
+  // UI/UX Enhancements: Sidebar Collapse State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return sessionStorage.getItem('layout_builder_sidebar') !== 'false';
+  });
+
+  useEffect(() => {
+    if (isSidebarCollapsed) {
+      document.body.classList.add('sidebar-collapsed');
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
+    sessionStorage.setItem('layout_builder_sidebar', isSidebarCollapsed);
+
+    return () => {
+      // Clean up when unmounting
+      document.body.classList.remove('sidebar-collapsed');
+    };
+  }, [isSidebarCollapsed]);
 
   const fetchLayout = async () => {
     setLoading(true);
@@ -239,6 +514,16 @@ const HomeLayoutBuilder = () => {
   };
 
   const handleSaveAll = async () => {
+    // Inject current taxonomy categories into website_navigation block before saving
+    const layoutToSave = [...layout];
+    const navIndex = layoutToSave.findIndex(item => item.sectionKey === 'website_navigation');
+    if (navIndex !== -1) {
+      let config = {};
+      try { config = JSON.parse(layoutToSave[navIndex].configJson || '{}'); } catch(e) {}
+      config.categories = categories; // The categories state from fetchCategories
+      layoutToSave[navIndex] = { ...layoutToSave[navIndex], configJson: JSON.stringify(config) };
+    }
+
     // 1. Instantly show alert popup and clear unsaved state (0ms delay!)
     setUnsavedChanges(false);
     setUndoStack([]);
@@ -249,7 +534,7 @@ const HomeLayoutBuilder = () => {
     try {
       let saved = false;
       try {
-        const res = await api.put('/admin/layout/bulk-save', layout);
+        const res = await api.put('/admin/layout/bulk-save', layoutToSave);
         if (Array.isArray(res.data) && res.data.length > 0) {
           setLayout(res.data);
           saved = true;
@@ -259,7 +544,7 @@ const HomeLayoutBuilder = () => {
       }
 
       if (!saved) {
-        const reorderPayload = layout
+        const reorderPayload = layoutToSave
           .filter(item => item.id && typeof item.id === 'number' && item.id < 1000000000)
           .map((item, idx) => ({
             id: item.id,
@@ -269,8 +554,8 @@ const HomeLayoutBuilder = () => {
           await api.put('/admin/layout/reorder', reorderPayload);
         }
 
-        for (let i = 0; i < layout.length; i++) {
-          const item = layout[i];
+        for (let i = 0; i < layoutToSave.length; i++) {
+          const item = layoutToSave[i];
           if (item.id && typeof item.id === 'number' && item.id < 1000000000) {
             await api.put(`/admin/layout/${item.id}`, {
               displayOrder: i + 1,
@@ -289,7 +574,7 @@ const HomeLayoutBuilder = () => {
   };
 
   // Add section from library
-  const handleAddSectionKey = (key) => {
+  const handleAddSectionKey = (key, insertAt = null) => {
     const predefined = PREDEFINED_SECTIONS.find(p => p.key === key);
     if (!predefined) return;
 
@@ -337,7 +622,7 @@ const HomeLayoutBuilder = () => {
         }
       }
       
-      pushUndo(layout.filter(item => item.id !== id));
+      pushUndo(layoutToSave.filter(item => item.id !== id));
       
       // Perform DB delete instantly to stay synchronized
       if (target && !target.isNew) {
@@ -679,8 +964,59 @@ const HomeLayoutBuilder = () => {
 
 
 
+  // Grid Layout Helper
+  const applyGridStyles = (config, currentViewMode) => {
+    const defaultStyles = { display: 'flex', flexWrap: 'wrap', gap: '16px' };
+    if (!config || !config.gridLayout) return defaultStyles;
+    
+    // Fallbacks if current view mode isn't explicitly set, cascade down from desktop
+    const g = config.gridLayout[currentViewMode] || config.gridLayout['desktop'] || {};
+    
+    const displayMode = g.displayMode || 'grid';
+    const columns = g.columns || 1;
+    const rows = g.rows !== undefined ? g.rows : 1;
+    const gap = g.gap !== undefined ? g.gap : 16;
+    
+    if (displayMode === 'carousel' || displayMode === 'horizontal-slider') {
+      return {
+        display: 'flex',
+        gap: `${gap}px`,
+        overflowX: 'auto',
+        scrollSnapType: 'x mandatory',
+        paddingBottom: '8px',
+        WebkitOverflowScrolling: 'touch',
+        // Hide scrollbar for a cleaner mock look
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      };
+    } else if (displayMode === 'stack') {
+      return {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: `${gap}px`
+      };
+    } else if (columns > 0 || rows > 0) {
+      // Default Grid
+      const gridStyles = { 
+        display: 'grid', 
+        gap: `${gap}px`,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch'
+      };
+      if (columns > 0) gridStyles.gridTemplateColumns = `repeat(${columns}, minmax(min(120px, 100%), 1fr))`;
+      if (rows > 0) gridStyles.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      return gridStyles;
+    } else {
+      return {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: `${gap}px`
+      };
+    }
+  };
+
   // Render mock HTML preview elements inside canvas
-  const renderVisualMock = (sectionKey, label, configJsonStr) => {
+  const renderVisualMock = (sectionKey, label, configJsonStr, viewMode) => {
     const config = typeof configJsonStr === 'string' ? JSON.parse(configJsonStr || '{}') : {};
     const themeColor = config.themeColor || '#3B82F6';
     
@@ -693,37 +1029,151 @@ const HomeLayoutBuilder = () => {
         if (align === 'right') jc = 'flex-end';
         
         return (
-          <div style={{ fontFamily: '"Mukta Malar", sans-serif' }}>
-            {/* Top Logo Header Area */}
-            <div style={{ background: '#fff', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#C88D37', letterSpacing: '1px' }}>KING</div>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#666', marginTop: '-4px' }}>24x7 Multiform TV</div>
+          <div style={{ fontFamily: '"Inter", "Mukta Malar", sans-serif', width: '100%', overflow: 'hidden' }}>
+            {/* Top Black Header */}
+            <div style={{ background: '#000000', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
+              
+              {/* Left Side: Menu, Logo, Title */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Menu size={24} color="#ffffff" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Actual Logo */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <img 
+                      src="/assets/logo-banner-dark.png" 
+                      alt="KING 24x7" 
+                      style={{ height: '40px', objectFit: 'contain' }} 
+                      onError={(e) => { 
+                        e.target.onerror = null; 
+                        e.target.src = '/assets/images/logo-banner-dark.png'; // fallback
+                      }} 
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <div style={{ background: '#C88D37', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>▶</span> LIVE TV WATCH NOW
+
+              {/* Right Side: Icons & Live TV */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <Search size={20} color="#ffffff" />
+                <Languages size={20} color="#ffffff" />
+                <Moon size={20} color="#ffffff" />
+                <div style={{ 
+                  background: 'linear-gradient(90deg, #ef4444, #dc2626)', 
+                  color: '#fff', 
+                  padding: '4px 10px', 
+                  borderRadius: '6px', 
+                  fontSize: '11px', 
+                  fontWeight: 700, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)'
+                }}>
+                  <Monitor size={14} /> LIVE
+                </div>
+                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User size={16} color="#000" />
                 </div>
               </div>
             </div>
-            {/* Navigation Bar */}
-            <div style={{ background: '#B67C2F', padding: '0 30px', borderTop: '4px solid #FACC15' }}>
-              <div style={{ display: 'flex', gap: '0', alignItems: 'center', justifyContent: jc, flexWrap: 'wrap', margin: 0 }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#000', cursor: 'pointer', background: '#fff', padding: '12px 20px', flexShrink: 0 }}>Home</div>
-                {categories.map(cat => (
-                  <React.Fragment key={cat.id}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', padding: '12px 20px', flexShrink: 0 }}>
-                      {cat.nameTa || cat.name}
-                    </div>
-                    {cat.subcategories && cat.subcategories.map(sub => (
-                      <div key={`sub-${sub.id}`} style={{ fontSize: '13px', fontWeight: 600, color: '#facc15', cursor: 'pointer', whiteSpace: 'nowrap', padding: '14px 15px', flexShrink: 0, opacity: 0.9 }}>
-                        ↳ {sub.nameTa || sub.name}
-                      </div>
-                    ))}
-                  </React.Fragment>
-                ))}
-                <div style={{ marginLeft: 'auto', padding: '12px 20px', color: '#fff', flexShrink: 0 }}>🔍</div>
-              </div>
+
+            {/* Bottom White Navigation Bar */}
+            <div style={{ background: '#000000', padding: '0 16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <PremiumScrollContainer 
+                style={{ display: 'flex', gap: '0', alignItems: 'center', justifyContent: jc, margin: 0, width: '100%' }}
+                className="hide-scrollbar"
+              >
+                {/* Active Home Item */}
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', borderBottom: '3px solid #B3732A', flexShrink: 0 }}>
+                  <div style={{ color: '#FFFFFF', padding: '8px 4px 6px 12px', fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                    Home
+                  </div>
+                </div>
+                {/* Dynamic Categories */}
+                {(() => {
+                  try {
+                    const safeCategories = Array.isArray(categories) ? categories : [];
+                    const dbItems = safeCategories.map((cat = {}) => {
+                      const catSlug = (cat.slug || '').toLowerCase();
+                      const enTranslations = {
+                        'politics': 'Politics',
+                        'business': 'Business',
+                        'sports': 'Sports',
+                        'cinema': 'Cinema',
+                        'tech': 'Technology',
+                        'technology': 'Technology',
+                        'regional': 'Regional',
+                        'international': 'International',
+                        'world': 'International',
+                        'video': 'Videos',
+                        'videos': 'Videos',
+                        'web-stories': 'Web Stories'
+                      };
+                      const labelVal = enTranslations[catSlug] || cat.nameEn || cat.nameTa || cat.name || 'Category';
+                      return {
+                        id: cat.id || Math.random(),
+                        slug: catSlug,
+                        label: labelVal,
+                        subcategories: cat.subcategories || []
+                      };
+                    });
+
+                    const findDbItem = (slug) => dbItems.find(item => item && item.slug === slug);
+
+                    let dynamicItems = [];
+                    
+                    dynamicItems.push(findDbItem('politics') || { id: 'politics', label: 'Politics', subcategories: [] });
+                    dynamicItems.push(findDbItem('business') || { id: 'business', label: 'Business', subcategories: [] });
+                    dynamicItems.push(findDbItem('sports') || { id: 'sports', label: 'Sports', subcategories: [] });
+                    dynamicItems.push(findDbItem('cinema') || { id: 'cinema', label: 'Cinema', subcategories: [] });
+                    dynamicItems.push(findDbItem('tech') || findDbItem('technology') || { id: 'tech', label: 'Technology', subcategories: [] });
+                    
+                    const regionalSubcategories = [
+                      { id: 'reg-dir', label: 'Local Business Directory' },
+                      { id: 'reg-deals', label: 'Deals' },
+                      { id: 'reg-rfq', label: 'RFQ' }
+                    ];
+                    dynamicItems.push(findDbItem('regional') || { id: 'regional', label: 'Regional', subcategories: regionalSubcategories });
+                    
+                    dynamicItems.push(findDbItem('international') || findDbItem('world') || { id: 'international', label: 'International', subcategories: [] });
+                    
+                    const videoSubcategories = [
+                      { id: 'vid-news', label: 'News Videos' },
+                      { id: 'vid-ent', label: 'Entertainment' },
+                      { id: 'vid-sports', label: 'Sports Highlights' }
+                    ];
+                    dynamicItems.push(findDbItem('videos') || findDbItem('video') || { id: 'videos', label: 'Videos', subcategories: videoSubcategories });
+                    
+                    dynamicItems.push(findDbItem('web-stories') || { id: 'web-stories', label: 'Web Stories', subcategories: [] });
+                    
+                    const hardcodedSlugs = ['politics', 'business', 'sports', 'cinema', 'tech', 'technology', 'regional', 'international', 'world', 'videos', 'video', 'web-stories'];
+                    dbItems.forEach(item => {
+                      if (item && item.slug && !hardcodedSlugs.includes(item.slug.toLowerCase())) {
+                        dynamicItems.push(item);
+                      }
+                    });
+
+                    return dynamicItems.map((cat, index) => {
+                      const isParentNode = cat.subcategories && cat.subcategories.length > 0;
+                      return (
+                        <div key={cat.id || index} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', borderBottom: '3px solid transparent', flexShrink: 0 }}>
+                          <div style={{ color: '#94A3B8', padding: '8px 4px 6px 12px', fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                            {cat.label}
+                          </div>
+                          {isParentNode && (
+                            <div style={{ background: 'transparent', border: 'none', display: 'inline-flex', alignItems: 'center', padding: '8px 12px 6px 4px', color: '#94A3B8' }}>
+                              <i className="fas fa-caret-down" style={{ fontSize: '10px', opacity: 0.8 }}></i>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  } catch (e) {
+                    console.error("HomeLayoutBuilder Render Error:", e);
+                    return <div style={{ color: 'red' }}>Error loading categories: {e.message}</div>;
+                  }
+                })()}
+              </PremiumScrollContainer>
             </div>
           </div>
         );
@@ -739,7 +1189,7 @@ const HomeLayoutBuilder = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '10px', minHeight: '130px' }}>
             <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '6px', padding: '16px', display: 'flex', alignItems: 'flex-end', color: '#ffffff', borderTop: `4px solid ${themeColor}` }}>
               <div>
-                <span style={{ fontSize: '9px', background: themeColor, padding: '2px 6px', borderRadius: '4px' }}>அரசியல்</span>
+                <span style={{ fontSize: '9px', background: themeColor, padding: '2px 6px', borderRadius: '4px' }}>All</span>
                 <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px' }}>{label || "Hero Headline..."}</div>
               </div>
             </div>
@@ -752,8 +1202,8 @@ const HomeLayoutBuilder = () => {
         );
       case 'quick_access':
         return (
-          <div style={{ display: 'flex', justifyContent: 'space-around', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-            {['அரசியல்', 'வணிகம்', 'விளையாட்டு', 'சினிமா', 'தொழில்நுட்பம்'].map((cat, idx) => (
+          <div style={{ ...applyGridStyles(config, viewMode), background: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+            {['All', 'Local Business Directory', 'Wishes', 'Obituaries', 'Jobs', 'Classifieds'].map((cat, idx) => (
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '9px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: themeColor }}></div>
                 {cat}
@@ -768,11 +1218,11 @@ const HomeLayoutBuilder = () => {
               <div style={{ width: '4px', height: '14px', background: themeColor, borderRadius: '2px' }}></div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{label || 'News Grid'}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-              {[1, 2, 3].map(i => (
-                <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', background: 'var(--bg-card)' }}>
-                  <div style={{ height: '40px', background: '#E2E8F0' }}></div>
-                  <div style={{ padding: '6px', fontSize: '10px', fontWeight: 600 }}>news summary card...</div>
+            <div style={applyGridStyles(config, viewMode)}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', background: 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                  <div style={{ height: '80px', background: '#E2E8F0' }}></div>
+                  <div style={{ padding: '8px', fontSize: '10px', fontWeight: 600 }}>news summary card {i}...</div>
                 </div>
               ))}
             </div>
@@ -785,80 +1235,174 @@ const HomeLayoutBuilder = () => {
               <div style={{ width: '4px', height: '14px', background: themeColor, borderRadius: '2px' }}></div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{label || 'Video Gallery'}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-              <div style={{ height: '70px', background: '#334155', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>▶</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ height: '20px', background: '#1E293B', borderRadius: '2px' }}></div>
-                <div style={{ height: '20px', background: '#1E293B', borderRadius: '2px' }}></div>
-                <div style={{ height: '20px', background: '#1E293B', borderRadius: '2px' }}></div>
-              </div>
+            <div style={applyGridStyles(config, viewMode)}>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', background: 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '220px' : 'auto', scrollSnapAlign: 'start' }}>
+                  <div style={{ height: '90px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: '#fff' }}>▶</div>
+                  <div style={{ padding: '8px', fontSize: '10px', fontWeight: 600 }}>Video Title {i}</div>
+                </div>
+              ))}
             </div>
           </div>
         );
       case 'web_stories':
         return (
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'hidden' }}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ flex: '1', height: '80px', borderRadius: '6px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', border: '1px solid #EC4899', position: 'relative', display: 'flex', alignItems: 'flex-end', padding: '6px' }}>
-                <span style={{ fontSize: '8px', color: '#fff', fontWeight: 700 }}>web story...</span>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} style={{ minWidth: '80px', height: '120px', borderRadius: '6px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', border: '1px solid #EC4899', position: 'relative', display: 'flex', alignItems: 'flex-end', padding: '6px', scrollSnapAlign: 'start' }}>
+                <span style={{ fontSize: '8px', color: '#fff', fontWeight: 700 }}>story {i}</span>
               </div>
             ))}
           </div>
         );
-      case 'trending_sidebar':
+      case 'trending_sidebar': {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>🔥 TRENDING TOP 5</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ fontSize: '9px', borderBottom: '1px solid var(--border-color)', pb: '4px' }}>1. Gold rates drop sharply in Chennai...</div>
-              <div style={{ fontSize: '9px' }}>2. Heavy rain warning for districts...</div>
-            </div>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>🔥 TRENDING TOP 5</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontSize: '9px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>1. Gold rates drop sharply in Chennai...</div>
+                  <div style={{ fontSize: '9px' }}>2. Heavy rain warning for districts...</div>
+                </div>
+              </div>
+            ))}
           </div>
         );
-      case 'weather':
+      }
+      case 'weather': {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ background: '#F0F9FF', border: '1px solid #B9E6FE', padding: '10px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifycontent: 'space-between', color: '#0369A1' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700 }}>Coimbatore, TN</div>
-              <div style={{ fontSize: '9px' }}>Heavy Rain Showers</div>
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>31°C 🌧️</div>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ background: '#F0F9FF', border: '1px solid #B9E6FE', padding: '10px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#0369A1', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 700 }}>Coimbatore, TN</div>
+                  <div style={{ fontSize: '9px' }}>Heavy Rain Showers</div>
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: 800 }}>31°C 🌧️</div>
+              </div>
+            ))}
           </div>
         );
-      case 'crowd_reporter':
+      }
+      case 'crowd_reporter': {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ border: '1.5px dashed #F59E0B', background: '#FEF3C7', padding: '10px', borderRadius: '6px', textAlign: 'center', color: '#D97706' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700 }}>📢 CITIZEN CROWD REPORTER</div>
-            <div style={{ fontSize: '9px', marginTop: '2px' }}>Submit ground breaking news alerts directly here!</div>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ border: '1.5px dashed #F59E0B', background: '#FEF3C7', padding: '10px', borderRadius: '6px', textAlign: 'center', color: '#D97706', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700 }}>📢 CITIZEN CROWD REPORTER</div>
+                <div style={{ fontSize: '9px', marginTop: '2px' }}>Submit ground breaking news alerts directly here!</div>
+              </div>
+            ))}
           </div>
         );
-      case 'business_case':
+      }
+      case 'business_case': {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '10px', borderRadius: '6px', color: '#6D28D9' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700 }}>💼 Local Business Spotlights</div>
-            <div style={{ height: '30px', background: '#fff', borderRadius: '4px', marginTop: '4px' }}></div>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '10px', borderRadius: '6px', color: '#6D28D9', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700 }}>💼 Local Business Spotlights</div>
+                <div style={{ height: '30px', background: '#fff', borderRadius: '4px', marginTop: '4px' }}></div>
+              </div>
+            ))}
           </div>
         );
-      case 'news_digest':
+      }
+      case 'news_digest': {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '10px', borderRadius: '6px', color: '#047857' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700 }}>📬 Curated News Digest</div>
-            <div style={{ fontSize: '9px' }}>Summarized news briefs generated automatically by AI editors.</div>
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '10px', borderRadius: '6px', color: '#047857', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700 }}>📬 Curated News Digest</div>
+                <div style={{ fontSize: '9px' }}>Summarized news briefs generated automatically by AI editors.</div>
+              </div>
+            ))}
           </div>
         );
-      default:
+      }
+      default: {
+        const cols = config.gridLayout?.[viewMode]?.columns || config.gridLayout?.['desktop']?.columns || 1;
+        const rows = config.gridLayout?.[viewMode]?.rows !== undefined ? config.gridLayout?.[viewMode]?.rows : (config.gridLayout?.['desktop']?.rows !== undefined ? config.gridLayout?.['desktop']?.rows : 1);
+        const count = (cols > 0 ? cols : 1) * (rows > 0 ? rows : 1);
         return (
-          <div style={{ padding: '20px', background: '#F1F5F9', border: '1px dashed #CBD5E1', borderRadius: '6px', textAlign: 'center', color: '#64748B', fontSize: '12px', fontWeight: 600 }}>
-            <div style={{ fontSize: '18px', marginBottom: '8px' }}>🧩</div>
-            {label || sectionKey} Component Placeholder
+          <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
+            {Array.from({length: count}).map((_, i) => (
+              <div key={i} style={{ flex: 1, padding: '20px', background: '#F1F5F9', border: '1px dashed #CBD5E1', borderRadius: '6px', textAlign: 'center', color: '#64748B', fontSize: '12px', fontWeight: 600, minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div style={{ fontSize: '18px', marginBottom: '8px' }}>🧩</div>
+                {label || sectionKey} Component {i + 1}
+              </div>
+            ))}
           </div>
         );
+      }
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, backgroundColor: '#0f172a', fontFamily: 'Inter, sans-serif', color: '#f8fafc', overflow: 'hidden', zIndex: 100 }}>
+  <>
+    <style>{`
+  body {
+    overflow: hidden !important;
+  }
+  .builder-section-wrapper:hover .section-hover-toolbar {
+    opacity: 1 !important;
+  }
+`}</style>
+
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: 'calc(100vw - var(--sidebar-width))', position: 'fixed', top: 0, left: 'var(--sidebar-width)', backgroundColor: '#0f172a', fontFamily: 'Inter, sans-serif', color: '#f8fafc', overflow: 'hidden', zIndex: 100, transition: 'left 250ms ease, width 250ms ease' }}>
       
+      {/* Floating Sidebar Toggle Button */}
+      <button
+        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderLeft: 'none',
+          color: '#38bdf8',
+          padding: '16px 6px',
+          borderTopRightRadius: '8px',
+          borderBottomRightRadius: '8px',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '4px 0 15px rgba(0,0,0,0.5)',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(15, 23, 42, 0.95)'; e.currentTarget.style.color = '#38bdf8'; }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {isSidebarCollapsed ? (
+            <>▶</>
+          ) : (
+            <>◀</>
+          )}
+        </div>
+      </button>
+
       {/* Premium Top Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -888,6 +1432,17 @@ const HomeLayoutBuilder = () => {
               }}
             >
               🖥️ Desktop
+            </button>
+            <button
+              onClick={() => setViewMode('tablet')}
+              style={{
+                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: viewMode === 'tablet' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: viewMode === 'tablet' ? '#fff' : '#94a3b8',
+                transition: 'all 0.2s'
+              }}
+            >
+              💻 Tablet
             </button>
             <button
               onClick={() => setViewMode('mobile')}
@@ -947,70 +1502,31 @@ const HomeLayoutBuilder = () => {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         
-        {/* Left Panel: Component Library & Navigator */}
-        <div style={{ width: '280px', background: 'rgba(30, 41, 59, 0.4)', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 5 }}>
+        {/* Left/Center Column for Breadcrumb and Canvas */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           
-          <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}><PlusCircle size={16} color="#f59e0b" /> Add to Homepage</h4>
-            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.4 }}>Click any visual block type below to insert it onto the live canvas layout.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '45vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
-              {PREDEFINED_SECTIONS.map(s => {
-                const isAdded = layout.some(item => item.sectionKey === s.key);
-                return (
-                  <div
-                    key={s.key}
-                    onClick={() => !isAdded && handleAddSectionKey(s.key)}
-                    style={{
-                      opacity: isAdded ? 0.4 : 1, cursor: isAdded ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease', position: 'relative'
-                    }}
-                  >
-                    <div style={{ padding: '10px 16px', borderRadius: '6px', background: s.color, textAlign: 'center', color: '#fff', fontSize: '12px', fontWeight: 600, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                      {s.label}
-                    </div>
-                    <div style={{ marginTop: '8px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>{s.label}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', lineHeight: 1.4 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Breadcrumb */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', color: '#94a3b8' }}>
+            Home Layout
+            {activeConfigSection && (
+              <>
+                <ChevronRight size={14} /> <span style={{ color: '#fff', fontWeight: 600 }}>{activeConfigSection.sectionLabel || activeConfigSection.sectionKey}</span>
+              </>
+            )}
           </div>
-
-          <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 700, color: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              Page Navigator
-              <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>{layout.length} Blocks</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
-              {layout.map((item, idx) => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '6px', background: activeConfigSection?.id === item.id ? 'rgba(56, 189, 248, 0.15)' : 'transparent', border: `1px solid ${activeConfigSection?.id === item.id ? 'rgba(56, 189, 248, 0.3)' : 'transparent'}`, cursor: 'pointer', transition: 'all 0.15s' }} onClick={() => handleOpenConfig(item)}>
-                  <Move size={12} color="#64748b" style={{ cursor: 'grab' }} draggable="true" onDragStart={(e) => handleDragStart(e, idx)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx)} />
-                  <span style={{ fontSize: '12px', fontWeight: activeConfigSection?.id === item.id ? 700 : 500, color: activeConfigSection?.id === item.id ? '#38bdf8' : '#cbd5e1', flex: 1 }}>
-                    {item.sectionLabel}
-                  </span>
-                  <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(item.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: item.isVisible ? '#10b981' : '#64748b' }}>
-                    {item.isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
-                  </button>
-                </div>
-              ))}
-              {layout.length === 0 && <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center', marginTop: '20px' }}>No blocks added yet.</div>}
-            </div>
-          </div>
-        </div>
-
-        {/* Center Panel: Live Canvas Workspace */}
-        <div id="canvas-scroll-container" style={{ flex: 1, overflowY: 'auto', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', position: 'relative' }} className="custom-scrollbar">
-          <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
+          
+          {/* Center Panel: Live Canvas Workspace */}
+          <div id="canvas-scroll-container" style={{ flex: 1, overflow: 'hidden', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', position: 'relative' }}>
+            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', overflow: 'hidden' }}>
             
             <div style={{
-              width: viewMode === 'mobile' ? '414px' : '100%', maxWidth: viewMode === 'mobile' ? '414px' : '1200px',
+              width: viewMode === 'mobile' ? '390px' : viewMode === 'tablet' ? '834px' : '100%', 
+              maxWidth: viewMode === 'mobile' ? '390px' : viewMode === 'tablet' ? '834px' : '1440px',
             background: '#ffffff', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', border: '1px solid rgba(255,255,255,0.1)'
+            display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1, transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', border: '1px solid rgba(255,255,255,0.1)'
           }}>
             {/* Simulated Browser Frame Header */}
-            <div style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
@@ -1022,16 +1538,21 @@ const HomeLayoutBuilder = () => {
               <div style={{ width: '40px' }}></div>
             </div>
 
-            {/* Canvas Blocks */}
-            <div style={{ background: '#fff', padding: '0', display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
+            {/* Inner Scrollable Webpage Content */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="custom-scrollbar">
+              
+              {/* Canvas Blocks */}
+              <div style={{ background: '#fff', padding: '0', display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
               {loading ? (
                 <div style={{ padding: '80px', textAlign: 'center', color: '#3b82f6', fontSize: '15px', fontWeight: 600 }}>Loading visual homepage editor...</div>
               ) : layout.length === 0 ? (
-                <div style={{ padding: '80px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', margin: '24px', border: '2px dashed #cbd5e1', borderRadius: '12px' }}>
-                  Homepage canvas is empty.<br/>Drag & drop components from the library to build.
+                <div onClick={(e) => { e.stopPropagation(); setShowComponentLibrary(true); setInsertIndex(0); }} style={{ padding: '80px', textAlign: 'center', color: '#3b82f6', background: '#eff6ff', margin: '24px', border: '2px dashed #bfdbfe', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background='#dbeafe'} onMouseLeave={(e) => e.currentTarget.style.background='#eff6ff'}>
+                  <PlusCircle size={32} style={{ margin: '0 auto 12px' }} />
+                  <div style={{ fontSize: '16px', fontWeight: 600 }}>Homepage canvas is empty</div>
+                  <div style={{ fontSize: '13px', color: '#60a5fa', marginTop: '4px' }}>Click to add your first section</div>
                 </div>
-              ) : (
-                layout.map((item, idx) => {
+              ) : (<>
+                {layout.map((item, idx) => {
                   const isActive = activeConfigSection?.id === item.id;
                   let spacingStyle = { padding: '16px', margin: '0' };
                   let sData = null;
@@ -1055,14 +1576,31 @@ const HomeLayoutBuilder = () => {
                   } catch(e) {}
                   
                   return (
+                    <React.Fragment key={item.id}>
+
+                    {/* Inline Add Button Before Item */}
+                    <div 
+                      onClick={(e) => { e.stopPropagation(); setShowComponentLibrary(true); setInsertIndex(idx); }}
+                      style={{ 
+                        height: '24px', margin: '-12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', zIndex: 10, position: 'relative', cursor: 'pointer' 
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                    >
+                      <div style={{ width: '100%', height: '2px', background: '#3b82f6' }}></div>
+                      <div style={{ position: 'absolute', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                        <PlusCircle size={16} />
+                      </div>
+                    </div>
+
                     <div
-                      key={item.id}
+                      key={item.id + '_box'}
                       ref={(el) => (sectionRefs.current[item.id] = el)}
                       draggable="true"
                       onDragStart={(e) => handleDragStart(e, idx)}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, idx)}
-                      onClick={() => handleOpenConfig(item)}
+                      onClick={(e) => { e.stopPropagation(); handleOpenConfig(item); }}
                       style={{
                         position: 'relative',
                         border: isActive ? '2px solid #3b82f6' : '1px solid transparent',
@@ -1070,34 +1608,40 @@ const HomeLayoutBuilder = () => {
                         opacity: item.isVisible ? 1 : 0.5,
                         cursor: 'pointer',
                         transition: 'all 0.2s',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
                         ...spacingStyle
                       }}
                       onMouseEnter={(e) => { if(!isActive) e.currentTarget.style.border = '1px dashed #94a3b8'; }}
                       onMouseLeave={(e) => { if(!isActive) e.currentTarget.style.border = '1px solid transparent'; }}
+                      className="builder-section-wrapper"
                     >
                       {/* Floating Action Toolbar */}
-                      <div style={{ 
+                      <div className="section-hover-toolbar" style={{ 
                         position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', 
                         display: 'flex', alignItems: 'center', background: '#1e293b', color: '#fff', 
-                        padding: '4px 8px', borderRadius: '20px', gap: '12px', zIndex: 20, 
+                        padding: '4px 12px', borderRadius: '20px', gap: '12px', zIndex: 20, 
                         opacity: isActive ? 1 : 0, transition: 'opacity 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        border: '1px solid rgba(255,255,255,0.1)' 
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        maxWidth: '95%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', cursor: 'grab', color: '#94a3b8' }} title="Drag to reorder">
-                          <Move size={14} />
-                        </div>
-                        <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.2)' }}></div>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap' }}>{item.sectionLabel}</span>
-                        <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.2)' }}></div>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', flexShrink: 0 }}>{item.sectionLabel}</span>
+                        <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.2)', flexShrink: 0 }}></div>
                         
-                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateSection(item.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex' }} title="Duplicate Block" onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
-                          <Layers size={14} />
+                        <button onClick={(e) => { e.stopPropagation(); handleOpenConfig(item); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }} title="Edit" onMouseEnter={(e) => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
+                          ✏ Edit
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(item.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex' }} title="Toggle Visibility" onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
-                          {item.isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+                        <button onClick={(e) => { e.stopPropagation(); handleOpenConfig(item); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }} title="Settings" onMouseEnter={(e) => e.currentTarget.style.color = '#38bdf8'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
+                          ⚙ Settings
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleRemoveSection(item.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex' }} title="Delete Block" onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
-                          <Trash2 size={14} />
+                        <button onClick={(e) => { e.stopPropagation(); setShowComponentLibrary(true); setInsertIndex(idx + 1); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }} title="Add Below" onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
+                          ＋ Add Below
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateSection(item.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }} title="Duplicate" onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
+                          ⧉ Duplicate
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleRemoveSection(item.id); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }} title="Delete" onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'} onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}>
+                          🗑 Delete
                         </button>
                       </div>
                       
@@ -1110,14 +1654,16 @@ const HomeLayoutBuilder = () => {
                         </>
                       )}
 
-                      <div style={{ pointerEvents: item.sectionKey === 'custom_builder' ? 'auto' : 'none', position: 'relative', zIndex: 3, ...(isActive ? generateBlockStyles(JSON.stringify(configParams)) : generateBlockStyles(item.configJson)) }}>
+                      <div className="horizontal-scroll-grid" style={{ pointerEvents: item.sectionKey === 'custom_builder' ? 'auto' : 'none', position: 'relative', zIndex: 3, ...(isActive ? generateBlockStyles(JSON.stringify(configParams), viewMode, item.sectionKey === 'custom_builder') : generateBlockStyles(item.configJson, viewMode, item.sectionKey === 'custom_builder')) }}>
                         {item.sectionKey === 'custom_builder' ? (
                           (JSON.parse(item.configJson || '{}').children || []).length > 0 ? (
                             (JSON.parse(item.configJson || '{}').children || []).map(node => (
                               <DynamicComponentRenderer 
                                 key={node.id}
                                 node={node}
+                                viewMode={viewMode}
                                 activeNodeId={activeConfigSection?.id}
+                                activeConfigParams={configParams}
                                 onSelectNode={(nodeId) => {
                                   const found = findNode(JSON.parse(item.configJson || '{}').children || [], nodeId);
                                   if (found) handleOpenConfig(found, true, item.id);
@@ -1147,13 +1693,29 @@ const HomeLayoutBuilder = () => {
                             </div>
                           )
                         ) : (
-                          renderVisualMock(item.sectionKey, item.sectionLabel, item.configJson)
+                          renderVisualMock(item.sectionKey, item.sectionLabel, isActive ? JSON.stringify(configParams) : item.configJson, viewMode)
                         )}
                       </div>
                     </div>
+                  </React.Fragment>
                   );
-                })
-              )}
+                })}
+                {layout.length > 0 && (
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); setShowComponentLibrary(true); setInsertIndex(layout.length); }}
+                    style={{ 
+                      height: '24px', margin: '-12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', zIndex: 10, position: 'relative', cursor: 'pointer' 
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                  >
+                    <div style={{ width: '100%', height: '2px', background: '#3b82f6' }}></div>
+                    <div style={{ position: 'absolute', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                      <PlusCircle size={16} />
+                    </div>
+                  </div>
+                )}
+              </>)}
             </div>
             
 
@@ -1174,8 +1736,11 @@ const HomeLayoutBuilder = () => {
             <div style={{ background: '#0f172a', padding: '24px', color: '#94a3b8', fontSize: '12px', textAlign: 'center' }}>
               © 2024 KINGS 24x7 — Global Footer
             </div>
+            
+            </div> {/* End Inner Scrollable Content */}
           </div>
           </div>
+        </div>
         </div>
 
         {/* Right Panel: Properties */}
@@ -1194,6 +1759,10 @@ const HomeLayoutBuilder = () => {
               
               <Accordion title="General" isOpen={openAccordion === 'General'} onToggle={() => setOpenAccordion(openAccordion === 'General' ? '' : 'General')}>
                 <ControlText label="Display Title" value={configTitle} onChange={setConfigTitle} />
+              </Accordion>
+              
+              <Accordion title="Layout & Grid" isOpen={openAccordion === 'Grid'} onToggle={() => setOpenAccordion(openAccordion === 'Grid' ? '' : 'Grid')}>
+                <GridLayoutEditor config={configParams} setConfig={setConfigParams} viewMode={viewMode} />
               </Accordion>
               
               <Accordion title="Data Source" isOpen={openAccordion === 'DataSource'} onToggle={() => setOpenAccordion(openAccordion === 'DataSource' ? '' : 'DataSource')}>
@@ -1312,6 +1881,50 @@ const HomeLayoutBuilder = () => {
                 <AnimationEditor config={configParams} setConfig={setConfigParams} />
               </Accordion>
 
+              <Accordion title="Shadow" isOpen={openAccordion === 'Shadow'} onToggle={() => setOpenAccordion(openAccordion === 'Shadow' ? '' : 'Shadow')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', width: '90px', flexShrink: 0 }}>Shadow Blur</label>
+                  <input type="range" min={0} max={100} value={configParams.border?.shadowBlur || 0} onChange={e => { const val = e.target.value; setConfigParams(prev => ({...prev, border: {...(prev.border||{}), shadowBlur: val}})); }} style={{ flex: 1 }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', width: '90px', flexShrink: 0 }}>Shadow Spread</label>
+                  <input type="range" min={-50} max={100} value={configParams.border?.shadowSpread || 0} onChange={e => { const val = e.target.value; setConfigParams(prev => ({...prev, border: {...(prev.border||{}), shadowSpread: val}})); }} style={{ flex: 1 }} />
+                </div>
+              </Accordion>
+
+              <Accordion title="Visibility" isOpen={openAccordion === 'Visibility'} onToggle={() => setOpenAccordion(openAccordion === 'Visibility' ? '' : 'Visibility')}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>Show on Desktop</label>
+                  <input type="checkbox" checked={configParams.visibility?.desktop !== false} onChange={e => { const val = e.target.checked; setConfigParams(prev => ({...prev, visibility: {...(prev.visibility||{}), desktop: val}})); }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>Show on Tablet</label>
+                  <input type="checkbox" checked={configParams.visibility?.tablet !== false} onChange={e => { const val = e.target.checked; setConfigParams(prev => ({...prev, visibility: {...(prev.visibility||{}), tablet: val}})); }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>Show on Mobile</label>
+                  <input type="checkbox" checked={configParams.visibility?.mobile !== false} onChange={e => { const val = e.target.checked; setConfigParams(prev => ({...prev, visibility: {...(prev.visibility||{}), mobile: val}})); }} />
+                </div>
+              </Accordion>
+
+              <Accordion title="SEO" isOpen={openAccordion === 'SEO'} onToggle={() => setOpenAccordion(openAccordion === 'SEO' ? '' : 'SEO')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', width: '90px' }}>Heading Tag</label>
+                  <input type="text" value={configParams.seo?.headingTag || ''} onChange={e => { const val = e.target.value; setConfigParams(prev => ({...prev, seo: {...(prev.seo||{}), headingTag: val}})); }} style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#f8fafc', fontSize: '12px' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', width: '90px' }}>Aria Label</label>
+                  <input type="text" value={configParams.seo?.ariaLabel || ''} onChange={e => { const val = e.target.value; setConfigParams(prev => ({...prev, seo: {...(prev.seo||{}), ariaLabel: val}})); }} style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#f8fafc', fontSize: '12px' }} />
+                </div>
+              </Accordion>
+
+              <Accordion title="Advanced" isOpen={openAccordion === 'Advanced'} onToggle={() => setOpenAccordion(openAccordion === 'Advanced' ? '' : 'Advanced')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', width: '90px' }}>Custom CSS Class</label>
+                  <input type="text" value={configParams.advanced?.customClass || ''} onChange={e => { const val = e.target.value; setConfigParams(prev => ({...prev, advanced: {...(prev.advanced||{}), customClass: val}})); }} style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#f8fafc', fontSize: '12px' }} />
+                </div>
+              </Accordion>
+
             </div>
 
             <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '12px', background: 'rgba(15, 23, 42, 0.8)' }}>
@@ -1403,6 +2016,7 @@ const HomeLayoutBuilder = () => {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
       `}</style>
     </div>
+  </>
   );
 };
 

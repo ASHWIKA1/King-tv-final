@@ -50,6 +50,210 @@ const subcatEnTranslations = {
   'space': 'Space',
   'world news': 'World News'
 };
+const ChevronLeftIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m15 18-6-6 6-6"/>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m9 18 6-6-6-6"/>
+  </svg>
+);
+
+const PremiumScrollContainer = ({ children, style, className }) => {
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  // Velocity tracking
+  const velocityRef = useRef(0);
+  const lastTimeRef = useRef(0);
+  const lastXRef = useRef(0);
+  const rafRef = useRef(null);
+
+  const updateScrollArrows = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setShowLeft(scrollLeft > 5);
+      setShowRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => updateScrollArrows());
+    observer.observe(el);
+    updateScrollArrows();
+    window.addEventListener('resize', updateScrollArrows);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScrollArrows);
+    };
+  }, [children]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    const handleNativeWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    if (el) {
+      el.addEventListener('wheel', handleNativeWheel, { passive: false });
+    }
+    return () => {
+      if (el) el.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, []);
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+    velocityRef.current = 0;
+    lastXRef.current = e.pageX;
+    lastTimeRef.current = performance.now();
+    cancelAnimationFrame(rafRef.current);
+  };
+
+  const handleTouchStart = (e) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+    velocityRef.current = 0;
+    lastXRef.current = e.touches[0].pageX;
+    lastTimeRef.current = performance.now();
+    cancelAnimationFrame(rafRef.current);
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) applyMomentum();
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+    
+    const now = performance.now();
+    const dt = now - lastTimeRef.current;
+    if (dt > 0) {
+      const dx = e.pageX - lastXRef.current;
+      velocityRef.current = dx / dt;
+    }
+    lastXRef.current = e.pageX;
+    lastTimeRef.current = now;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+    
+    const now = performance.now();
+    const dt = now - lastTimeRef.current;
+    if (dt > 0) {
+      const dx = e.touches[0].pageX - lastXRef.current;
+      velocityRef.current = dx / dt;
+    }
+    lastXRef.current = e.touches[0].pageX;
+    lastTimeRef.current = now;
+  };
+
+  const applyMomentum = () => {
+    let velocity = velocityRef.current * 15;
+    const momentumLoop = () => {
+      if (Math.abs(velocity) > 0.5) {
+        scrollRef.current.scrollLeft -= velocity;
+        velocity *= 0.92;
+        rafRef.current = requestAnimationFrame(momentumLoop);
+      }
+    };
+    rafRef.current = requestAnimationFrame(momentumLoop);
+  };
+
+  const scrollByAmount = (amount) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', ...style }} className={className}>
+      {showLeft && (
+        <div style={{ 
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: '60px', 
+          background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)', 
+          zIndex: 10, display: 'flex', alignItems: 'center', pointerEvents: 'none'
+        }}>
+          <button onClick={() => scrollByAmount(-350)} style={{ pointerEvents: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+            <ChevronLeftIcon />
+          </button>
+        </div>
+      )}
+
+      <div
+        ref={scrollRef}
+        className="hide-scrollbar"
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          scrollBehavior: isDragging ? 'auto' : 'smooth',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          width: '100%',
+          padding: '0 10px',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onScroll={updateScrollArrows}
+      >
+        <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+        {children}
+      </div>
+
+      {showRight && (
+        <div style={{ 
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: '60px', 
+          background: 'linear-gradient(to left, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)', 
+          zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', pointerEvents: 'none'
+        }}>
+          <button onClick={() => scrollByAmount(350)} style={{ pointerEvents: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+            <ChevronRightIcon />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Header = () => {
   const { t, lang, setLang } = useContext(LanguageContext);
@@ -1503,20 +1707,17 @@ const Header = () => {
           background: theme === 'dark' ? '#000000' : '#FFFFFF'
         }}
       >
-        <div
+        <PremiumScrollContainer
           className="container main-nav-container-desktop"
           style={{
             display: 'flex',
             alignItems: 'center',
             width: '100%',
-            padding: '0 16px',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            padding: '0 16px'
           }}
         >
           {renderScrollNavMenu()}
-        </div>
+        </PremiumScrollContainer>
       </nav>
 
       {/* Side Drawer Panel */}
