@@ -21,15 +21,23 @@ public class PublicConfigController {
 
     @GetMapping("/ui")
     public ResponseEntity<Map<String, String>> getUiConfig() {
-        List<SystemConfig> configs = configRepository.findByConfigGroup("typography");
         Map<String, String> response = new HashMap<>();
         
         response.put("font.primary", "Inter");
         response.put("font.secondary", "Merriweather");
         response.put("font.tertiary", "Poppins");
 
-        for (SystemConfig config : configs) {
-            response.put(config.getConfigKey(), config.getConfigValue());
+        try {
+            List<SystemConfig> configs = configRepository.findByConfigGroup("typography");
+            if (configs != null) {
+                for (SystemConfig config : configs) {
+                    if (config != null && config.getConfigKey() != null) {
+                        response.put(config.getConfigKey(), config.getConfigValue() != null ? config.getConfigValue() : "");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Safe fallback to defaults
         }
 
         return ResponseEntity.ok(response);
@@ -37,7 +45,6 @@ public class PublicConfigController {
 
     @GetMapping("/settings")
     public ResponseEntity<Map<String, String>> getPublicSettings() {
-        List<SystemConfig> configs = configRepository.findAll();
         Map<String, String> response = new HashMap<>();
         
         // Define default settings
@@ -53,11 +60,20 @@ public class PublicConfigController {
         response.put("social.instagram", "https://www.instagram.com/king24x7/");
         response.put("social.youtube", "https://www.youtube.com/@king24x7");
 
-        for (SystemConfig config : configs) {
-            String key = config.getConfigKey();
-            if (key.startsWith("site.") || key.startsWith("social.") || key.equals("system.maintenance_mode") || key.startsWith("pwa.")) {
-                response.put(key, config.getConfigValue());
+        try {
+            List<SystemConfig> configs = configRepository.findAll();
+            if (configs != null) {
+                for (SystemConfig config : configs) {
+                    if (config != null && config.getConfigKey() != null) {
+                        String key = config.getConfigKey();
+                        if (key.startsWith("site.") || key.startsWith("social.") || key.equals("system.maintenance_mode") || key.startsWith("pwa.")) {
+                            response.put(key, config.getConfigValue() != null ? config.getConfigValue() : "");
+                        }
+                    }
+                }
             }
+        } catch (Exception e) {
+            // Safe fallback to default settings
         }
 
         return ResponseEntity.ok(response);
