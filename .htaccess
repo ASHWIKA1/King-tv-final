@@ -1,7 +1,16 @@
 RewriteEngine On
 RewriteBase /
 
-# Support SPA routing for the React Admin Dashboard app
+# Force No-Cache for HTML files so newly deployed React bundles are immediately fetched by live browsers
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+</IfModule>
+
+# Support SPA routing for React applications
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.html [L]
