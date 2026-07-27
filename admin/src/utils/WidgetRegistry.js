@@ -4,6 +4,20 @@
  */
 
 export const WIDGET_REGISTRY = {
+  website_navigation: {
+    type: 'website_navigation',
+    name: 'Website Navigation',
+    description: 'Auto-syncing top navigation header using Taxonomy categories.',
+    icon: 'fas fa-bars',
+    color: '#0EA5E9', // Sky Blue
+    allowMultiple: false,
+    defaultConfig: {
+      navStyle: 'horizontal',
+      alignment: 'center',
+      width: 'full',
+      position: 'fixed'
+    }
+  },
   news_ticker: {
     type: 'news_ticker',
     name: 'Breaking News Ticker',

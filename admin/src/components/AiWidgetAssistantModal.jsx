@@ -151,6 +151,7 @@ const AiWidgetAssistantModal = ({ isOpen, onClose, onAddWidget, categories = [] 
               {parsedResult.summary}
             </div>
             <button
+              type="button"
               onClick={handleApplyAiWidget}
               className="btn btn-primary"
               style={{ width: '100%', marginTop: '6px', padding: '10px', background: '#16A34A', border: 'none', color: '#fff', borderRadius: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}

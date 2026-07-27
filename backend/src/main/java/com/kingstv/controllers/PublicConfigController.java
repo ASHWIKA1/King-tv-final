@@ -34,4 +34,32 @@ public class PublicConfigController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/settings")
+    public ResponseEntity<Map<String, String>> getPublicSettings() {
+        List<SystemConfig> configs = configRepository.findAll();
+        Map<String, String> response = new HashMap<>();
+        
+        // Define default settings
+        response.put("site.name", "KING 24x7");
+        response.put("site.logo_url", "/assets/icons/logo-icon-light.png");
+        response.put("site.logo_footer", "/assets/icons/logo-icon-light.png");
+        response.put("site.tagline", "Truth. Responsibility. In Tamil.");
+        response.put("site.tagline_ta", "உண்மை. பொறுப்புடன். தமிழ்.");
+        response.put("site.description", "KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.");
+        response.put("site.description_ta", "KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி, நம்பகமான செய்திகளை வழங்குகிறோம்.");
+        response.put("social.facebook", "https://www.facebook.com/profile.php?id=61551357861905");
+        response.put("social.twitter", "https://x.com/onlinethamizhan");
+        response.put("social.instagram", "https://www.instagram.com/king24x7/");
+        response.put("social.youtube", "https://www.youtube.com/@king24x7");
+
+        for (SystemConfig config : configs) {
+            String key = config.getConfigKey();
+            if (key.startsWith("site.") || key.startsWith("social.") || key.equals("system.maintenance_mode") || key.startsWith("pwa.")) {
+                response.put(key, config.getConfigValue());
+            }
+        }
+
+        return ResponseEntity.ok(response);
+    }
 }

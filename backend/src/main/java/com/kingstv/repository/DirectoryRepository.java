@@ -10,4 +10,5 @@ import java.util.List;
 public interface DirectoryRepository extends JpaRepository<DirectoryListing, Long>, JpaSpecificationExecutor<DirectoryListing> {
     List<DirectoryListing> findByCategoryAndAddressLocality(String category, String addressLocality);
     List<DirectoryListing> findByCreatedBy(Long createdBy);
+    List<DirectoryListing> findByKycStatusAndStatus(String kycStatus, String status);
 }

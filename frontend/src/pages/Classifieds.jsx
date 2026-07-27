@@ -117,8 +117,8 @@ const Classifieds = () => {
         setLoading(false);
       })
       .catch(err => {
-        console.warn("Failed to load ads from API, using fallback", err);
-        setAds(fallbackAds);
+        console.warn("Failed to load ads from API", err);
+        setAds([]);
         setLoading(false);
       });
   };
@@ -367,7 +367,7 @@ const Classifieds = () => {
           </div>
 
           <div className="featured-ads-grid">
-            {(ads.length > 0 ? ads : fallbackAds).slice(0, 4).map(ad => (
+            {ads.slice(0, 4).map(ad => (
               <div className="featured-ad-card" key={ad.id} onClick={() => handleOpenDetails(ad)}>
                 <div className="featured-ad-img-box" style={{ backgroundImage: `url(${ad.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300'})` }}>
                   <span className="featured-ad-badge">Featured</span>
@@ -412,7 +412,7 @@ const Classifieds = () => {
             </div>
           ) : (
             <div className="latest-ads-list">
-              {(ads.length > 0 ? ads : fallbackAds).map(ad => (
+              {ads.map(ad => (
                 <div className="latest-ad-row" key={ad.id} onClick={() => handleOpenDetails(ad)}>
                   <div className="latest-ad-left">
                     <div className="latest-ad-img" style={{ backgroundImage: `url(${ad.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300'})` }}></div>

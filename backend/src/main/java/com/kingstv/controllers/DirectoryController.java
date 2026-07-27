@@ -52,7 +52,7 @@ public class DirectoryController {
     // --- KEEP Existing Front-End Endpoint Map ---
     @GetMapping
     public List<DirectoryListing> getListings() {
-        return directoryRepository.findAll();
+        return directoryRepository.findByKycStatusAndStatus("approved", "active");
     }
 
     @GetMapping("/{id}")

@@ -129,6 +129,26 @@ const UserDropdown = ({ isOpen, onClose, onLogout }) => {
         >
           <span style={{ fontSize: '16px' }}>📋</span> My RFQs
         </button>
+
+        <button 
+          style={itemStyle} 
+          onClick={() => {
+            navigate('/my-quotes');
+            onClose();
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.backgroundColor = 'rgba(179, 115, 42, 0.15)';
+            e.currentTarget.style.paddingLeft = '22px';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.paddingLeft = '18px';
+          }}
+        >
+          <span style={{ fontSize: '16px' }}>💬</span> My Quotations
+        </button>
         
         <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', margin: '4px 0' }}></div>
         

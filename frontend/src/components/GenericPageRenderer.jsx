@@ -10,17 +10,12 @@ const DEFAULT_WEB_SECTIONS = [
   { sectionKey: 'hero', sectionLabel: 'Hero Section', displayOrder: 1, isVisible: true },
   { sectionKey: 'quick_access', sectionLabel: 'Quick Access', displayOrder: 2, isVisible: true },
   { sectionKey: 'latest_news', sectionLabel: 'Latest News', displayOrder: 3, isVisible: true },
-  { sectionKey: 'web_stories', sectionLabel: 'Web Stories', displayOrder: 4, isVisible: true },
-  { sectionKey: 'video_news', sectionLabel: 'Video News', displayOrder: 5, isVisible: true },
-  { sectionKey: 'agri', sectionLabel: 'Agriculture & Market Rates', displayOrder: 6, isVisible: true },
-  { sectionKey: 'business', sectionLabel: 'Business Dashboard', displayOrder: 7, isVisible: true },
-  { sectionKey: 'district', sectionLabel: 'District News', displayOrder: 8, isVisible: true },
-  { sectionKey: 'election', sectionLabel: 'Election Center 2026', displayOrder: 9, isVisible: true },
-  { sectionKey: 'live_tv', sectionLabel: 'Live TV', displayOrder: 10, isVisible: true },
-  { sectionKey: 'poll', sectionLabel: 'Opinion Poll', displayOrder: 11, isVisible: true },
-  { sectionKey: 'news_digest', sectionLabel: 'Readers Page', displayOrder: 12, isVisible: true },
-  { sectionKey: 'crowd_reporter_highlight', sectionLabel: 'Reporter Highlight', displayOrder: 13, isVisible: true },
-  { sectionKey: 'institution_news', sectionLabel: 'Institution News', displayOrder: 14, isVisible: true }
+  { sectionKey: 'video_news', sectionLabel: 'Video News', displayOrder: 4, isVisible: true },
+  { sectionKey: 'web_stories', sectionLabel: 'Web Stories', displayOrder: 5, isVisible: true },
+  { sectionKey: 'crowd_reporter_highlight', sectionLabel: 'Reporter Highlight', displayOrder: 6, isVisible: true },
+  { sectionKey: 'institution_news', sectionLabel: 'Institution News', displayOrder: 7, isVisible: true },
+  { sectionKey: 'business_case', sectionLabel: 'Business Studies', displayOrder: 8, isVisible: true },
+  { sectionKey: 'news_digest', sectionLabel: 'News Digest', displayOrder: 9, isVisible: true }
 ];
 
 const GenericPageRenderer = ({ layoutType = 'WEB', renderSectionCallback }) => {
@@ -55,21 +50,11 @@ const GenericPageRenderer = ({ layoutType = 'WEB', renderSectionCallback }) => {
     );
   }
 
-  const renderSafeSection = (sec) => {
-    try {
-      if (!sec || !sec.sectionKey) return null;
-      return renderSectionCallback ? renderSectionCallback(sec.sectionKey, sec.sectionLabel, sec.configJson) : null;
-    } catch (err) {
-      console.error(`[GenericPageRenderer] Error rendering section ${sec?.sectionKey}:`, err);
-      return null;
-    }
-  };
-
   return (
     <div className="generic-page-container" style={{ width: '100%' }}>
       {sections.map((sec) => (
         <div key={sec.id || sec.sectionKey} className={`generic-section-block section-${sec.sectionKey}`}>
-          {renderSafeSection(sec)}
+          {renderSectionCallback ? renderSectionCallback(sec.sectionKey, sec.sectionLabel, sec.configJson) : null}
         </div>
       ))}
     </div>

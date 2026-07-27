@@ -572,6 +572,19 @@ public class DataInitializer {
             "You are a world-class news editor and SEO expert.\nGiven the following draft news content (which may contain spelling, grammar, punctuation, or formatting mistakes), perform the following:\n1. Proofread and correct all spelling, grammar, typography, and phrasing mistakes. Return production-ready HTML for both Tamil and English versions.\n2. Generate optimized headlines (Tamil Title & English Title).\n3. Generate concise 1-2 sentence excerpts (Tamil & English).\n4. Generate complete SEO metadata: Meta Title (max 60 chars), Meta Description (max 160 chars), Focus Keywords, News Tags, clean English URL Slug.\n5. Suggest the best category ID from this list: {catNames}.\n6. Infer or suggest News Source/Agency (e.g. Kings TV Desk) and News Location/City (e.g. Chennai).\n\nReturn ONLY a valid JSON object matching this schema with NO markdown formatting outside the JSON:\n\n{\n  \"titleTa\": \"Tamil Title\",\n  \"titleEn\": \"English Title\",\n  \"contentTa\": \"Proofread corrected HTML for Tamil\",\n  \"contentEn\": \"Proofread corrected HTML for English\",\n  \"shortDescTa\": \"1-2 sentence Tamil summary\",\n  \"shortDescEn\": \"1-2 sentence English summary\",\n  \"metaTitle\": \"SEO Meta Title max 60 chars\",\n  \"metaDescription\": \"SEO Meta Description max 160 chars\",\n  \"focusKeywords\": \"primary, keywords\",\n  \"metaKeywords\": \"news, tags, comma, separated\",\n  \"slug\": \"english-url-slug\",\n  \"categoryId\": \"suggested category ID\",\n  \"suggestedSource\": \"Kings TV Desk\",\n  \"suggestedLocation\": \"Chennai\"\n}\n\nDraft Content to Proofread & Process:\n\"{baseContent}\"",
             "ai", "Prompt template for AI proofread and auto-fill");
 
+        // Seed Dynamic Social Media Links & Site Settings
+        seedSystemConfig("site.name", "KING 24x7", "site", "Global website brand name");
+        seedSystemConfig("site.logo_url", "/assets/icons/logo-icon-light.png", "site", "Logo image URL");
+        seedSystemConfig("site.logo_footer", "/assets/icons/logo-icon-light.png", "site", "Footer logo image URL");
+        seedSystemConfig("site.tagline", "Truth. Responsibility. In Tamil.", "site", "Website tagline in English");
+        seedSystemConfig("site.tagline_ta", "உண்மை. பொறுப்புடன். தமிழ்.", "site", "Website tagline in Tamil");
+        seedSystemConfig("site.description", "KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.", "site", "Site description in English");
+        seedSystemConfig("site.description_ta", "KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி, நம்பகமான செய்திகளை வழங்குகிறோம்.", "site", "Site description in Tamil");
+        seedSystemConfig("social.facebook", "https://www.facebook.com/profile.php?id=61551357861905", "social", "Facebook Page URL");
+        seedSystemConfig("social.twitter", "https://x.com/onlinethamizhan", "social", "Twitter Profile URL");
+        seedSystemConfig("social.instagram", "https://www.instagram.com/king24x7/", "social", "Instagram Profile URL");
+        seedSystemConfig("social.youtube", "https://www.youtube.com/@king24x7", "social", "YouTube Channel URL");
+
         // 15. Seed Profanity Words
         System.out.println("Seeding Profanity Words...");
         seedProfanity("abuse");

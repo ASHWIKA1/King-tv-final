@@ -60,6 +60,14 @@ const Header = () => {
   const navigate = useNavigate();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const unauthDropdownRef = useRef(null);
+  const [headerSliderIndex, setHeaderSliderIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderSliderIndex(prev => (prev + 1) % 8);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const getSubcatEn = (s) => {
     if (!s) return '';
@@ -106,11 +114,18 @@ const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState({
+    'site.name': 'KING 24x7',
+    'site.logo_url': 'assets/images/logo-banner-light.png',
+    'site.logo_dark_url': 'assets/images/logo-banner-dark.png'
+  });
   const [navCategories, setNavCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showHeaderSubcatDropdown, setShowHeaderSubcatDropdown] = useState(false);
   const [districtsList, setDistrictsList] = useState([]);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [navMode, setNavMode] = useState(1);
+  const [activeSubmenuId, setActiveSubmenuId] = useState(null);
   const [dropdownLeft, setDropdownLeft] = useState(0);
 
   const toggleDropdown = (e, itemId) => {
@@ -437,17 +452,25 @@ const Header = () => {
   ];
 
   useEffect(() => {
+    fetchApi('/public/config/settings')
+      .then(res => {
+        if (res) {
+          setSiteSettings(res);
+        }
+      })
+      .catch(() => {});
+
     fetchApi('/articles')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setAllArticles([...data, ...fallbackArticles]);
+        if (Array.isArray(data)) {
+          setAllArticles(data);
         } else {
-          setAllArticles(fallbackArticles);
+          setAllArticles([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load articles", err);
-        setAllArticles(fallbackArticles);
+        setAllArticles([]);
       });
 
     fetchApi('/categories/nav')
@@ -468,48 +491,28 @@ const Header = () => {
 
     fetchApi('/videos')
       .then(data => {
-        const translatedFallbackVideos = fallbackVideos.map(vid => {
-          let titleVal = vid.title;
-          if (lang === 'en') {
-            if (vid.title.includes('பட்ஜெட்')) titleVal = 'Tamil Nadu Budget 2026 - Key Highlights Explained';
-            else if (vid.title.includes('கிரிக்கெட்')) titleVal = 'Cricket Match Highlights - India vs Australia';
-            else if (vid.title.includes('விவசாயிகளுக்கான')) titleVal = 'New Schemes for Farmers - Ground Report';
-            else if (vid.title.includes('பங்கு')) titleVal = 'Stock Market Analysis - Expert Advice';
-          }
-          return { ...vid, title: titleVal };
-        });
-        if (Array.isArray(data) && data.length > 0) {
-          setAllVideos([...data, ...translatedFallbackVideos]);
+        if (Array.isArray(data)) {
+          setAllVideos(data);
         } else {
-          setAllVideos(translatedFallbackVideos);
+          setAllVideos([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load videos", err);
-        const translatedFallbackVideos = fallbackVideos.map(vid => {
-          let titleVal = vid.title;
-          if (lang === 'en') {
-            if (vid.title.includes('பட்ஜெட்')) titleVal = 'Tamil Nadu Budget 2026 - Key Highlights Explained';
-            else if (vid.title.includes('கிரிக்கெட்')) titleVal = 'Cricket Match Highlights - India vs Australia';
-            else if (vid.title.includes('விவசாயிகளுக்கான')) titleVal = 'New Schemes for Farmers - Ground Report';
-            else if (vid.title.includes('பங்கு')) titleVal = 'Stock Market Analysis - Expert Advice';
-          }
-          return { ...vid, title: titleVal };
-        });
-        setAllVideos(translatedFallbackVideos);
+        setAllVideos([]);
       });
 
     fetchApi('/directory')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setAllBusinesses(data);
         } else {
-          setAllBusinesses(fallbackBusinesses);
+          setAllBusinesses([]);
         }
       })
       .catch(err => {
         console.warn("Header normal search failed to load directory", err);
-        setAllBusinesses(fallbackBusinesses);
+        setAllBusinesses([]);
       });
   }, [lang]);
 
@@ -655,12 +658,14 @@ const Header = () => {
 
   const renderLogo = (size = 'normal', forceDark = false) => {
     const isDark = forceDark || theme === 'dark';
-    const logoUrl = isDark ? "assets/images/logo-banner-dark.png" : "assets/images/logo-banner-light.png";
+    const logoUrl = isDark 
+      ? (siteSettings['site.logo_dark_url'] || siteSettings['site.logo_url'] || "assets/images/logo-banner-dark.png") 
+      : (siteSettings['site.logo_url'] || "assets/images/logo-banner-light.png");
     return (
       <Link to="/" className="logo-link" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
         <img
           src={logoUrl}
-          alt="KING 24x7"
+          alt={siteSettings['site.name'] || "KING 24x7"}
           className="header-logo-img"
           style={{ height: size === 'small' ? '30px' : '55px', width: 'auto', objectFit: 'contain', display: 'block' }}
         />
@@ -895,6 +900,106 @@ const Header = () => {
     </div>
   );
 
+  const renderHeaderTopSlider = () => {
+    const sliderCards = [
+      {
+        titleTa: '🪙 சென்னை தங்கம் விலை',
+        titleEn: '🪙 Chennai Gold Rate',
+        items: [
+          { labelTa: '22K:', labelEn: '22K:', val: '₹8,950/g', color: '#22C55E' },
+          { labelTa: '24K:', labelEn: '24K:', val: '₹9,760/g', color: '#22C55E' },
+          { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: '₹118/g', color: '#FFFFFF' },
+          { labelTa: 'பிளாட்டினம்:', labelEn: 'Platinum:', val: '₹3,420/g', color: '#EF4444' }
+        ]
+      },
+      {
+        titleTa: '📈 பங்குச் சந்தை நிலவரம்',
+        titleEn: '📈 Stock Market Today',
+        items: [
+          { labelTa: 'சென்செக்ஸ்:', labelEn: 'Sensex:', val: '82,450 ▲ (+340)', color: '#22C55E' },
+          { labelTa: 'நிஃப்டி 50:', labelEn: 'Nifty 50:', val: '25,120 ▲ (+110)', color: '#22C55E' },
+          { labelTa: 'பேங்க் நிஃப்டி:', labelEn: 'Bank Nifty:', val: '51,800 ▼ (-45)', color: '#EF4444' },
+          { labelTa: 'ஐடி இன்டெக்ஸ்:', labelEn: 'IT Index:', val: '38,900 ▲ (+220)', color: '#22C55E' }
+        ]
+      },
+      {
+        titleTa: '⛽ சென்னை எரிபொருள் விலை',
+        titleEn: '⛽ Fuel Prices Chennai',
+        items: [
+          { labelTa: 'பெட்ரோல்:', labelEn: 'Petrol:', val: '₹100.75/L', color: '#FFFFFF' },
+          { labelTa: 'டீசல்:', labelEn: 'Diesel:', val: '₹92.34/L', color: '#FFFFFF' },
+          { labelTa: 'எல்பிஜி உருளை:', labelEn: 'LPG Cylinder:', val: '₹818.50', color: '#EF4444' },
+          { labelTa: 'சிஎன்ஜி:', labelEn: 'CNG:', val: '₹85.00/kg', color: '#22C55E' }
+        ]
+      },
+      {
+        titleTa: '🌾 காய்கறி சந்தை விலை',
+        titleEn: '🌾 Vegetable Market Price',
+        items: [
+          { labelTa: 'தக்காளி:', labelEn: 'Tomato:', val: '₹35/kg', color: '#22C55E' },
+          { labelTa: 'வெங்காயம்:', labelEn: 'Onion:', val: '₹42/kg', color: '#EF4444' },
+          { labelTa: 'உருளைக்கிழங்கு:', labelEn: 'Potato:', val: '₹28/kg', color: '#22C55E' },
+          { labelTa: 'பூண்டு:', labelEn: 'Garlic:', val: '₹180/kg', color: '#FFFFFF' }
+        ]
+      }
+    ];
+
+    const activeSlide = sliderCards[headerSliderIndex % sliderCards.length];
+
+    return (
+      <div 
+        className="header-top-slider-widget"
+        style={{ 
+          background: 'rgba(255, 255, 255, 0.1)', 
+          border: '1px solid rgba(255, 255, 255, 0.22)', 
+          borderRadius: '12px', 
+          padding: '12px 18px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center',
+          gap: '8px',
+          marginRight: '14px',
+          minWidth: '420px',
+          maxWidth: '520px',
+          minHeight: '75px',
+          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px', fontWeight: 800, color: '#38BDF8' }}>
+          <span>{lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}</span>
+          
+          {/* Slider Dots Pagination Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <span
+                key={idx}
+                onClick={() => setHeaderSliderIndex(idx)}
+                style={{
+                  cursor: 'pointer',
+                  width: (headerSliderIndex % 8) === idx ? '18px' : '6px',
+                  height: '6px',
+                  borderRadius: (headerSliderIndex % 8) === idx ? '4px' : '50%',
+                  background: (headerSliderIndex % 8) === idx ? '#38BDF8' : 'rgba(255, 255, 255, 0.4)',
+                  display: 'inline-block',
+                  transition: 'all 0.3s ease'
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: '12.5px' }}>
+          {activeSlide.items.map((item, idx) => (
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontWeight: 600 }}>{lang === 'en' ? item.labelEn : item.labelTa}</span>
+              <span style={{ color: item.color, fontWeight: 800 }}>{item.val}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderSocials = () => (
     <div style={{ display: 'flex', gap: '8px' }}>
       <a href="https://www.facebook.com/profile.php?id=61551357861905" className="social-icon" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
@@ -951,223 +1056,193 @@ const Header = () => {
   const renderScrollNavMenu = (onLinkClick = () => { }) => {
     const navItems = getDynamicNavItems();
 
+    const renderStandardItem = (item, idx) => {
+      const isActive = (item.id === 'regional' && isRegionalPage) ||
+                       location.pathname === item.path ||
+                       (item.path !== '/' && location.pathname.startsWith(item.path));
+
+      const isParentNode = item.subcategories && item.subcategories.length > 0;
+
+      const handleItemClick = (e) => {
+        if (isParentNode) {
+          e.preventDefault();
+          e.stopPropagation();
+          setNavMode(2);
+          setActiveSubmenuId(item.id);
+        } else {
+          onLinkClick();
+        }
+      };
+
+      return (
+        <div
+          key={item.id || idx}
+          className="nav-item-wrapper"
+          style={{
+            position: 'relative',
+            display: 'inline-flex',
+            alignItems: 'center',
+            borderBottom: isActive ? '3px solid var(--primary, #B3732A)' : '3px solid transparent'
+          }}
+        >
+          <Link
+            to={item.path}
+            onClick={handleItemClick}
+            style={{
+              color: isActive
+                ? (theme === 'dark' ? '#FFFFFF' : '#000000')
+                : (theme === 'dark' ? '#94A3B8' : '#71717A'),
+              background: 'transparent',
+              padding: '8px 4px 6px 12px',
+              fontSize: '13px',
+              fontWeight: '700',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s',
+              display: 'inline-block'
+            }}
+          >
+            {item.label}
+          </Link>
+          {isParentNode && (
+            <button
+              onClick={handleItemClick}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '8px 12px 6px 4px',
+                cursor: 'pointer',
+                color: isActive
+                  ? (theme === 'dark' ? '#FFFFFF' : '#000000')
+                  : (theme === 'dark' ? '#94A3B8' : '#71717A'),
+                transition: 'all 0.2s'
+              }}
+              aria-label="Toggle subcategories"
+            >
+              <i className="fas fa-caret-down" style={{ fontSize: '10px', opacity: 0.8 }}></i>
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    const getActiveParentItem = () => navItems.find(i => i.id === activeSubmenuId);
+    const activeParent = getActiveParentItem();
+
+    const childLinkStyle = {
+      color: theme === 'dark' ? '#e2e8f0' : '#3f3f46',
+      textDecoration: 'none',
+      fontSize: '13px',
+      fontWeight: '600',
+      padding: '6px 12px',
+      whiteSpace: 'nowrap',
+      transition: 'color 0.2s',
+      display: 'inline-block'
+    };
+
     return (
       <div style={{
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'nowrap',
         alignItems: 'center',
-        gap: '15px',
         width: '100%',
-        padding: '8px 0'
+        padding: '8px 0',
+        overflow: 'hidden',
+        position: 'relative',
+        minHeight: '40px'
       }}>
-        {navItems.map((item, idx) => {
-          const isActive = (item.id === 'regional' && isRegionalPage) ||
-                           location.pathname === item.path ||
-                           (item.path !== '/' && location.pathname.startsWith(item.path));
+        <style>{`
+          @keyframes slideInState {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          .nav-state-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            animation: slideInState 0.2s ease-out forwards;
+          }
+          .subcat-link:hover {
+            color: var(--primary, #B3732A) !important;
+          }
+        `}</style>
+        
+        <div className="nav-state-container" key={navMode}>
+          {navMode === 1 && (
+            navItems.map((item, idx) => renderStandardItem(item, idx))
+          )}
 
-          const handleLinkClick = (e) => {
-            onLinkClick();
-            if (item.subcategories && item.subcategories.length > 0) {
-              if (isActive) {
-                // If already active, toggle dropdown menu
-                e.preventDefault();
-                toggleDropdown(e, item.id);
-              } else {
-                setActiveDropdown(null);
-              }
-            } else {
-              setActiveDropdown(null);
-            }
-          };
-
-          return (
-            <div
-              key={idx}
-              className="nav-item-wrapper"
-              style={{
-                position: 'relative',
-                display: 'inline-flex',
-                alignItems: 'center',
-                borderBottom: isActive ? '3px solid var(--primary, #B3732A)' : '3px solid transparent'
-              }}
-            >
-              <Link
-                to={item.path}
-                onClick={handleLinkClick}
-                style={{
-                  color: isActive
-                    ? (theme === 'dark' ? '#FFFFFF' : '#000000')
-                    : (theme === 'dark' ? '#94A3B8' : '#71717A'),
-                  background: 'transparent',
-                  padding: '8px 4px 6px 12px',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s',
-                  display: 'inline-block'
-                }}
+          {navMode === 2 && activeParent && (
+            <>
+              <div 
+                className="nav-item-wrapper" 
+                style={{ display: 'inline-flex', alignItems: 'center' }}
               >
-                {item.label}
-              </Link>
-              {item.subcategories && item.subcategories.length > 0 && (
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleDropdown(e, item.id);
-                  }}
+                  onClick={() => { setNavMode(1); setActiveSubmenuId(null); }}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '8px 12px 6px 4px',
-                    cursor: 'pointer',
-                    color: isActive
-                      ? (theme === 'dark' ? '#FFFFFF' : '#000000')
-                      : (theme === 'dark' ? '#94A3B8' : '#71717A'),
-                    transition: 'all 0.2s'
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: 'var(--primary, #B3732A)', padding: '8px 4px 6px 12px',
+                    fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: '6px'
                   }}
-                  aria-label="Toggle subcategories"
                 >
-                  <i className="fas fa-chevron-down" style={{ fontSize: '8px', opacity: 0.7 }}></i>
+                  {activeParent.label} <i className="fas fa-caret-left" style={{ fontSize: '10px' }}></i>
                 </button>
-              )}
+              </div>
+              
+              <div style={{ borderLeft: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.1)', height: '16px', margin: '0 4px' }}></div>
+              
+              <Link to={activeParent.path} onClick={onLinkClick} className="subcat-link" style={{...childLinkStyle, fontWeight: '700'}}>
+                {lang === 'en' ? 'All' : 'அனைத்தும்'}
+              </Link>
+              
+              {activeParent.subcategories.map(sub => (
+                <Link 
+                  key={sub.id} 
+                  to={sub.path || `/category/${activeParent.path.split('/').pop()}?subcat=${lang === 'en' ? getSubcatEn(sub) : sub.nameTa}`} 
+                  onClick={onLinkClick}
+                  className="subcat-link" 
+                  style={childLinkStyle}
+                >
+                  {lang === 'en' ? getSubcatEn(sub) : sub.nameTa}
+                </Link>
+              ))}
 
-              {/* Subcategories Dropdown directly below this link */}
-              {activeDropdown === item.id && item.subcategories && item.subcategories.length > 0 && (
-                <div
-                  className="category-dropdown-menu"
+            </>
+          )}
+
+          {navMode === 3 && activeParent && (
+            <>
+              <div 
+                className="nav-item-wrapper" 
+                style={{ display: 'inline-flex', alignItems: 'center' }}
+              >
+                <button
+                  onClick={() => setNavMode(2)}
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: window.innerWidth <= 768 ? `${dropdownLeft}px` : '50%',
-                    transform: window.innerWidth <= 768 ? 'none' : 'translateX(-50%)',
-                    background: theme === 'dark' ? '#1E293B' : '#ffffff',
-                    border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                    padding: '8px 0',
-                    zIndex: 9999,
-                    minWidth: '220px',
-                    marginTop: '8px',
-                    textAlign: 'left'
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: 'var(--primary, #B3732A)', padding: '8px 4px 6px 12px',
+                    fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: '6px'
                   }}
                 >
-                  <style>{`
-                    .dropdown-sub-container {
-                      position: relative;
-                    }
-                    .dropdown-sub-link {
-                      display: flex;
-                      align-items: center;
-                      justify-content: space-between;
-                      padding: 10px 16px;
-                      color: ${theme === 'dark' ? '#cbd5e1' : '#334155'};
-                      text-decoration: none;
-                      font-size: 13.5px;
-                      font-weight: 600;
-                      transition: all 0.2s ease;
-                      white-space: nowrap;
-                    }
-                    .dropdown-sub-link:hover {
-                      background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
-                      color: var(--primary, #B3732A);
-                    }
-                    .nested-dropdown {
-                      position: absolute;
-                      top: 0;
-                      left: 100%;
-                      background: ${theme === 'dark' ? '#1E293B' : '#ffffff'};
-                      border: ${theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'};
-                      border-radius: 8px;
-                      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-                      padding: 6px 0;
-                      min-width: 180px;
-                      margin-left: 2px;
-                      display: none;
-                      z-index: 10001;
-                    }
-                    .dropdown-sub-container:hover .nested-dropdown {
-                      display: block;
-                    }
-                    .dropdown-nested-link {
-                      display: block;
-                      padding: 8px 16px;
-                      color: ${theme === 'dark' ? '#e2e8f0' : '#334155'};
-                      text-decoration: none;
-                      font-size: 13px;
-                      font-weight: 600;
-                      transition: all 0.2s ease;
-                      white-space: nowrap;
-                      text-align: left;
-                    }
-                    .dropdown-nested-link:hover {
-                      background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
-                      color: var(--primary, #B3732A);
-                    }
-                  `}</style>
-                  {/* Prepend 'All' option */}
-                  <div className="dropdown-sub-container">
-                    <Link
-                      to={item.path}
-                      onClick={() => setActiveDropdown(null)}
-                      className="dropdown-sub-link"
-                      style={{ fontWeight: '700', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
-                    >
-                      <span>{lang === 'en' ? 'All' : 'அனைத்தும்'}</span>
-                    </Link>
-                  </div>
-
-                  {item.subcategories.map(sub => {
-                    const subcatName = lang === 'en' ? getSubcatEn(sub) : sub.nameTa;
-                    const catSlug = item.path.split('/category/')[1];
-                    const subcatLinkPath = sub.path || `/category/${catSlug}?subcat=${subcatName}`;
-                    return (
-                      <div key={sub.id} className="dropdown-sub-container">
-                        <Link
-                          to={subcatLinkPath}
-                          onClick={() => setActiveDropdown(null)}
-                          className="dropdown-sub-link"
-                        >
-                          <span>{subcatName}</span>
-                          {sub.subcategories && sub.subcategories.length > 0 && (
-                            <i className="fas fa-chevron-right" style={{ fontSize: '9px', opacity: 0.6 }}></i>
-                          )}
-                        </Link>
-
-                        {/* Nested Sub-dropdown Overlay */}
-                        {sub.subcategories && sub.subcategories.length > 0 && (
-                          <div className="nested-dropdown">
-                            {sub.subcategories.map(child => {
-                              const isChildActive = location.pathname === child.path;
-                              return (
-                                <Link
-                                  key={child.id}
-                                  to={child.path || `/category/${child.slug}`}
-                                  onClick={() => setActiveDropdown(null)}
-                                  className={`dropdown-nested-link ${isChildActive ? 'active' : ''}`}
-                                  style={isChildActive ? {
-                                    background: theme === 'dark' ? '#334155' : '#EFF6FF',
-                                    color: 'var(--primary, #B3732A)'
-                                  } : {}}
-                                >
-                                  {lang === 'en' ? getSubcatEn(child) : child.nameTa}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                  {lang === 'en' ? 'More' : 'மேலும்'} <i className="fas fa-caret-left" style={{ fontSize: '10px' }}></i>
+                </button>
+              </div>
+              
+              <div style={{ borderLeft: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.1)', height: '16px', margin: '0 4px' }}></div>
+              
+              {navItems.filter(i => i.id !== activeSubmenuId).map((item, idx) => renderStandardItem(item, idx))}
+            </>
+          )}
+        </div>
       </div>
     );
   };
@@ -1275,6 +1350,7 @@ const Header = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {renderHeaderTopSlider()}
             <button
               onClick={() => setIsSearchOpen(true)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px' }}
