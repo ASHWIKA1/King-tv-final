@@ -84,6 +84,7 @@ const HomeLayoutBuilder = () => {
 
   // View Mode: 'desktop' | 'mobile'
   const [viewMode, setViewMode] = useState('desktop');
+  const [canvasTheme, setCanvasTheme] = useState('light');
 
   // AI Widget Assistant & Modal State
   const [showAiModal, setShowAiModal] = useState(false);
@@ -239,50 +240,25 @@ const HomeLayoutBuilder = () => {
   };
 
   const handleSaveAll = async () => {
-    // 1. Instantly show alert popup and clear unsaved state (0ms delay!)
-    setUnsavedChanges(false);
-    setUndoStack([]);
-    alert("Home layout changes published live successfully!");
-
-    // 2. Perform background DB sync
     setSaving(true);
     try {
-      let saved = false;
-      try {
-        const res = await api.put('/admin/layout/bulk-save', layout);
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setLayout(res.data);
-          saved = true;
-        }
-      } catch (bulkErr) {
-        console.warn("Bulk save endpoint fallback engaged", bulkErr);
-      }
+      const payload = layout.map((item, idx) => ({
+        ...item,
+        displayOrder: idx + 1,
+        isVisible: item.isVisible !== false,
+        configJson: typeof item.configJson === 'string' ? item.configJson : JSON.stringify(item.configJson || {})
+      }));
 
-      if (!saved) {
-        const reorderPayload = layout
-          .filter(item => item.id && typeof item.id === 'number' && item.id < 1000000000)
-          .map((item, idx) => ({
-            id: item.id,
-            displayOrder: idx + 1
-          }));
-        if (reorderPayload.length > 0) {
-          await api.put('/admin/layout/reorder', reorderPayload);
-        }
-
-        for (let i = 0; i < layout.length; i++) {
-          const item = layout[i];
-          if (item.id && typeof item.id === 'number' && item.id < 1000000000) {
-            await api.put(`/admin/layout/${item.id}`, {
-              displayOrder: i + 1,
-              isVisible: item.isVisible !== false,
-              sectionLabel: item.sectionLabel,
-              configJson: item.configJson
-            }).catch(() => {});
-          }
-        }
+      const res = await api.put('/admin/layout/bulk-save', payload);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setLayout(res.data);
       }
+      setUnsavedChanges(false);
+      setUndoStack([]);
+      alert("Home layout changes published live successfully!");
     } catch (err) {
-      console.error("Failed to save layout changes", err);
+      console.error("Failed to publish layout changes", err);
+      alert("Failed to publish layout changes. Please check connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -293,24 +269,21 @@ const HomeLayoutBuilder = () => {
     const predefined = PREDEFINED_SECTIONS.find(p => p.key === key);
     if (!predefined) return;
 
-    // Check if key already exists in layout
-    if (layout.some(item => item.sectionKey === key)) {
-      alert(`${predefined.label} is already added to the homepage.`);
-      return;
-    }
+    const existingCount = layout.filter(item => item.sectionKey === key).length;
+    const label = existingCount > 0 ? `${predefined.label} (${existingCount + 1})` : predefined.label;
 
     const newSection = {
-      id: Date.now(), // Temp unique ID for React keys before save
+      id: Date.now(),
       sectionKey: key,
-      sectionLabel: predefined.label,
+      sectionLabel: label,
       displayOrder: layout.length + 1,
       isVisible: true,
       layoutType: 'WEB',
-      configJson: JSON.stringify({ limit: 6, categoryId: '', type: 'grid' }),
-      isNew: true // Flag to insert via API on Save
+      configJson: JSON.stringify({ limit: 6, categoryId: '', type: 'grid' })
     };
 
-    // Automatically trigger backend post to create, then reload layout
+    pushUndo([...layout, newSection]);
+
     api.post('/admin/layout', {
       sectionKey: newSection.sectionKey,
       sectionLabel: newSection.sectionLabel,
@@ -318,10 +291,12 @@ const HomeLayoutBuilder = () => {
       isVisible: newSection.isVisible,
       layoutType: 'WEB',
       configJson: newSection.configJson
-    }).then(() => {
-      fetchLayout(); // Refresh from backend to ensure accurate state
+    }).then(res => {
+      if (res.data && res.data.id) {
+        setLayout(prev => prev.map(item => item.id === newSection.id ? { ...item, id: res.data.id } : item));
+      }
     }).catch(err => {
-      console.error("Failed to append section key", err);
+      console.error("Failed to persist new section key", err);
     });
   };
 
@@ -572,14 +547,15 @@ const HomeLayoutBuilder = () => {
     const newSection = {
       id: Date.now(),
       sectionKey: 'custom_builder',
-      sectionLabel: 'Custom Section',
+      sectionLabel: compDef.name ? `Custom Section - ${compDef.name}` : 'Custom Section',
       displayOrder: layout.length + 1,
       isVisible: true,
       layoutType: 'WEB',
-      configJson: JSON.stringify({ children: [newNode] }),
-      isNew: true
+      configJson: JSON.stringify({ children: [newNode] })
     };
     
+    pushUndo([...layout, newSection]);
+
     api.post('/admin/layout', {
       sectionKey: newSection.sectionKey,
       sectionLabel: newSection.sectionLabel,
@@ -587,8 +563,10 @@ const HomeLayoutBuilder = () => {
       isVisible: newSection.isVisible,
       layoutType: 'WEB',
       configJson: newSection.configJson
-    }).then(() => {
-      fetchLayout();
+    }).then(res => {
+      if (res.data && res.data.id) {
+        setLayout(prev => prev.map(item => item.id === newSection.id ? { ...item, id: res.data.id } : item));
+      }
     }).catch(err => console.error("Failed to append custom section", err));
   };
   
@@ -701,29 +679,9 @@ const HomeLayoutBuilder = () => {
                 <div style={{ fontSize: '10px', fontWeight: 600, color: '#666', marginTop: '-4px' }}>24x7 Multiform TV</div>
               </div>
               <div>
-                <a
-                  href="/live-tv"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  style={{
-                    background: '#C88D37',
-                    color: '#fff',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    textDecoration: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
+                <div style={{ background: '#C88D37', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>▶</span> LIVE TV WATCH NOW
-                </a>
+                </div>
               </div>
             </div>
             {/* Navigation Bar */}
@@ -921,6 +879,32 @@ const HomeLayoutBuilder = () => {
               📱 Mobile
             </button>
           </div>
+
+          {/* Theme Switcher */}
+          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setCanvasTheme('light')}
+              style={{
+                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: canvasTheme === 'light' ? '#3b82f6' : 'transparent',
+                color: canvasTheme === 'light' ? '#fff' : '#94a3b8',
+                transition: 'all 0.2s'
+              }}
+            >
+              ☀️ Light
+            </button>
+            <button
+              onClick={() => setCanvasTheme('dark')}
+              style={{
+                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: canvasTheme === 'dark' ? '#3b82f6' : 'transparent',
+                color: canvasTheme === 'dark' ? '#fff' : '#94a3b8',
+                transition: 'all 0.2s'
+              }}
+            >
+              🌙 Dark
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -975,13 +959,12 @@ const HomeLayoutBuilder = () => {
             <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.4 }}>Click any visual block type below to insert it onto the live canvas layout.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '45vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
               {PREDEFINED_SECTIONS.map(s => {
-                const isAdded = layout.some(item => item.sectionKey === s.key);
                 return (
                   <div
                     key={s.key}
-                    onClick={() => !isAdded && handleAddSectionKey(s.key)}
+                    onClick={() => handleAddSectionKey(s.key)}
                     style={{
-                      opacity: isAdded ? 0.4 : 1, cursor: isAdded ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                       transition: 'all 0.2s ease', position: 'relative'
                     }}
                   >
@@ -1026,29 +1009,31 @@ const HomeLayoutBuilder = () => {
             
             <div style={{
               width: viewMode === 'mobile' ? '414px' : '100%', maxWidth: viewMode === 'mobile' ? '414px' : '1200px',
-            background: '#ffffff', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', border: '1px solid rgba(255,255,255,0.1)'
-          }}>
+              background: canvasTheme === 'dark' ? '#0f172a' : '#ffffff',
+              color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a',
+              borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', border: '1px solid rgba(255,255,255,0.1)'
+            }}>
             {/* Simulated Browser Frame Header */}
-            <div style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: canvasTheme === 'dark' ? '#1e293b' : '#f1f5f9', borderBottom: `1px solid ${canvasTheme === 'dark' ? '#334155' : '#e2e8f0'}`, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
               </div>
-              <div style={{ background: '#e2e8f0', padding: '4px 20px', borderRadius: '4px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                kings24x7.com
+              <div style={{ background: canvasTheme === 'dark' ? '#0f172a' : '#e2e8f0', padding: '4px 20px', borderRadius: '4px', fontSize: '11px', color: canvasTheme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                king-tv.test-technoprint.online
               </div>
               <div style={{ width: '40px' }}></div>
             </div>
 
             {/* Canvas Blocks */}
-            <div style={{ background: '#fff', padding: '0', display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
+            <div style={{ background: canvasTheme === 'dark' ? '#0f172a' : '#fff', padding: '0', display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
               {loading ? (
                 <div style={{ padding: '80px', textAlign: 'center', color: '#3b82f6', fontSize: '15px', fontWeight: 600 }}>Loading visual homepage editor...</div>
               ) : layout.length === 0 ? (
-                <div style={{ padding: '80px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', margin: '24px', border: '2px dashed #cbd5e1', borderRadius: '12px' }}>
-                  Homepage canvas is empty.<br/>Drag & drop components from the library to build.
+                <div style={{ padding: '80px', textAlign: 'center', color: '#94a3b8', background: canvasTheme === 'dark' ? '#1e293b' : '#f8fafc', margin: '24px', border: '2px dashed #cbd5e1', borderRadius: '12px' }}>
+                  Homepage canvas is empty.<br/>Click components from the left library to add.
                 </div>
               ) : (
                 layout.map((item, idx) => {
@@ -1086,7 +1071,7 @@ const HomeLayoutBuilder = () => {
                       style={{
                         position: 'relative',
                         border: isActive ? '2px solid #3b82f6' : '1px solid transparent',
-                        background: item.isVisible ? '#ffffff' : '#f8fafc',
+                        background: item.isVisible ? (canvasTheme === 'dark' ? '#1e293b' : '#ffffff') : (canvasTheme === 'dark' ? '#0f172a' : '#f8fafc'),
                         opacity: item.isVisible ? 1 : 0.5,
                         cursor: 'pointer',
                         transition: 'all 0.2s',

@@ -1031,13 +1031,19 @@ const Home = () => {
     );
   };
 
-  const renderLatestNews = () => {
-    const activeGrid = (latestGrid && latestGrid.length > 0) ? latestGrid : MOCK_ARTICLES.slice(0, 6);
+  const renderLatestNews = (config = {}, customLabel = null) => {
+    const filterCatId = config.categoryId ? parseInt(config.categoryId) : null;
+    const filtered = filterCatId
+      ? displayArticles.filter(a => String(a.categoryId) === String(filterCatId))
+      : displayArticles;
+    const limit = config.limit ? parseInt(config.limit) : 6;
+    const activeGrid = (filtered && filtered.length > 0 ? filtered : displayArticles).slice(0, limit);
+    const titleText = customLabel || (lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்');
 
     return (
       <section className="news-section">
         <div className="section-title">
-          <h2><i className="fas fa-newspaper"></i> {lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்'}</h2>
+          <h2><i className="fas fa-newspaper"></i> {titleText}</h2>
         </div>
         <div className="news-grid-3" id="newsGrid">
           {activeGrid.map((art, idx) => {
@@ -1552,19 +1558,92 @@ const Home = () => {
     );
   };
 
+  const renderSectionByKey = (section) => {
+    if (!section || section.isVisible === false) return null;
+    const key = section.sectionKey;
+    let config = {};
+    try {
+      config = typeof section.configJson === 'string' ? JSON.parse(section.configJson || '{}') : (section.configJson || {});
+    } catch (e) {}
+
+    const customLabel = section.sectionLabel;
+
+    switch (key) {
+      case 'news_ticker':
+        return (
+          <React.Fragment key={section.id || key}>
+            {renderCommodityTicker()}
+            {renderNewsTicker()}
+          </React.Fragment>
+        );
+      case 'hero':
+        return <React.Fragment key={section.id || key}>{renderHero(config)}</React.Fragment>;
+      case 'quick_access':
+        return <React.Fragment key={section.id || key}>{renderQuickAccess()}</React.Fragment>;
+      case 'latest_news':
+        return <React.Fragment key={section.id || key}>{renderLatestNews(config, customLabel)}</React.Fragment>;
+      case 'video_news':
+        return <React.Fragment key={section.id || key}>{renderVideoNews(config, customLabel)}</React.Fragment>;
+      case 'web_stories':
+        return <React.Fragment key={section.id || key}>{renderWebStories(config, customLabel)}</React.Fragment>;
+      case 'crowd_reporter':
+        return <React.Fragment key={section.id || key}>{renderCrowdReporterHighlight()}</React.Fragment>;
+      case 'institution_news':
+      case 'business_case':
+        return <React.Fragment key={section.id || key}>{renderInstitutionNews(config, customLabel)}</React.Fragment>;
+      case 'trending_sidebar':
+        return <React.Fragment key={section.id || key}>{renderTrendingSidebar(config, customLabel)}</React.Fragment>;
+      case 'weather':
+        return <React.Fragment key={section.id || key}>{renderWeather()}</React.Fragment>;
+      case 'live_tv':
+        return <React.Fragment key={section.id || key}>{renderLiveTv()}</React.Fragment>;
+      case 'rss_news':
+      case 'rss_aggregator':
+        return <React.Fragment key={section.id || key}>{renderRssAggregatedNews()}</React.Fragment>;
+      case 'news_digest':
+        return <React.Fragment key={section.id || key}>{renderNewsDigest()}</React.Fragment>;
+      case 'newsletter':
+        return <React.Fragment key={section.id || key}>{renderNewsletterStrip()}</React.Fragment>;
+      default:
+        return null;
+    }
+  };
+
+  const topKeys = ['website_navigation', 'news_ticker', 'hero', 'quick_access'];
+  const leftKeys = ['latest_news', 'video_news', 'web_stories', 'crowd_reporter', 'institution_news', 'business_case', 'custom_builder'];
+  const sidebarKeys = ['weather', 'trending_sidebar', 'live_tv', 'rss_news', 'rss_aggregator'];
+  const bottomKeys = ['news_digest', 'newsletter'];
+
+  const hasDynamicLayout = Array.isArray(layoutSections) && layoutSections.length > 0;
+
+  const sortedTopSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && topKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedLeftSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && leftKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedSidebarSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && sidebarKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedBottomSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
   return (
     <div style={{ width: '100%' }}>
-      {/* COMMODITY TICKER */}
-      {renderCommodityTicker()}
-
-      {/* BREAKING NEWS TICKER (Always rendered directly below Commodity Ticker) */}
-      {renderNewsTicker()}
-
-      {/* HERO SECTION */}
-      {renderHero()}
-
-      {/* QUICK ACCESS CATEGORIES BAR (Always under Hero and above Latest) */}
-      {renderQuickAccess()}
+      {hasDynamicLayout && sortedTopSections.length > 0 ? (
+        sortedTopSections.map(s => renderSectionByKey(s))
+      ) : (
+        <>
+          {renderCommodityTicker()}
+          {renderNewsTicker()}
+          {renderHero()}
+          {renderQuickAccess()}
+        </>
+      )}
 
       {/* HEADER BANNER SPONSORED AD */}
       <div className="container" style={{ margin: '20px auto 0 auto', padding: '0 15px' }}>
@@ -1574,24 +1653,40 @@ const Home = () => {
       {/* MAIN LAYOUT SPLIT */}
       <div className="container main-layout-container" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '30px', marginTop: '20px' }}>
         <div className="left-content-column">
-          {renderLatestNews()}
-          {renderVideoNews()}
-          {renderWebStories()}
-          {renderCrowdReporterHighlight()}
-          {renderInstitutionNews()}
+          {hasDynamicLayout && sortedLeftSections.length > 0 ? (
+            sortedLeftSections.map(s => renderSectionByKey(s))
+          ) : (
+            <>
+              {renderLatestNews()}
+              {renderVideoNews()}
+              {renderWebStories()}
+              {renderCrowdReporterHighlight()}
+              {renderInstitutionNews()}
+            </>
+          )}
         </div>
 
         <aside className="trending-sidebar" style={{ width: '100%' }}>
           <AdWidget placement="sidebar" />
-          {renderWeather()}
-          {renderTrendingSidebar()}
-          {renderLiveTv()}
-          {renderRssAggregatedNews()}
+          {hasDynamicLayout && sortedSidebarSections.length > 0 ? (
+            sortedSidebarSections.map(s => renderSectionByKey(s))
+          ) : (
+            <>
+              {renderWeather()}
+              {renderTrendingSidebar()}
+              {renderLiveTv()}
+              {renderRssAggregatedNews()}
+            </>
+          )}
         </aside>
       </div>
 
       {/* FULL-WIDTH BOTTOM SECTIONS */}
-      {renderNewsDigest()}
+      {hasDynamicLayout && sortedBottomSections.length > 0 ? (
+        sortedBottomSections.map(s => renderSectionByKey(s))
+      ) : (
+        renderNewsDigest()
+      )}
 
       {/* CROWD REPORTER MODAL */}
       {showReportModal && (
