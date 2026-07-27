@@ -21,12 +21,13 @@ def create_remote_dir(sftp, remote_path):
         except IOError:
             pass
 
-def upload_dir_contents(sftp, local_dir, remote_dir):
+def upload_dir_contents(sftp, local_dir, remote_dir, force_all=False):
     remote_dir = remote_dir.rstrip("/")
     print(f"Uploading from local {local_dir} to remote {remote_dir}...")
     create_remote_dir(sftp, remote_dir)
     
     uploaded_files = 0
+    skipped_files = 0
     for root, dirs, files in os.walk(local_dir):
         rel_path = os.path.relpath(root, local_dir).replace("\\", "/")
         if rel_path == ".":
@@ -40,11 +41,20 @@ def upload_dir_contents(sftp, local_dir, remote_dir):
             local_file_path = os.path.join(root, file)
             remote_file_path = f"{remote_current_dir}/{file}"
             try:
+                local_stat = os.stat(local_file_path)
+                try:
+                    remote_stat = sftp.stat(remote_file_path)
+                    if not force_all and remote_stat.st_size == local_stat.st_size:
+                        skipped_files += 1
+                        continue
+                except IOError:
+                    pass
+
                 sftp.put(local_file_path, remote_file_path)
                 uploaded_files += 1
             except Exception as ex:
                 print(f"  Failed: {file} -> {ex}")
-    print(f"Uploaded {uploaded_files} files.")
+    print(f"Uploaded {uploaded_files} modified/new files ({skipped_files} unchanged files skipped).")
 
 def main():
     print("Connecting to remote server via SSH/SFTP...")

@@ -701,9 +701,29 @@ const HomeLayoutBuilder = () => {
                 <div style={{ fontSize: '10px', fontWeight: 600, color: '#666', marginTop: '-4px' }}>24x7 Multiform TV</div>
               </div>
               <div>
-                <div style={{ background: '#C88D37', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <a
+                  href="/live-tv"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    background: '#C88D37',
+                    color: '#fff',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
                   <span>▶</span> LIVE TV WATCH NOW
-                </div>
+                </a>
               </div>
             </div>
             {/* Navigation Bar */}
