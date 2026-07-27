@@ -82,9 +82,20 @@ const HomeLayoutBuilder = () => {
   const [undoStack, setUndoStack] = useState([]);
   const [draggedKey, setDraggedKey] = useState(null);
 
-  // View Mode: 'desktop' | 'mobile'
+  // View Mode: 'desktop' | 'tablet' | 'mobile'
   const [viewMode, setViewMode] = useState('desktop');
-  const [canvasTheme, setCanvasTheme] = useState('light');
+  const [canvasTheme, setCanvasTheme] = useState(() => {
+    return document.documentElement.getAttribute('data-theme') || localStorage.getItem('admin_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const current = document.documentElement.getAttribute('data-theme') || localStorage.getItem('admin_theme') || 'dark';
+      setCanvasTheme(current);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   // AI Widget Assistant & Modal State
   const [showAiModal, setShowAiModal] = useState(false);
@@ -673,13 +684,25 @@ const HomeLayoutBuilder = () => {
         return (
           <div style={{ fontFamily: '"Mukta Malar", sans-serif' }}>
             {/* Top Logo Header Area */}
-            <div style={{ background: '#fff', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#C88D37', letterSpacing: '1px' }}>KING</div>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#666', marginTop: '-4px' }}>24x7 Multiform TV</div>
+            <div style={{ background: canvasTheme === 'dark' ? '#000000' : '#ffffff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${canvasTheme === 'dark' ? '#1e293b' : '#e2e8f0'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 75V40C20 31.7157 26.7157 25 35 25C43.2843 25 50 31.7157 50 40V75" stroke="url(#mock-logo-grad)" strokeWidth="14" strokeLinecap="round"/>
+                  <path d="M50 75V55C50 46.7157 56.7157 40 65 40C73.2843 40 80 46.7157 80 55V75" stroke="url(#mock-logo-grad)" strokeWidth="14" strokeLinecap="round"/>
+                  <circle cx="35" cy="12" r="7" fill="#F59E0B"/>
+                  <defs>
+                    <linearGradient id="mock-logo-grad" x1="20" y1="25" x2="80" y2="75" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#F59E0B"/>
+                      <stop offset="1" stopColor="#D97706"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: canvasTheme === 'dark' ? '#ffffff' : '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  சென்னை 24x7 <span style={{ fontSize: '11px', color: '#64748b' }}>✏️</span>
+                </span>
               </div>
               <div>
-                <div style={{ background: '#C88D37', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ background: '#EF4444', color: '#ffffff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>▶</span> LIVE TV WATCH NOW
                 </div>
               </div>
@@ -888,32 +911,6 @@ const HomeLayoutBuilder = () => {
               }}
             >
               📱 Mobile
-            </button>
-          </div>
-
-          {/* Theme Switcher */}
-          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <button
-              onClick={() => setCanvasTheme('light')}
-              style={{
-                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
-                background: canvasTheme === 'light' ? '#3b82f6' : 'transparent',
-                color: canvasTheme === 'light' ? '#fff' : '#94a3b8',
-                transition: 'all 0.2s'
-              }}
-            >
-              ☀️ Light
-            </button>
-            <button
-              onClick={() => setCanvasTheme('dark')}
-              style={{
-                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
-                background: canvasTheme === 'dark' ? '#3b82f6' : 'transparent',
-                color: canvasTheme === 'dark' ? '#fff' : '#94a3b8',
-                transition: 'all 0.2s'
-              }}
-            >
-              🌙 Dark
             </button>
           </div>
         </div>
