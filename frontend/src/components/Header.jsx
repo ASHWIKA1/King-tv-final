@@ -6,7 +6,6 @@ import { AuthContext } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
-import HeaderWidgetSlider from './HeaderWidgetSlider';
 
 const subcatEnTranslations = {
   'மாநிலம்': 'State',
@@ -102,7 +101,10 @@ const Header = () => {
   const [weatherTemp, setWeatherTemp] = useState('32°C');
 
   useEffect(() => {
-    fetchApi('/weather?city=Chennai')
+    // Fetch live weather for default district (Chennai) on load from backend
+    const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/v1';
+    fetch(`${baseApi}/weather?city=Chennai`)
+      .then(res => res.json())
       .then(data => {
         if (data && data.temp) {
           setWeatherTemp(data.temp);
@@ -124,8 +126,6 @@ const Header = () => {
   const [showHeaderSubcatDropdown, setShowHeaderSubcatDropdown] = useState(false);
   const [districtsList, setDistrictsList] = useState([]);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [navMode, setNavMode] = useState(1);
-  const [activeSubmenuId, setActiveSubmenuId] = useState(null);
   const [dropdownLeft, setDropdownLeft] = useState(0);
 
   const toggleDropdown = (e, itemId) => {
@@ -289,12 +289,25 @@ const Header = () => {
         subcategories: []
       });
 
-      // Add all other active categories dynamically from DB in order
-      dbItems.forEach(item => {
-        if (!['regional', 'video', 'videos', 'web-stories'].includes(item.slug)) {
-          dynamicItems.push(item);
-        }
-      });
+      // Politics
+      const politics = findDbItem('politics');
+      dynamicItems.push(politics || { id: 'politics', path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [] });
+
+      // Business
+      const business = findDbItem('business');
+      dynamicItems.push(business || { id: 'business', path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [] });
+
+      // Sports
+      const sports = findDbItem('sports');
+      dynamicItems.push(sports || { id: 'sports', path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [] });
+
+      // Cinema
+      const cinema = findDbItem('cinema');
+      dynamicItems.push(cinema || { id: 'cinema', path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [] });
+
+      // Technology
+      const tech = findDbItem('tech') || findDbItem('technology');
+      dynamicItems.push(tech || { id: 'tech', path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [] });
 
       // Regional Directory (with dropdown chevron containing all items)
       const regional = findDbItem('regional');
@@ -321,6 +334,10 @@ const Header = () => {
         label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்',
         subcategories: regionalSubcategories
       });
+
+      // International
+      const international = findDbItem('international');
+      dynamicItems.push(international || { id: 'international', path: '/category/international', label: lang === 'en' ? 'International' : 'சர்வதேசம்', subcategories: [] });
 
       // Videos (with dropdown chevron)
       const videos = findDbItem('video') || findDbItem('videos');
@@ -458,7 +475,7 @@ const Header = () => {
           setSiteSettings(res);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetchApi('/articles')
       .then(data => {
@@ -658,8 +675,8 @@ const Header = () => {
 
   const renderLogo = (size = 'normal', forceDark = false) => {
     const isDark = forceDark || theme === 'dark';
-    const logoUrl = isDark 
-      ? (siteSettings['site.logo_dark_url'] || siteSettings['site.logo_url'] || "assets/images/logo-banner-dark.png") 
+    const logoUrl = isDark
+      ? (siteSettings['site.logo_dark_url'] || siteSettings['site.logo_url'] || "assets/images/logo-banner-dark.png")
       : (siteSettings['site.logo_url'] || "assets/images/logo-banner-light.png");
     return (
       <Link to="/" className="logo-link" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -947,15 +964,15 @@ const Header = () => {
     const activeSlide = sliderCards[headerSliderIndex % sliderCards.length];
 
     return (
-      <div 
+      <div
         className="header-top-slider-widget"
-        style={{ 
-          background: 'rgba(255, 255, 255, 0.1)', 
-          border: '1px solid rgba(255, 255, 255, 0.22)', 
-          borderRadius: '12px', 
-          padding: '12px 18px', 
-          display: 'flex', 
-          flexDirection: 'column', 
+        style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.22)',
+          borderRadius: '12px',
+          padding: '12px 18px',
+          display: 'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
           gap: '8px',
           marginRight: '14px',
@@ -967,7 +984,7 @@ const Header = () => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px', fontWeight: 800, color: '#38BDF8' }}>
           <span>{lang === 'en' ? activeSlide.titleEn : activeSlide.titleTa}</span>
-          
+
           {/* Slider Dots Pagination Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             {Array.from({ length: 8 }).map((_, idx) => (
@@ -1056,193 +1073,223 @@ const Header = () => {
   const renderScrollNavMenu = (onLinkClick = () => { }) => {
     const navItems = getDynamicNavItems();
 
-    const renderStandardItem = (item, idx) => {
-      const isActive = (item.id === 'regional' && isRegionalPage) ||
-                       location.pathname === item.path ||
-                       (item.path !== '/' && location.pathname.startsWith(item.path));
-
-      const isParentNode = item.subcategories && item.subcategories.length > 0;
-
-      const handleItemClick = (e) => {
-        if (isParentNode) {
-          e.preventDefault();
-          e.stopPropagation();
-          setNavMode(2);
-          setActiveSubmenuId(item.id);
-        } else {
-          onLinkClick();
-        }
-      };
-
-      return (
-        <div
-          key={item.id || idx}
-          className="nav-item-wrapper"
-          style={{
-            position: 'relative',
-            display: 'inline-flex',
-            alignItems: 'center',
-            borderBottom: isActive ? '3px solid var(--primary, #B3732A)' : '3px solid transparent'
-          }}
-        >
-          <Link
-            to={item.path}
-            onClick={handleItemClick}
-            style={{
-              color: isActive
-                ? (theme === 'dark' ? '#FFFFFF' : '#000000')
-                : (theme === 'dark' ? '#94A3B8' : '#71717A'),
-              background: 'transparent',
-              padding: '8px 4px 6px 12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s',
-              display: 'inline-block'
-            }}
-          >
-            {item.label}
-          </Link>
-          {isParentNode && (
-            <button
-              onClick={handleItemClick}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '8px 12px 6px 4px',
-                cursor: 'pointer',
-                color: isActive
-                  ? (theme === 'dark' ? '#FFFFFF' : '#000000')
-                  : (theme === 'dark' ? '#94A3B8' : '#71717A'),
-                transition: 'all 0.2s'
-              }}
-              aria-label="Toggle subcategories"
-            >
-              <i className="fas fa-caret-down" style={{ fontSize: '10px', opacity: 0.8 }}></i>
-            </button>
-          )}
-        </div>
-      );
-    };
-
-    const getActiveParentItem = () => navItems.find(i => i.id === activeSubmenuId);
-    const activeParent = getActiveParentItem();
-
-    const childLinkStyle = {
-      color: theme === 'dark' ? '#e2e8f0' : '#3f3f46',
-      textDecoration: 'none',
-      fontSize: '13px',
-      fontWeight: '600',
-      padding: '6px 12px',
-      whiteSpace: 'nowrap',
-      transition: 'color 0.2s',
-      display: 'inline-block'
-    };
-
     return (
       <div style={{
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'nowrap',
         alignItems: 'center',
+        gap: '15px',
         width: '100%',
-        padding: '8px 0',
-        overflow: 'hidden',
-        position: 'relative',
-        minHeight: '40px'
+        padding: '8px 0'
       }}>
-        <style>{`
-          @keyframes slideInState {
-            from { opacity: 0; transform: translateX(10px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
-          .nav-state-container {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-            animation: slideInState 0.2s ease-out forwards;
-          }
-          .subcat-link:hover {
-            color: var(--primary, #B3732A) !important;
-          }
-        `}</style>
-        
-        <div className="nav-state-container" key={navMode}>
-          {navMode === 1 && (
-            navItems.map((item, idx) => renderStandardItem(item, idx))
-          )}
+        {navItems.map((item, idx) => {
+          const isActive = (item.id === 'regional' && isRegionalPage) ||
+            location.pathname === item.path ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
 
-          {navMode === 2 && activeParent && (
-            <>
-              <div 
-                className="nav-item-wrapper" 
-                style={{ display: 'inline-flex', alignItems: 'center' }}
+          const handleLinkClick = (e) => {
+            onLinkClick();
+            if (item.subcategories && item.subcategories.length > 0) {
+              if (isActive) {
+                // If already active, toggle dropdown menu
+                e.preventDefault();
+                toggleDropdown(e, item.id);
+              } else {
+                setActiveDropdown(null);
+              }
+            } else {
+              setActiveDropdown(null);
+            }
+          };
+
+          return (
+            <div
+              key={idx}
+              className="nav-item-wrapper"
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderBottom: isActive ? '3px solid var(--primary, #B3732A)' : '3px solid transparent'
+              }}
+            >
+              <Link
+                to={item.path}
+                onClick={handleLinkClick}
+                style={{
+                  color: isActive
+                    ? (theme === 'dark' ? '#FFFFFF' : '#000000')
+                    : (theme === 'dark' ? '#94A3B8' : '#71717A'),
+                  background: 'transparent',
+                  padding: '8px 4px 6px 12px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  display: 'inline-block'
+                }}
               >
-                <button
-                  onClick={() => { setNavMode(1); setActiveSubmenuId(null); }}
-                  style={{
-                    background: 'transparent', border: 'none', cursor: 'pointer',
-                    color: 'var(--primary, #B3732A)', padding: '8px 4px 6px 12px',
-                    fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
-                    display: 'flex', alignItems: 'center', gap: '6px'
-                  }}
-                >
-                  {activeParent.label} <i className="fas fa-caret-left" style={{ fontSize: '10px' }}></i>
-                </button>
-              </div>
-              
-              <div style={{ borderLeft: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.1)', height: '16px', margin: '0 4px' }}></div>
-              
-              <Link to={activeParent.path} onClick={onLinkClick} className="subcat-link" style={{...childLinkStyle, fontWeight: '700'}}>
-                {lang === 'en' ? 'All' : 'அனைத்தும்'}
+                {item.label}
               </Link>
-              
-              {activeParent.subcategories.map(sub => (
-                <Link 
-                  key={sub.id} 
-                  to={sub.path || `/category/${activeParent.path.split('/').pop()}?subcat=${lang === 'en' ? getSubcatEn(sub) : sub.nameTa}`} 
-                  onClick={onLinkClick}
-                  className="subcat-link" 
-                  style={childLinkStyle}
-                >
-                  {lang === 'en' ? getSubcatEn(sub) : sub.nameTa}
-                </Link>
-              ))}
-
-            </>
-          )}
-
-          {navMode === 3 && activeParent && (
-            <>
-              <div 
-                className="nav-item-wrapper" 
-                style={{ display: 'inline-flex', alignItems: 'center' }}
-              >
+              {item.subcategories && item.subcategories.length > 0 && (
                 <button
-                  onClick={() => setNavMode(2)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDropdown(e, item.id);
+                  }}
                   style={{
-                    background: 'transparent', border: 'none', cursor: 'pointer',
-                    color: 'var(--primary, #B3732A)', padding: '8px 4px 6px 12px',
-                    fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
-                    display: 'flex', alignItems: 'center', gap: '6px'
+                    background: 'transparent',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '8px 12px 6px 4px',
+                    cursor: 'pointer',
+                    color: isActive
+                      ? (theme === 'dark' ? '#FFFFFF' : '#000000')
+                      : (theme === 'dark' ? '#94A3B8' : '#71717A'),
+                    transition: 'all 0.2s'
+                  }}
+                  aria-label="Toggle subcategories"
+                >
+                  <i className="fas fa-chevron-down" style={{ fontSize: '8px', opacity: 0.7 }}></i>
+                </button>
+              )}
+
+              {/* Subcategories Dropdown directly below this link */}
+              {activeDropdown === item.id && item.subcategories && item.subcategories.length > 0 && (
+                <div
+                  className="category-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: window.innerWidth <= 768 ? `${dropdownLeft}px` : '50%',
+                    transform: window.innerWidth <= 768 ? 'none' : 'translateX(-50%)',
+                    background: theme === 'dark' ? '#1E293B' : '#ffffff',
+                    border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    padding: '8px 0',
+                    zIndex: 9999,
+                    minWidth: '220px',
+                    marginTop: '8px',
+                    textAlign: 'left'
                   }}
                 >
-                  {lang === 'en' ? 'More' : 'மேலும்'} <i className="fas fa-caret-left" style={{ fontSize: '10px' }}></i>
-                </button>
-              </div>
-              
-              <div style={{ borderLeft: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.1)', height: '16px', margin: '0 4px' }}></div>
-              
-              {navItems.filter(i => i.id !== activeSubmenuId).map((item, idx) => renderStandardItem(item, idx))}
-            </>
-          )}
-        </div>
+                  <style>{`
+                    .dropdown-sub-container {
+                      position: relative;
+                    }
+                    .dropdown-sub-link {
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 10px 16px;
+                      color: ${theme === 'dark' ? '#cbd5e1' : '#334155'};
+                      text-decoration: none;
+                      font-size: 13.5px;
+                      font-weight: 600;
+                      transition: all 0.2s ease;
+                      white-space: nowrap;
+                    }
+                    .dropdown-sub-link:hover {
+                      background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
+                      color: var(--primary, #B3732A);
+                    }
+                    .nested-dropdown {
+                      position: absolute;
+                      top: 0;
+                      left: 100%;
+                      background: ${theme === 'dark' ? '#1E293B' : '#ffffff'};
+                      border: ${theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'};
+                      border-radius: 8px;
+                      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                      padding: 6px 0;
+                      min-width: 180px;
+                      margin-left: 2px;
+                      display: none;
+                      z-index: 10001;
+                    }
+                    .dropdown-sub-container:hover .nested-dropdown {
+                      display: block;
+                    }
+                    .dropdown-nested-link {
+                      display: block;
+                      padding: 8px 16px;
+                      color: ${theme === 'dark' ? '#e2e8f0' : '#334155'};
+                      text-decoration: none;
+                      font-size: 13px;
+                      font-weight: 600;
+                      transition: all 0.2s ease;
+                      white-space: nowrap;
+                      text-align: left;
+                    }
+                    .dropdown-nested-link:hover {
+                      background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
+                      color: var(--primary, #B3732A);
+                    }
+                  `}</style>
+                  {/* Prepend 'All' option */}
+                  <div className="dropdown-sub-container">
+                    <Link
+                      to={item.path}
+                      onClick={() => setActiveDropdown(null)}
+                      className="dropdown-sub-link"
+                      style={{ fontWeight: '700', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
+                    >
+                      <span>{lang === 'en' ? 'All' : 'அனைத்தும்'}</span>
+                    </Link>
+                  </div>
+
+                  {item.subcategories.map(sub => {
+                    const subcatName = lang === 'en' ? getSubcatEn(sub) : sub.nameTa;
+                    const catSlug = item.path.split('/category/')[1];
+                    const subcatLinkPath = sub.path || `/category/${catSlug}?subcat=${subcatName}`;
+                    return (
+                      <div key={sub.id} className="dropdown-sub-container">
+                        <Link
+                          to={subcatLinkPath}
+                          onClick={() => setActiveDropdown(null)}
+                          className="dropdown-sub-link"
+                        >
+                          <span>{subcatName}</span>
+                          {sub.subcategories && sub.subcategories.length > 0 && (
+                            <i className="fas fa-chevron-right" style={{ fontSize: '9px', opacity: 0.6 }}></i>
+                          )}
+                        </Link>
+
+                        {/* Nested Sub-dropdown Overlay */}
+                        {sub.subcategories && sub.subcategories.length > 0 && (
+                          <div className="nested-dropdown">
+                            {sub.subcategories.map(child => {
+                              const isChildActive = location.pathname === child.path;
+                              return (
+                                <Link
+                                  key={child.id}
+                                  to={child.path || `/category/${child.slug}`}
+                                  onClick={() => setActiveDropdown(null)}
+                                  className={`dropdown-nested-link ${isChildActive ? 'active' : ''}`}
+                                  style={isChildActive ? {
+                                    background: theme === 'dark' ? '#334155' : '#EFF6FF',
+                                    color: 'var(--primary, #B3732A)'
+                                  } : {}}
+                                >
+                                  {lang === 'en' ? getSubcatEn(child) : child.nameTa}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -1254,8 +1301,8 @@ const Header = () => {
       <ul style={{ display: 'flex', flexDirection: 'column', gap: '15px', padding: 0, listStyle: 'none', margin: 0 }}>
         {navItems.map((item, idx) => {
           const isActive = (item.id === 'regional' && isRegionalPage) ||
-                           location.pathname === item.path ||
-                           (item.path !== '/' && location.pathname.startsWith(item.path));
+            location.pathname === item.path ||
+            (item.path !== '/' && location.pathname.startsWith(item.path));
 
           return (
             <li key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1582,8 +1629,6 @@ const Header = () => {
           }
         }
       `}</style>
-
-
       <nav
         className={`main-nav ${isRegionalPage ? 'regional-theme' : ''}`}
         style={{

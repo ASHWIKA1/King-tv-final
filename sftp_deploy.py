@@ -12,38 +12,33 @@ ADMIN_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html
 FRONTEND_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv/kingstv"
 
 def create_remote_dir(sftp, remote_path):
-    dirs = []
-    current = remote_path
-    while current and current != "/":
-        dirs.insert(0, current)
-        current = os.path.dirname(current)
-    
-    for d in dirs:
+    parts = [p for p in remote_path.split("/") if p]
+    current = ""
+    for part in parts:
+        current += "/" + part
         try:
-            sftp.mkdir(d)
+            sftp.mkdir(current)
         except IOError:
             pass
 
 def upload_dir_contents(sftp, local_dir, remote_dir):
+    remote_dir = remote_dir.rstrip("/")
     print(f"Uploading from local {local_dir} to remote {remote_dir}...")
     create_remote_dir(sftp, remote_dir)
     
     uploaded_files = 0
     for root, dirs, files in os.walk(local_dir):
-        rel_path = os.path.relpath(root, local_dir)
+        rel_path = os.path.relpath(root, local_dir).replace("\\", "/")
         if rel_path == ".":
             remote_current_dir = remote_dir
         else:
-            remote_current_dir = os.path.join(remote_dir, rel_path).replace("\\", "/")
+            remote_current_dir = f"{remote_dir}/{rel_path}"
 
-        try:
-            sftp.mkdir(remote_current_dir)
-        except IOError:
-            pass
+        create_remote_dir(sftp, remote_current_dir)
 
         for file in files:
             local_file_path = os.path.join(root, file)
-            remote_file_path = os.path.join(remote_current_dir, file).replace("\\", "/")
+            remote_file_path = f"{remote_current_dir}/{file}"
             try:
                 sftp.put(local_file_path, remote_file_path)
                 uploaded_files += 1
@@ -66,15 +61,27 @@ def main():
         sys.exit(1)
 
     local_root = os.getcwd()
-    
+    ROOT_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv"
+    ADMIN_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv/admin"
+
+    # Clean up any misplaced backslash files from public_html
+    pub_dir = "/home/u841409365/domains/test-technoprint.online/public_html"
+    try:
+        for f in sftp.listdir(pub_dir):
+            if "\\" in f:
+                try:
+                    sftp.remove(f"{pub_dir}/{f}")
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     # 1. Upload React Frontend to REMOTE king-tv root
     local_frontend_dist = os.path.join(local_root, "frontend", "dist")
-    ROOT_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv"
     upload_dir_contents(sftp, local_frontend_dist, ROOT_REMOTE_DIR)
 
     # 2. Upload React Admin Dashboard to REMOTE king-tv/admin
     local_admin_dist = os.path.join(local_root, "admin", "dist")
-    ADMIN_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv/admin"
     upload_dir_contents(sftp, local_admin_dist, ADMIN_REMOTE_DIR)
 
     # Upload local .htaccess rules
