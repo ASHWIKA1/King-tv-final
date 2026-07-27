@@ -858,10 +858,10 @@ const HomeLayoutBuilder = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', position: 'fixed', top: 0, left: 0, backgroundColor: '#0f172a', fontFamily: 'Inter, sans-serif', color: '#f8fafc', overflow: 'hidden', zIndex: 100 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', width: '100%', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${canvasTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, backgroundColor: canvasTheme === 'dark' ? '#0f172a' : '#ffffff', fontFamily: 'Inter, sans-serif', color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a' }}>
       
       {/* Premium Top Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', zIndex: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: canvasTheme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff', backdropFilter: 'blur(12px)', padding: '12px 24px', borderBottom: `1px solid ${canvasTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', padding: '6px 10px', borderRadius: '8px' }}>
             <Sparkles size={18} color="#fff" /> 
@@ -960,7 +960,7 @@ const HomeLayoutBuilder = () => {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         
         {/* Left Panel: Component Library & Navigator */}
-        <div style={{ width: '280px', background: 'rgba(30, 41, 59, 0.4)', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 5 }}>
+        <div style={{ width: '280px', background: canvasTheme === 'dark' ? 'rgba(30, 41, 59, 0.7)' : '#f8fafc', borderRight: `1px solid ${canvasTheme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`, color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a', display: 'flex', flexDirection: 'column', zIndex: 5 }}>
           
           <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}><PlusCircle size={16} color="#f59e0b" /> Add to Homepage</h4>
@@ -1012,7 +1012,7 @@ const HomeLayoutBuilder = () => {
         </div>
 
         {/* Center Panel: Live Canvas Workspace */}
-        <div id="canvas-scroll-container" style={{ flex: 1, overflowY: 'auto', background: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)', position: 'relative' }} className="custom-scrollbar">
+        <div id="canvas-scroll-container" style={{ flex: 1, overflowY: 'auto', background: canvasTheme === 'dark' ? 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)' : '#e2e8f0', position: 'relative' }} className="custom-scrollbar">
           <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
             
             <div style={{
@@ -1193,7 +1193,7 @@ const HomeLayoutBuilder = () => {
         </div>
 
         {/* Right Panel: Properties */}
-        <div style={{ width: '320px', background: 'rgba(30, 41, 59, 0.4)', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 5, transition: 'width 0.3s ease' }}>
+        <div style={{ width: '320px', background: canvasTheme === 'dark' ? 'rgba(30, 41, 59, 0.7)' : '#ffffff', borderLeft: `1px solid ${canvasTheme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`, color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a', display: 'flex', flexDirection: 'column', zIndex: 5, transition: 'width 0.3s ease' }}>
         {activeConfigSection ? (
           <>
             
