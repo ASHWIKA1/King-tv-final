@@ -868,6 +868,17 @@ const HomeLayoutBuilder = () => {
               🖥️ Desktop
             </button>
             <button
+              onClick={() => setViewMode('tablet')}
+              style={{
+                padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: viewMode === 'tablet' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: viewMode === 'tablet' ? '#fff' : '#94a3b8',
+                transition: 'all 0.2s'
+              }}
+            >
+              💻 Tablet
+            </button>
+            <button
               onClick={() => setViewMode('mobile')}
               style={{
                 padding: '6px 12px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
@@ -1008,7 +1019,8 @@ const HomeLayoutBuilder = () => {
           <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
             
             <div style={{
-              width: viewMode === 'mobile' ? '414px' : '100%', maxWidth: viewMode === 'mobile' ? '414px' : '1200px',
+              width: viewMode === 'mobile' ? '414px' : viewMode === 'tablet' ? '768px' : '100%',
+              maxWidth: viewMode === 'mobile' ? '414px' : viewMode === 'tablet' ? '768px' : '1200px',
               background: canvasTheme === 'dark' ? '#0f172a' : '#ffffff',
               color: canvasTheme === 'dark' ? '#f8fafc' : '#0f172a',
               borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',

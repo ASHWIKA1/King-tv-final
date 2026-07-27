@@ -1083,7 +1083,7 @@ const Home = () => {
     );
   };
 
-  const renderVideoNews = () => {
+  const renderVideoNews = (config = {}, customLabel = null) => {
     const homeCatIdMap = {
       'all': null,
       'politics': 1,
@@ -1100,11 +1100,12 @@ const Home = () => {
       : videos.filter(vid => vid.categoryId === homeCatIdMap[videoTab]);
 
     const activeVideos = (filteredHomeVideos && filteredHomeVideos.length > 0) ? filteredHomeVideos : MOCK_VIDEOS;
+    const titleText = customLabel || (lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்');
 
     return (
       <section className="video-section" id="section-video">
         <div className="section-title">
-          <h2><i className="fas fa-video" style={{ color: '#EF4444' }}></i> {lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்'}</h2>
+          <h2><i className="fas fa-video" style={{ color: '#EF4444' }}></i> {titleText}</h2>
           <Link to="/videos" className="view-all">{lang === 'en' ? 'More Videos' : 'மேலும் வீடியோக்கள்'} <i className="fas fa-arrow-right"></i></Link>
         </div>
         <div className="video-grid-4">
@@ -1146,11 +1147,13 @@ const Home = () => {
     );
   };
 
-  const renderWebStories = () => {
+  const renderWebStories = (config = {}, customLabel = null) => {
+    const titleText = customLabel || (lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்');
+
     return (
       <section className="stories-section" id="section-stories">
         <div className="section-title">
-          <h2><i className="fas fa-sticky-note"></i> {lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்'}</h2>
+          <h2><i className="fas fa-sticky-note"></i> {titleText}</h2>
           <Link to="/web-stories" className="view-all">{lang === 'en' ? 'View All' : 'அனைத்தும் காண'} <i className="fas fa-arrow-right"></i></Link>
         </div>
         <div className="stories-track">
@@ -1183,14 +1186,15 @@ const Home = () => {
     );
   };
 
-  const renderTrendingSidebar = () => {
+  const renderTrendingSidebar = (config = {}, customLabel = null) => {
     const activeTrending = (trendingNews && trendingNews.length > 0) ? trendingNews : MOCK_TRENDING;
+    const titleText = customLabel || (lang === 'en' ? 'Trending News' : 'டிரெண்டிங் செய்திகள்');
 
     return (
       <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', border: '1px solid #F1F5F9', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <i className="fas fa-fire" style={{ color: '#EF4444', fontSize: '16px' }}></i>
-          {lang === 'en' ? 'Trending News' : 'டிரெண்டிங் செய்திகள்'}
+          {titleText}
         </h4>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
