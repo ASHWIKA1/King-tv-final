@@ -73,9 +73,214 @@ export const generateBlockStyles = (configStr, viewMode = 'desktop') => {
   }
 };
 
+const DEFAULT_NAV_MENUS = [
+  { id: 1, titleEn: 'Home', titleTa: 'முகப்பு', linkUrl: '/', displayOrder: 1, isActive: true, parentId: null },
+  { id: 2, titleEn: 'Politics', titleTa: 'அரசியல்', linkUrl: '/category/politics', displayOrder: 2, isActive: true, parentId: null },
+  { id: 3, titleEn: 'Business', titleTa: 'வணிகம்', linkUrl: '/category/business', displayOrder: 3, isActive: true, parentId: null },
+  { id: 4, titleEn: 'Sports', titleTa: 'விளையாட்டு', linkUrl: '/category/sports', displayOrder: 4, isActive: true, parentId: null },
+  { id: 5, titleEn: 'Cinema', titleTa: 'பொழுதுபோக்கு', linkUrl: '/category/cinema', displayOrder: 5, isActive: true, parentId: null },
+  { id: 6, titleEn: 'Technology', titleTa: 'தொழில்நுட்பம்', linkUrl: '/category/tech', displayOrder: 6, isActive: true, parentId: null },
+  { id: 7, titleEn: 'Regional', titleTa: 'நம்ம ஊர்', linkUrl: '/directory', displayOrder: 7, isActive: true, parentId: null },
+  { id: 71, titleEn: 'Local Business Directory', titleTa: 'நம்ம ஊர்', linkUrl: '/directory', displayOrder: 1, isActive: true, parentId: 7 },
+  { id: 72, titleEn: 'Deals', titleTa: 'சலுகைகள்', linkUrl: '/deals', displayOrder: 2, isActive: true, parentId: 7 },
+  { id: 73, titleEn: 'RFQ', titleTa: 'கோரிக்கைகள்', linkUrl: '/rfq', displayOrder: 3, isActive: true, parentId: 7 },
+  { id: 74, titleEn: 'Wishes', titleTa: 'வாழ்த்து', linkUrl: '/wishes', displayOrder: 4, isActive: true, parentId: 7 },
+  { id: 75, titleEn: 'Obituaries', titleTa: 'இரங்கல்', linkUrl: '/obituaries', displayOrder: 5, isActive: true, parentId: 7 },
+  { id: 76, titleEn: 'Jobs', titleTa: 'வேலை', linkUrl: '/jobs', displayOrder: 6, isActive: true, parentId: 7 },
+  { id: 77, titleEn: 'Classifieds', titleTa: 'தள்ளுபடி', linkUrl: '/classifieds', displayOrder: 7, isActive: true, parentId: 7 },
+  { id: 8, titleEn: 'International', titleTa: 'சர்வதேசம்', linkUrl: '/category/international', displayOrder: 8, isActive: true, parentId: null },
+  { id: 9, titleEn: 'Videos', titleTa: 'வீடியோ', linkUrl: '/videos', displayOrder: 9, isActive: true, parentId: null },
+  { id: 10, titleEn: 'Web Stories', titleTa: 'வெப் ஸ்டோரிஸ்', linkUrl: '/web-stories', displayOrder: 10, isActive: true, parentId: null }
+];
+
+export const NavigationMenuEditor = ({ menuItems, setMenuItems, canvasTheme }) => {
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ titleEn: '', titleTa: '', linkUrl: '' });
+  const [newItemForm, setNewItemForm] = useState({ titleEn: '', titleTa: '', linkUrl: '', parentId: null });
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const topMenus = menuItems.filter(m => !m.parentId).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  const getSubMenus = (parentId) => menuItems.filter(m => m.parentId === parentId).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+  const handleToggleActive = async (item) => {
+    const nextState = !item.isActive;
+    const updated = menuItems.map(m => m.id === item.id ? { ...m, isActive: nextState } : m);
+    setMenuItems(updated);
+    try {
+      await api.put(`/admin/menus/${item.id}`, { ...item, isActive: nextState });
+    } catch(e) {}
+  };
+
+  const handleMove = async (item, direction) => {
+    const list = item.parentId ? getSubMenus(item.parentId) : topMenus;
+    const index = list.findIndex(m => m.id === item.id);
+    if (index < 0) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+
+    const targetItem = list[targetIndex];
+    const currentOrder = item.displayOrder || (index + 1);
+    const targetOrder = targetItem.displayOrder || (targetIndex + 1);
+
+    const updated = menuItems.map(m => {
+      if (m.id === item.id) return { ...m, displayOrder: targetOrder };
+      if (m.id === targetItem.id) return { ...m, displayOrder: currentOrder };
+      return m;
+    });
+
+    setMenuItems(updated);
+    try {
+      await api.put(`/admin/menus/${item.id}`, { ...item, displayOrder: targetOrder });
+      await api.put(`/admin/menus/${targetItem.id}`, { ...targetItem, displayOrder: currentOrder });
+    } catch(e) {}
+  };
+
+  const handleStartEdit = (item) => {
+    setEditingId(item.id);
+    setEditForm({ titleEn: item.titleEn || '', titleTa: item.titleTa || '', linkUrl: item.linkUrl || '' });
+  };
+
+  const handleSaveEdit = async (item) => {
+    const updated = menuItems.map(m => m.id === item.id ? { ...m, ...editForm } : m);
+    setMenuItems(updated);
+    setEditingId(null);
+    try {
+      await api.put(`/admin/menus/${item.id}`, { ...item, ...editForm });
+    } catch(e) {}
+  };
+
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Delete navigation item "${item.titleEn}"?`)) return;
+    const updated = menuItems.filter(m => m.id !== item.id && m.parentId !== item.id);
+    setMenuItems(updated);
+    try {
+      await api.delete(`/admin/menus/${item.id}`);
+    } catch(e) {}
+  };
+
+  const handleCreateNew = async () => {
+    if (!newItemForm.titleEn.trim()) return;
+    const maxOrder = menuItems.reduce((max, m) => Math.max(max, m.displayOrder || 0), 0);
+    const payload = {
+      titleEn: newItemForm.titleEn,
+      titleTa: newItemForm.titleTa || newItemForm.titleEn,
+      linkUrl: newItemForm.linkUrl || '/',
+      displayOrder: maxOrder + 1,
+      parentId: newItemForm.parentId ? Number(newItemForm.parentId) : null,
+      isActive: true
+    };
+    try {
+      const res = await api.post('/admin/menus', payload);
+      setMenuItems(prev => [...prev, res.data || { ...payload, id: Date.now() }]);
+      setShowAddModal(false);
+      setNewItemForm({ titleEn: '', titleTa: '', linkUrl: '', parentId: null });
+    } catch(e) {
+      setMenuItems(prev => [...prev, { ...payload, id: Date.now() }]);
+      setShowAddModal(false);
+      setNewItemForm({ titleEn: '', titleTa: '', linkUrl: '', parentId: null });
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', marginBottom: '4px' }}>DYNAMIC NAVIGATION CATEGORY MANAGER</div>
+        <p style={{ fontSize: '11px', color: canvasTheme === 'dark' ? '#94a3b8' : '#64748b', margin: 0, lineHeight: 1.4 }}>
+          Add, reorder, edit, and toggle visibility for top categories and subcategories in the navigation bar.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700 }}>Category Items ({topMenus.length})</span>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+        >
+          + Add Category
+        </button>
+      </div>
+
+      {showAddModal && (
+        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8' }}>New Navigation Item</div>
+          <input type="text" placeholder="Title English (e.g. Regional)" value={newItemForm.titleEn} onChange={e => setNewItemForm(p => ({ ...p, titleEn: e.target.value }))} style={{ padding: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+          <input type="text" placeholder="Title Tamil (e.g. நம்ம ஊர்)" value={newItemForm.titleTa} onChange={e => setNewItemForm(p => ({ ...p, titleTa: e.target.value }))} style={{ padding: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+          <input type="text" placeholder="Link URL (e.g. /directory or /category/politics)" value={newItemForm.linkUrl} onChange={e => setNewItemForm(p => ({ ...p, linkUrl: e.target.value }))} style={{ padding: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+          <select value={newItemForm.parentId || ''} onChange={e => setNewItemForm(p => ({ ...p, parentId: e.target.value || null }))} style={{ padding: '6px', fontSize: '11px', background: 'rgba(30,41,59,0.9)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
+            <option value="">Top Level Category</option>
+            {topMenus.map(tm => <option key={tm.id} value={tm.id}>Subcategory of {tm.titleEn}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button onClick={handleCreateNew} style={{ flex: 1, background: '#10b981', color: '#fff', border: 'none', padding: '6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Save Category</button>
+            <button onClick={() => setShowAddModal(false)} style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '350px', overflowY: 'auto' }} className="custom-scrollbar">
+        {topMenus.map((cat, idx) => {
+          const subMenus = getSubMenus(cat.id);
+          const isEditing = editingId === cat.id;
+
+          return (
+            <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                  <button onClick={() => handleMove(cat, 'up')} disabled={idx === 0} style={{ background: 'none', border: 'none', color: idx === 0 ? '#475569' : '#94a3b8', cursor: idx === 0 ? 'default' : 'pointer', fontSize: '10px', padding: '2px' }}>▲</button>
+                  <button onClick={() => handleMove(cat, 'down')} disabled={idx === topMenus.length - 1} style={{ background: 'none', border: 'none', color: idx === topMenus.length - 1 ? '#475569' : '#94a3b8', cursor: idx === topMenus.length - 1 ? 'default' : 'pointer', fontSize: '10px', padding: '2px' }}>▼</button>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: cat.isActive ? (canvasTheme === 'dark' ? '#f8fafc' : '#0f172a') : '#64748b', textDecoration: cat.isActive ? 'none' : 'line-through' }}>
+                    {cat.titleEn} {cat.titleTa ? `(${cat.titleTa})` : ''}
+                  </span>
+                  {subMenus.length > 0 && <span style={{ fontSize: '9px', background: 'rgba(56,189,248,0.2)', color: '#38bdf8', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>{subMenus.length} subs</span>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button onClick={() => handleToggleActive(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cat.isActive ? '#10b981' : '#64748b', fontSize: '12px' }}>
+                    {cat.isActive ? '👁️' : '🙈'}
+                  </button>
+                  <button onClick={() => isEditing ? handleSaveEdit(cat) : handleStartEdit(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#38bdf8', fontSize: '12px' }}>
+                    {isEditing ? '💾' : '✏️'}
+                  </button>
+                  <button onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '12px' }}>
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              {isEditing && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', padding: '6px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+                  <input type="text" placeholder="Title En" value={editForm.titleEn} onChange={e => setEditForm(p => ({ ...p, titleEn: e.target.value }))} style={{ padding: '4px 6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+                  <input type="text" placeholder="Title Ta" value={editForm.titleTa} onChange={e => setEditForm(p => ({ ...p, titleTa: e.target.value }))} style={{ padding: '4px 6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+                  <input type="text" placeholder="Link URL" value={editForm.linkUrl} onChange={e => setEditForm(p => ({ ...p, linkUrl: e.target.value }))} style={{ padding: '4px 6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }} />
+                </div>
+              )}
+
+              {subMenus.map((sub) => (
+                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginLeft: '16px', padding: '4px 6px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '11px' }}>
+                  <span style={{ color: sub.isActive ? '#94a3b8' : '#475569', textDecoration: sub.isActive ? 'none' : 'line-through' }}>
+                    ↳ {sub.titleEn} {sub.titleTa ? `(${sub.titleTa})` : ''}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button onClick={() => handleToggleActive(sub)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: sub.isActive ? '#10b981' : '#64748b', fontSize: '10px' }}>
+                      {sub.isActive ? '👁️' : '🙈'}
+                    </button>
+                    <button onClick={() => handleDelete(sub)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '10px' }}>
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const HomeLayoutBuilder = () => {
   const [layout, setLayout] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [menuItems, setMenuItems] = useState(DEFAULT_NAV_MENUS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -126,6 +331,12 @@ const HomeLayoutBuilder = () => {
   const fetchLayout = async () => {
     setLoading(true);
     try {
+      api.get('/admin/menus').then(mRes => {
+        if (Array.isArray(mRes.data) && mRes.data.length > 0) {
+          setMenuItems(mRes.data);
+        }
+      }).catch(() => {});
+
       const res = await api.get('/admin/layout/web');
       let data = res.data || [];
       if (Array.isArray(data) && data.length >= 4) {
@@ -708,22 +919,18 @@ const HomeLayoutBuilder = () => {
               </div>
             </div>
             {/* Navigation Bar */}
-            <div style={{ background: '#B67C2F', padding: '0 30px', borderTop: '4px solid #FACC15' }}>
+            <div style={{ background: '#B67C2F', padding: '0 20px', borderTop: '4px solid #FACC15' }}>
               <div style={{ display: 'flex', gap: '0', alignItems: 'center', justifyContent: jc, flexWrap: 'wrap', margin: 0 }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#000', cursor: 'pointer', background: '#fff', padding: '12px 20px', flexShrink: 0 }}>Home</div>
-                {categories.map(cat => (
-                  <React.Fragment key={cat.id}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', padding: '12px 20px', flexShrink: 0 }}>
-                      {cat.nameTa || cat.name}
+                {menuItems.filter(m => !m.parentId && m.isActive !== false).sort((a,b) => (a.displayOrder||0)-(b.displayOrder||0)).map(item => {
+                  const subCats = menuItems.filter(m => m.parentId === item.id && m.isActive !== false);
+                  return (
+                    <div key={item.id} style={{ fontSize: '13px', fontWeight: 700, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap', padding: '10px 14px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{item.titleTa || item.titleEn}</span>
+                      {subCats.length > 0 && <span style={{ fontSize: '9px', opacity: 0.85, color: '#facc15' }}>▾</span>}
                     </div>
-                    {cat.subcategories && cat.subcategories.map(sub => (
-                      <div key={`sub-${sub.id}`} style={{ fontSize: '13px', fontWeight: 600, color: '#facc15', cursor: 'pointer', whiteSpace: 'nowrap', padding: '14px 15px', flexShrink: 0, opacity: 0.9 }}>
-                        ↳ {sub.nameTa || sub.name}
-                      </div>
-                    ))}
-                  </React.Fragment>
-                ))}
-                <div style={{ marginLeft: 'auto', padding: '12px 20px', color: '#fff', flexShrink: 0 }}>🔍</div>
+                  );
+                })}
+                <div style={{ marginLeft: 'auto', padding: '10px 14px', color: '#fff', flexShrink: 0 }}>🔍</div>
               </div>
             </div>
           </div>
@@ -1216,26 +1423,7 @@ const HomeLayoutBuilder = () => {
                 ) : activeConfigSection.type === 'button' ? (
                   <ButtonEditor config={configParams} setConfig={setConfigParams} />
                 ) : activeConfigSection.sectionKey === 'website_navigation' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', marginBottom: '8px' }}>NAVIGATION SOURCE</div>
-                      <div style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 600 }}>Taxonomy Management</div>
-                      <p style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0 0 0', lineHeight: 1.4 }}>This component automatically syncs with your live categories.</p>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {categories.map(cat => (
-                        <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#cbd5e1', padding: '6px 8px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
-                          <span style={{ color: '#10b981' }}>✓</span> {cat.name} {cat.nameTa ? `(${cat.nameTa})` : ''}
-                        </div>
-                      ))}
-                    </div>
-                    <button 
-                      onClick={() => window.open('/admin/taxonomy', '_blank')}
-                      style={{ marginTop: '8px', background: '#334155', color: '#fff', border: '1px solid #475569', padding: '10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    >
-                      Open Taxonomy Management
-                    </button>
-                  </div>
+                  <NavigationMenuEditor menuItems={menuItems} setMenuItems={setMenuItems} canvasTheme={canvasTheme} />
                 ) : (
                   <>
                     <select value={configParams.provider || 'latest_news'} onChange={e => setConfigParams(prev => ({ ...prev, provider: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(30, 41, 59, 0.9)', color: '#f8fafc', fontSize: '13px', appearance: 'none', marginBottom: '10px' }}>
