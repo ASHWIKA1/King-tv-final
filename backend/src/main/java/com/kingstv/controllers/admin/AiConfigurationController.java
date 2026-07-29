@@ -13,7 +13,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/ai-config")
-@RequiresPermission(Permission.CONFIG_WRITE)
 public class AiConfigurationController {
 
     @Autowired
@@ -34,6 +33,7 @@ public class AiConfigurationController {
     }
 
     @PutMapping("/{provider}")
+    @RequiresPermission(Permission.CONFIG_WRITE)
     public ResponseEntity<?> updateConfig(@PathVariable String provider, @RequestBody AiConfiguration request) {
         Long userId = getCallerId();
         try {

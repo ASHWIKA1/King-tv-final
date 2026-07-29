@@ -30,7 +30,7 @@ const SystemSettings = () => {
     tertiaryFont: 'Poppins',
     aiLlmApiUrl: '',
     aiLlmApiKey: '',
-    aiLlmModel: 'gemini-2.0-flash'
+    aiLlmModel: 'gemini-flash-latest'
   });
   const [loading, setLoading] = useState(true);
   const [savingGroup, setSavingGroup] = useState('');

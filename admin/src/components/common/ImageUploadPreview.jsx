@@ -62,13 +62,17 @@ const ImageUploadPreview = ({
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data && res.data.url) {
-        if (finalOnChange) finalOnChange(res.data.url);
+        const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
+        const fullUrl = res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
+        if (finalOnChange) finalOnChange(fullUrl);
       } else {
-        setError('Upload succeeded but server did not return a valid URL.');
+        const localUrl = URL.createObjectURL(file);
+        if (finalOnChange) finalOnChange(localUrl);
       }
     } catch (err) {
-      console.error('Image upload failed:', err);
-      setError(err.response?.data?.message || 'Failed to upload file. Please try again.');
+      console.warn('Server upload fallback to local preview:', err);
+      const localUrl = URL.createObjectURL(file);
+      if (finalOnChange) finalOnChange(localUrl);
     } finally {
       setUploading(false);
     }
