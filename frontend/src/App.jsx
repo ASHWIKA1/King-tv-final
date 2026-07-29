@@ -49,6 +49,7 @@ import Weather from './pages/Weather';
 import BizDirectoryRegister from './pages/BizDirectoryRegister';
 import BizDirectoryDashboard from './pages/BizDirectoryDashboard';
 import MyRfqs from './pages/MyRfqs';
+import MyQuotes from './pages/MyQuotes';
 
 
 function AppContent() {
