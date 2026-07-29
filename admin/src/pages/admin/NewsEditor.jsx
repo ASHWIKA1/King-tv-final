@@ -181,6 +181,17 @@ const NewsEditor = () => {
   // Draft Backup & Auto-Save State
   const [hasDraftBackup, setHasDraftBackup] = useState(false);
   const [draftSavedTime, setDraftSavedTime] = useState('');
+  
+  const [form, setForm] = useState({
+    titleTa: '', titleEn: '', contentTa: '', contentEn: '',
+    shortDescTa: '', shortDescEn: '', imageUrl: '', featuredImage: '',
+    authorName: user?.name || user?.username || 'Kings TV News Desk', 
+    reporterName: '', readabilityScore: '', seoScore: '', status: 'draft',
+    categoryId: '', subcategoryId: '', districtId: '', constituency: '',
+    metaTitle: '', metaDescription: '', metaKeywords: '', focusKeywords: '', slug: '', canonicalUrl: '',
+    publishedAt: '', showRightColumn: true, isPluggedIn: false, featuredCategory: '',
+    allowComments: true, allowPingbacks: true
+  });
 
   // ── Auto-Save to LocalStorage every 15s ────────────────────────────────────
   useEffect(() => {
@@ -235,17 +246,6 @@ const NewsEditor = () => {
     setHasDraftBackup(false);
     showMsg('Local draft backup discarded.');
   };
-  
-  const [form, setForm] = useState({
-    titleTa: '', titleEn: '', contentTa: '', contentEn: '',
-    shortDescTa: '', shortDescEn: '', imageUrl: '', featuredImage: '',
-    authorName: user?.name || user?.username || 'Kings TV News Desk', 
-    reporterName: '', readabilityScore: '', seoScore: '', status: 'draft',
-    categoryId: '', subcategoryId: '', districtId: '', constituency: '',
-    metaTitle: '', metaDescription: '', metaKeywords: '', focusKeywords: '', slug: '', canonicalUrl: '',
-    publishedAt: '', showRightColumn: true, isPluggedIn: false, featuredCategory: '',
-    allowComments: true, allowPingbacks: true
-  });
 
   const [aiGeneratingDraft, setAiGeneratingDraft] = useState(false);
   const [aiDraftProgress, setAiDraftProgress] = useState('');
