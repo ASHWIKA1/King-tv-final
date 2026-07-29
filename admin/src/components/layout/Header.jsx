@@ -6,7 +6,7 @@ import api from '../../api';
 import { LogOut, User, Moon, Sun, Search, Bell, Settings, ChevronDown, Activity, AlertCircle, Users, Inbox } from 'lucide-react';
 
 const Header = () => {
-  const { user, logout, hasAnyRole } = useAuth();
+  const { user, logout, hasAnyRole, switchRole } = useAuth();
   const { toggleLang, t } = useI18n();
   const navigate = useNavigate();
 
@@ -243,11 +243,31 @@ const Header = () => {
             </button>
 
             {profileOpen && (
-              <div className="glass-panel" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '200px', padding: '0.5rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div className="glass-panel" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '240px', padding: '0.75rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--border-color)', marginBottom: '0.25rem' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 'bold', marginTop: '2px' }}>{user?.role?.replace('_', ' ')}</div>
                 </div>
+
+                {/* Role Switcher */}
+                <div style={{ padding: '0.25rem 0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '4px' }}>Active Role Switcher</label>
+                  <select 
+                    value={user?.role || 'SUPER_ADMIN'} 
+                    onChange={e => switchRole(e.target.value)}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-primary)' }}
+                  >
+                    <option value="SUPER_ADMIN">👑 SUPER ADMIN (Full Access)</option>
+                    <option value="CHIEF_EDITOR">✏️ CHIEF EDITOR</option>
+                    <option value="DISTRICT_ADMIN">🏢 DISTRICT ADMIN</option>
+                    <option value="SECTION_EDITOR">📰 SECTION EDITOR</option>
+                    <option value="SUB_EDITOR">📝 SUB EDITOR</option>
+                    <option value="MOBILE_JOURNALIST">📱 MOBILE JOURNALIST</option>
+                    <option value="INSTITUTION_LOGIN">🏛️ INSTITUTION LOGIN</option>
+                    <option value="READER">👤 READER</option>
+                  </select>
+                </div>
+
                 <Link to="/admin/profile" onClick={() => setProfileOpen(false)} className="nav-link" style={{ fontSize: '0.85rem', padding: '0.5rem 0.75rem' }}>
                   <User size={14} /> My Profile
                 </Link>

@@ -210,7 +210,7 @@ const Login = () => {
         login(res.user, res.accessToken, res.refreshToken, rememberMe);
         triggerToast(lang === 'en' ? 'Successfully logged in with verified Phone!' : 'சரியான தொலைபேசி எண் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
         
-        const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+        const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
         if (res.user && adminRoles.includes(res.user.role)) {
           const getAdminPortalUrl = () => {
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -239,7 +239,7 @@ const Login = () => {
       login(res.user, res.accessToken, res.refreshToken, rememberMe);
       triggerToast(lang === 'en' ? 'Successfully logged in with verified Phone!' : 'சரியான தொலைபேசி எண் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
       
-      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -268,7 +268,7 @@ const Login = () => {
       login(res.user, res.accessToken, res.refreshToken, rememberMe);
       triggerToast(lang === 'en' ? 'Successfully logged in!' : 'வெற்றிகரமாக உள்நுழைந்துவிட்டீர்கள்!');
       
-      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -303,7 +303,7 @@ const Login = () => {
           login(res.user, res.accessToken, res.refreshToken, rememberMe);
           triggerToast(lang === 'en' ? 'Successfully logged in with Google!' : 'கூகிள் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
           
-          const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+          const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
           if (res.user && adminRoles.includes(res.user.role)) {
             const getAdminPortalUrl = () => {
               if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -348,7 +348,7 @@ const Login = () => {
       login(res.user, res.accessToken, res.refreshToken, rememberMe);
       triggerToast(lang === 'en' ? `Connected with ${socialProvider.toUpperCase()}!` : `${socialProvider.toUpperCase()} உடன் இணைக்கப்பட்டது!`);
       
-      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SECTION_EDITOR', 'SUB_EDITOR', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

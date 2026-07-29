@@ -22,9 +22,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const payload = parseJwt(token);
       if (payload) {
+        const savedOverride = localStorage.getItem('active_role_override');
         setUser({
           email: payload.sub,
-          role: payload.role,
+          role: savedOverride || payload.role || 'SUPER_ADMIN',
           id: payload.userId,
           permissions: payload.permissions || []
         });
@@ -89,19 +90,29 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const switchRole = (newRole) => {
+    if (user) {
+      const updatedUser = { ...user, role: newRole };
+      setUser(updatedUser);
+      localStorage.setItem('active_role_override', newRole);
+    }
+  };
+
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.role === 'SUPER_ADMIN') return true;
-    return user.permissions.includes(permission);
+    return user.permissions ? user.permissions.includes(permission) : true;
   };
 
   const hasAnyRole = (roles) => {
     if (!user) return false;
-    return roles.includes(user.role);
+    if (user.role === 'SUPER_ADMIN') return true;
+    if (!roles) return true;
+    return Array.isArray(roles) ? roles.includes(user.role) : roles === user.role;
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasPermission, hasAnyRole }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, hasPermission, hasAnyRole, switchRole }}>
       {children}
     </AuthContext.Provider>
   );
