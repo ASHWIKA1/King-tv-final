@@ -56,37 +56,21 @@ public class ImageCompressorService {
                 processedImage = resizedImage;
             }
 
-            // 2. Search for registered WebP writer
-            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("webp");
-            if (writers.hasNext()) {
-                ImageWriter writer = writers.next();
-                ImageWriteParam writeParam = writer.getDefaultWriteParam();
-                
-                // Configure compression parameters (quality: 75%)
-                if (writeParam.canWriteCompressed()) {
-                    writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                    writeParam.setCompressionType(writeParam.getCompressionTypes()[0]);
-                    writeParam.setCompressionQuality(0.75f);
-                }
-
-                LOGGER.info("Writing WebP image to: " + tempTargetFile.getAbsolutePath());
-                try (FileImageOutputStream outputStream = new FileImageOutputStream(tempTargetFile)) {
-                    writer.setOutput(outputStream);
-                    writer.write(null, new IIOImage(processedImage, null, null), writeParam);
-                } finally {
-                    writer.dispose();
-                }
-                return tempTargetFile;
-            } else {
-                LOGGER.warning("No WebP ImageWriter registered on the platform. Falling back to high-compression JPEG.");
-                // Fallback to high compression JPEG
-                Iterator<ImageWriter> jpegWriters = ImageIO.getImageWritersByFormatName("jpeg");
-                if (jpegWriters.hasNext()) {
-                    ImageWriter writer = jpegWriters.next();
+            // 2. Search for registered WebP writer with native architecture safety
+            try {
+                Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("webp");
+                if (writers.hasNext()) {
+                    ImageWriter writer = writers.next();
                     ImageWriteParam writeParam = writer.getDefaultWriteParam();
-                    writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                    writeParam.setCompressionQuality(0.75f);
+                    
+                    // Configure compression parameters (quality: 75%)
+                    if (writeParam.canWriteCompressed()) {
+                        writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                        writeParam.setCompressionType(writeParam.getCompressionTypes()[0]);
+                        writeParam.setCompressionQuality(0.75f);
+                    }
 
+                    LOGGER.info("Writing WebP image to: " + tempTargetFile.getAbsolutePath());
                     try (FileImageOutputStream outputStream = new FileImageOutputStream(tempTargetFile)) {
                         writer.setOutput(outputStream);
                         writer.write(null, new IIOImage(processedImage, null, null), writeParam);
@@ -95,6 +79,27 @@ public class ImageCompressorService {
                     }
                     return tempTargetFile;
                 }
+            } catch (Throwable webpError) {
+                LOGGER.warning("WebP encoder native library unavailable: " + webpError.getMessage() + ". Falling back to high-compression JPEG.");
+            }
+
+            // Fallback to high compression JPEG
+            Iterator<ImageWriter> jpegWriters = ImageIO.getImageWritersByFormatName("jpeg");
+            if (jpegWriters.hasNext()) {
+                ImageWriter writer = jpegWriters.next();
+                ImageWriteParam writeParam = writer.getDefaultWriteParam();
+                if (writeParam.canWriteCompressed()) {
+                    writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                    writeParam.setCompressionQuality(0.75f);
+                }
+
+                try (FileImageOutputStream outputStream = new FileImageOutputStream(tempTargetFile)) {
+                    writer.setOutput(outputStream);
+                    writer.write(null, new IIOImage(processedImage, null, null), writeParam);
+                } finally {
+                    writer.dispose();
+                }
+                return tempTargetFile;
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to compress/resize image. Fallback to raw copy.", e);
