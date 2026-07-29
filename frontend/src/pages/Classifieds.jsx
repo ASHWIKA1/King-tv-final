@@ -74,10 +74,10 @@ const Classifieds = () => {
   useEffect(() => {
     fetchApi('/classifieds/categories')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) setCategories(data);
-        else setCategories(fallbackCategories);
+        setCategories(Array.isArray(data) ? data : []);
       })
-      .catch(() => setCategories(fallbackCategories));
+      .catch(() => setCategories([]));
+
 
     fetchApi('/districts')
       .then(data => {
@@ -205,23 +205,7 @@ const Classifieds = () => {
     setShowShareModal(false);
   };
 
-  const fallbackCategories = [
-    { id: 1, name: 'Vehicles', slug: 'vehicles', iconClass: 'fa-car', activeAdCount: 12458 },
-    { id: 2, name: 'Property', slug: 'property', iconClass: 'fa-home', activeAdCount: 8923 },
-    { id: 3, name: 'Mobiles & Tablets', slug: 'mobiles-tablets', iconClass: 'fa-mobile-alt', activeAdCount: 15267 },
-    { id: 4, name: 'Electronics', slug: 'electronics', iconClass: 'fa-laptop', activeAdCount: 6482 },
-    { id: 5, name: 'Home & Furniture', slug: 'home-furniture', iconClass: 'fa-couch', activeAdCount: 7351 },
-    { id: 6, name: 'Fashion & Lifestyle', slug: 'fashion-lifestyle', iconClass: 'fa-tshirt', activeAdCount: 5632 },
-    { id: 7, name: 'Services', slug: 'services', iconClass: 'fa-tools', activeAdCount: 9845 },
-    { id: 8, name: 'Jobs', slug: 'jobs', iconClass: 'fa-briefcase', activeAdCount: 2341 }
-  ];
 
-  const fallbackAds = [
-    { id: 1, title: 'Hyundai i20 Asta 2021', category: 'vehicles', price: 625000, priceDetail: '₹6,25,000', location: 'Namakkal, Tamil Nadu', contactPhone: '9876543210', description: 'Excellent condition, single owner, comprehensive insurance.', featured: true, imageUrl: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=300' },
-    { id: 2, title: '2BHK Independent House', category: 'property', price: 4200000, priceDetail: '₹42,00,000', location: 'Namakkal, Tamil Nadu', contactPhone: '9988776655', description: 'Gated community, 24/7 water supply, close to main highway.', featured: true, imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=300' },
-    { id: 3, title: 'iPhone 14 Pro Max 128GB', category: 'mobiles-tablets', price: 89999, priceDetail: '₹89,999', location: 'Namakkal, Tamil Nadu', contactPhone: '9876512345', description: 'Deep purple color, 94% battery health, with original box and cable.', featured: true, imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=300' },
-    { id: 4, title: '3 Seater L Shape Sofa', category: 'home-furniture', price: 18500, priceDetail: '₹18,500', location: 'Namakkal, Tamil Nadu', contactPhone: '9632107412', description: 'Premium suede fabric, brand new, directly from manufacturing factory.', featured: true, imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300' }
-  ];
 
   return (
     <main className="container class-module-container" style={{ paddingTop: '20px' }}>

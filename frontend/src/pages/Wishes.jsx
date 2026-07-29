@@ -82,13 +82,9 @@ const Wishes = () => {
     // Fetch categories
     fetchApi('/wishes/categories')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setCategories(data);
-        } else {
-          setCategories(fallbackCategories);
-        }
+        setCategories(Array.isArray(data) ? data : []);
       })
-      .catch(() => setCategories(fallbackCategories));
+      .catch(() => setCategories([]));
 
     // Fetch districts
     fetchApi('/districts')
@@ -410,17 +406,7 @@ const Wishes = () => {
     BLESSINGS: '🙏'
   };
 
-  const fallbackCategories = [
-    { id: 1, slug: 'birthday', name: 'Birthday', nameTa: 'பிறந்தநாள்', icon: 'fa-birthday-cake' },
-    { id: 2, slug: 'anniversary', name: 'Anniversary', nameTa: 'திருமண ஆண்டு', icon: 'fa-heart' },
-    { id: 3, slug: 'newborn', name: 'Newborn', nameTa: 'புதிய குழந்தை', icon: 'fa-baby' },
-    { id: 4, slug: 'festival', name: 'Festival', nameTa: 'விழா வாழ்த்து', icon: 'fa-star' },
-    { id: 5, slug: 'achievement', name: 'Achievement', nameTa: 'சாதனை', icon: 'fa-trophy' },
-    { id: 6, slug: 'retirement', name: 'Retirement', nameTa: 'ஓய்வு பெறுதல்', icon: 'fa-umbrella-beach' },
-    { id: 7, slug: 'graduation', name: 'Graduation', nameTa: 'படிப்பு சாதனை', icon: 'fa-graduation-cap' },
-    { id: 8, slug: 'house-warming', name: 'House Warming', nameTa: 'வீடு புகுவிழா', icon: 'fa-home' },
-    { id: 9, slug: 'general', name: 'General', nameTa: 'பொது வாழ்த்து', icon: 'fa-gift' }
-  ];
+
 
   // Comment tree node renderer
   const renderCommentNode = (comment) => {

@@ -253,11 +253,9 @@ const Weather = () => {
     const coords = { lat: activeLocation.lat, lon: activeLocation.lon };
     if (!coords.lat || !coords.lon) return;
 
-    const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/v1';
     const locationKey = activeLocation.nameEn;
 
-    fetch(`${baseApi}/weather?city=${locationKey}&lat=${coords.lat}&lon=${coords.lon}`)
-      .then(res => res.json())
+    fetchApi(`/weather?city=${encodeURIComponent(locationKey)}&lat=${coords.lat}&lon=${coords.lon}`)
       .then(data => {
         if (data && data.temp) {
           setWeatherData(prev => ({

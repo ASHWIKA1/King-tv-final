@@ -110,13 +110,10 @@ const Jobs = () => {
   useEffect(() => {
     fetchApi('/jobs/categories')
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setCategories(data);
-        } else {
-          setCategories(fallbackCategories);
-        }
+        setCategories(Array.isArray(data) ? data : []);
       })
-      .catch(() => setCategories(fallbackCategories));
+      .catch(() => setCategories([]));
+
 
     fetchApi('/districts')
       .then(data => {
@@ -1498,23 +1495,7 @@ const Jobs = () => {
     );
   };
 
-  const fallbackCategories = [
-    { id: 1, name: 'IT & Software', slug: 'it-software', icon: 'fa-laptop-code', activeJobCount: 2845, companiesHiringCount: 120 },
-    { id: 2, name: 'Sales & Marketing', slug: 'sales-marketing', icon: 'fa-bullhorn', activeJobCount: 4126, companiesHiringCount: 180 },
-    { id: 3, name: 'Education', slug: 'education', icon: 'fa-book-reader', activeJobCount: 3245, companiesHiringCount: 95 },
-    { id: 4, name: 'Healthcare', slug: 'healthcare', icon: 'fa-heartbeat', activeJobCount: 2087, companiesHiringCount: 60 },
-    { id: 5, name: 'Engineering', slug: 'engineering', icon: 'fa-cog', activeJobCount: 3789, companiesHiringCount: 140 },
-    { id: 6, name: 'Government', slug: 'government', icon: 'fa-landmark', activeJobCount: 1678, companiesHiringCount: 20 },
-    { id: 7, name: 'Banking & Finance', slug: 'banking-finance', icon: 'fa-money-check-alt', activeJobCount: 2345, companiesHiringCount: 75 },
-    { id: 8, name: 'Others', slug: 'others', icon: 'fa-th-large', activeJobCount: 5678, companiesHiringCount: 300 }
-  ];
 
-  const fallbackJobs = [
-    { id: 1, title: 'Java Full Stack Developer', companyName: 'Tata Consultancy Services', experienceMin: 3, experienceMax: 6, salaryMin: 5, salaryMax: 9, location: 'Coimbatore, Tamil Nadu', employmentType: 'Full Time', workMode: 'Work From Office', requiredSkills: 'Java, Spring Boot, React, SQL', featured: true },
-    { id: 2, title: 'Software Engineer', companyName: 'Zoho Corporation', experienceMin: 1, experienceMax: 3, salaryMin: 4, salaryMax: 7, location: 'Chennai, Tamil Nadu', employmentType: 'Full Time', workMode: 'Work From Office', requiredSkills: 'JavaScript, Java, C++', featured: true },
-    { id: 3, title: 'Relationship Manager', companyName: 'HDFC Bank', experienceMin: 2, experienceMax: 5, salaryMin: 4, salaryMax: 8, location: 'Salem, Tamil Nadu', employmentType: 'Full Time', workMode: 'Work From Office', requiredSkills: 'Sales, Customer Relationship', featured: true },
-    { id: 4, title: 'Staff Nurse', companyName: 'Apollo Hospitals', experienceMin: 0, experienceMax: 2, salaryMin: 2, salaryMax: 4, location: 'Trichy, Tamil Nadu', employmentType: 'Full Time', workMode: 'Work From Office', requiredSkills: 'Nursing, Patient Care', featured: true }
-  ];
 
   const handleApplyClick = (job) => {
     if (!isAuthenticated) {

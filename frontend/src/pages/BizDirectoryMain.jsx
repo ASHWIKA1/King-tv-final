@@ -78,16 +78,12 @@ const BizDirectoryMain = () => {
     setLoading(true);
     fetchApi('/directory')
       .then(data => {
-        if (Array.isArray(data)) {
-          setBusinesses(data);
-        } else {
-          setBusinesses(fallbackBusinesses);
-        }
+        setBusinesses(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
-        console.warn("Error fetching directory, using fallback", err);
-        setBusinesses(fallbackBusinesses);
+        console.warn("Error fetching directory", err);
+        setBusinesses([]);
         setLoading(false);
       });
   };
@@ -312,25 +308,11 @@ const BizDirectoryMain = () => {
         setNewBizLoc('');
         setNewBizPhone('');
       })
-      .catch(() => {
-        const fallbackBiz = {
-          id: Date.now(),
-          businessName: newBizName,
-          category: newBizCat,
-          addressLocality: newBizLoc,
-          addressStreet: newBizStreet,
-          workingHours: newBizHours,
-          phoneNumber: newBizPhone,
-          ratingAvg: 5.0,
-          ratingCount: 1,
-          logoUrl: newBizLogo || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100",
-          coverUrl: newBizCover || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600",
-          description: newBizDesc
-        };
-        setBusinesses(prev => [fallbackBiz, ...prev]);
-        setShowAddModal(false);
+      .catch(err => {
+        alert(lang === 'en' ? 'Failed to add business. Please try again.' : 'வணிகத்தை சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.');
       });
   };
+
 
   // Filter listings based on category and searches
   const filtered = businesses.filter(b => {
@@ -352,12 +334,7 @@ const BizDirectoryMain = () => {
     { name: 'Shops', icon: 'fa-shopping-bag', color: 'bg-teal-50 text-teal-500' }
   ];
 
-  const fallbackBusinesses = [
-    { id: 1, businessName: "AB's Restaurant", category: "Restaurant", addressLocality: "Anna Nagar, Chennai", addressStreet: "12th Main Road", workingHours: "11:00 AM - 11:00 PM", phoneNumber: "044-1234567", ratingAvg: 4.6, ratingCount: 128, isFeatured: true, isPremium: true, kycStatus: "verified", subscriptionStatus: "premium", logoUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100", coverUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600", description: "Delicious multicuisine dining in the heart of Anna Nagar." },
-    { id: 2, businessName: "Sundaram Hospital", category: "Health & Medical", addressLocality: "T. Nagar, Chennai", addressStreet: "GN Chetty Road", workingHours: "24 Hours Service", phoneNumber: "044-7654321", ratingAvg: 4.7, ratingCount: 256, isFeatured: true, isPremium: true, kycStatus: "verified", subscriptionStatus: "premium", logoUrl: "https://images.unsplash.com/photo-1586773860418-d3b3da96ae12?w=100", coverUrl: "https://images.unsplash.com/photo-1586773860418-d3b3da96ae12?w=600", description: "Premier multispeciality medical care clinic." },
-    { id: 3, businessName: "Headlines Salon", category: "Beauty & Salon", addressLocality: "Velachery, Chennai", addressStreet: "Bypass Road", workingHours: "09:00 AM - 09:00 PM", phoneNumber: "044-9988776", ratingAvg: 4.5, ratingCount: 98, isFeatured: true, isPremium: false, kycStatus: "verified", subscriptionStatus: "free", logoUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100", coverUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600", description: "Professional beauty treatments and hair styling salon." },
-    { id: 4, businessName: "Gadget World", category: "Electronics", addressLocality: "Porur, Chennai", addressStreet: "Mount Poonamallee Road", workingHours: "10:00 AM - 09:30 PM", phoneNumber: "044-5544332", ratingAvg: 4.5, ratingCount: 75, isFeatured: false, isPremium: false, kycStatus: "verified", subscriptionStatus: "free", logoUrl: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=100", coverUrl: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600", description: "All kinds of smart gadgets, mobiles, and electronic accessories." }
-  ];
+
 
   return (
     <main 

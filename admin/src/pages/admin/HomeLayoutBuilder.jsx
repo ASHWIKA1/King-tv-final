@@ -21,9 +21,7 @@ import {
   Menu, Edit2, Search, Languages, Moon, Monitor, User, ChevronRight, ChevronLeft,
   FlaskConical, RotateCw
 } from 'lucide-react';
-// TEST-ONLY DUMMY LAYOUT INTEGRATION — safe to remove after layout testing.
-import { applyLayoutToDummy, resetDummyLayout } from '../dummyLayoutService';
-// END TEST-ONLY IMPORT
+
 import NavigationBarEditor from './NavigationBarEditor';
 
 const PREDEFINED_SECTIONS = Object.values(WIDGET_REGISTRY).map(w => ({
@@ -2255,7 +2253,6 @@ const HomeLayoutBuilder = () => {
                           return item;
                         });
                       }
-                      await applyLayoutToDummy(layoutToTest);
                       setDummyTestStatus('tested');
                       setLastDummyTestedAt(new Date());
                       setHasUntestedChanges(false);

@@ -483,12 +483,7 @@ const Obituaries = () => {
     setShowShareModal(false);
   };
 
-  const fallbackObits = [
-    { id: 1, deceasedName: 'பொன்னம்மாள்', age: 78, location: 'திருவாரூர், தமிழ்நாடு', demiseDate: '2025-07-15', dateOfPassing: '2025-07-15', dateOfBirth: '1946-01-10', shortDescription: 'அன்புத்தாய் பொன்னம்மாள் இயற்கை எய்தினார். இவரது ஆத்மா சாந்தியடைய பிரார்த்திக்கிறோம்.', tributeCount: 128, guestbookCount: 24, isCelebrity: true },
-    { id: 2, deceasedName: 'சுப்பிரமணியன்', age: 85, location: 'சேலம், தமிழ்நாடு', demiseDate: '2025-07-14', dateOfPassing: '2025-07-14', dateOfBirth: '1940-03-02', shortDescription: 'மதிப்பிற்குரிய சுப்பிரமணியன் இயற்கை எய்தினார். இவரது இறுதிச் சடங்குகள் சேலத்தில் நடைபெறும்.', tributeCount: 256, guestbookCount: 42, isCelebrity: false },
-    { id: 3, deceasedName: 'லட்சுமி அம்மாள்', age: 72, location: 'கோவை, தமிழ்நாடு', demiseDate: '2025-07-13', dateOfPassing: '2025-07-13', dateOfBirth: '1953-06-12', shortDescription: 'கோவை லட்சுமி அம்மாள் இயற்கை எய்தினார்.', tributeCount: 198, guestbookCount: 31, isCelebrity: true },
-    { id: 4, deceasedName: 'முருகேசன்', age: 80, location: 'மதுரை, தமிழ்நாடு', demiseDate: '2025-07-12', dateOfPassing: '2025-07-12', dateOfBirth: '1944-09-05', shortDescription: 'மதுரை முருகேசன் இயற்கை எய்தினார்.', tributeCount: 143, guestbookCount: 18, isCelebrity: false }
-  ];
+
 
   const renderObitCard = (obit) => {
     const frameClass = obit.frameTemplate?.category || 'golden';

@@ -17,70 +17,28 @@ const Directory = () => {
   const [hours, setHours] = useState('');
   const [phone, setPhone] = useState('');
 
-  const fallbackListings = lang === 'en' ? [
-    { id: 'demo-1', businessName: 'Apollo Clinic', category: 'hospital', addressLocality: 'Anna Nagar, Chennai', workingHours: '24 Hours Service', phoneNumber: '+91 44 2829 0200', rating: 4.5 },
-    { id: 'demo-2', businessName: 'Raja Electricals & Plumbing', category: 'plumber', addressLocality: 'Gandhi Street, Coimbatore', workingHours: '9:00 AM - 7:00 PM', phoneNumber: '+91 98456 12345', rating: 4.8 },
-    { id: 'demo-3', businessName: 'Selvam Wiring Service', category: 'electrician', addressLocality: 'Bus Stand Road, Madurai', workingHours: '8:00 AM - 8:00 PM', phoneNumber: '+91 98765 43210', rating: 4.2 },
-    { id: 'demo-4', businessName: 'Sri Garden Restaurant', category: 'restaurant', addressLocality: 'Chinna Kadai Street, Trichy', workingHours: '7:00 AM - 11:00 PM', phoneNumber: '+91 431 270 1234', rating: 4.6 },
-    { id: 'demo-5', businessName: 'Kannan Departmental Stores', category: 'store', addressLocality: 'Junction Road, Salem', workingHours: '9:00 AM - 10:00 PM', phoneNumber: '+91 427 244 5678', rating: 4.4 }
-  ] : [
-    { id: 'demo-1', businessName: 'அப்பல்லோ கிளினிக்', category: 'hospital', addressLocality: 'அண்ணா நகர், சென்னை', workingHours: '24 மணி நேர சேவை', phoneNumber: '+91 44 2829 0200', rating: 4.5 },
-    { id: 'demo-2', businessName: 'ராஜா எலக்ட்ரிக்கல்ஸ் & பிளம்பிங்', category: 'plumber', addressLocality: 'காந்தி வீதி, கோயம்புத்தூர்', workingHours: 'காலை 9:00 - மாலை 7:00', phoneNumber: '+91 98456 12345', rating: 4.8 },
-    { id: 'demo-3', businessName: 'செல்வம் வயரிங் சர்வீஸ்', category: 'electrician', addressLocality: 'பஸ் ஸ்டாண்ட் ரோடு, மதுரை', workingHours: 'காலை 8:00 - இரவு 8:00', phoneNumber: '+91 98765 43210', rating: 4.2 },
-    { id: 'demo-4', businessName: 'ஸ்ரீ கார்டன் உணவகம்', category: 'restaurant', addressLocality: 'சின்ன கடை வீதி, திருச்சி', workingHours: 'காலை 7:00 - இரவு 11:00', phoneNumber: '+91 431 270 1234', rating: 4.6 },
-    { id: 'demo-5', businessName: 'கண்ணன் டிபார்ட்மெண்டல் ஸ்டோர்ஸ்', category: 'store', addressLocality: 'ஜங்ஷன் ரோடு, சேலம்', workingHours: 'காலை 9:00 - இரவு 10:00', phoneNumber: '+91 427 244 5678', rating: 4.4 }
-  ];
-
   const loadData = () => {
     fetchApi('/directory')
       .then(data => {
-        const formatted = Array.isArray(data) ? data.map(item => {
-          const rawName = item.businessName || item.business_name || '';
-          const rawLocality = (item.addressStreet ? `${item.addressStreet}, ` : '') + (item.addressLocality || '');
-          const rawHours = item.workingHours || item.working_hours || '';
-          
-          let nameVal = rawName;
-          let localityVal = rawLocality;
-          let hoursVal = rawHours;
-          
-          if (lang === 'en') {
-            if (rawName.includes('அப்பல்லோ')) nameVal = 'Apollo Clinic';
-            else if (rawName.includes('ராஜா')) nameVal = 'Raja Electricals & Plumbing';
-            else if (rawName.includes('செல்வம்')) nameVal = 'Selvam Wiring Service';
-            else if (rawName.includes('ஸ்ரீ கார்டன்')) nameVal = 'Sri Garden Restaurant';
-            else if (rawName.includes('கண்ணன்')) nameVal = 'Kannan Departmental Stores';
-            
-            if (rawLocality.includes('சென்னை')) localityVal = rawLocality.replace('சென்னை', 'Chennai').replace('அண்ணா நகர்', 'Anna Nagar');
-            else if (rawLocality.includes('கோயம்புத்தூர்') || rawLocality.includes('கோவை')) localityVal = rawLocality.replace('கோயம்புத்தூர்', 'Coimbatore').replace('கோவை', 'Coimbatore').replace('காந்தி வீதி', 'Gandhi Street');
-            else if (rawLocality.includes('மதுரை')) localityVal = rawLocality.replace('மதுரை', 'Madurai').replace('பஸ் ஸ்டாண்ட் ரோடு', 'Bus Stand Road');
-            else if (rawLocality.includes('திருச்சி')) localityVal = rawLocality.replace('திருச்சிராப்பள்ளி', 'Tiruchirappalli').replace('திருச்சி', 'Trichy').replace('சின்ன கடை வீதி', 'Chinna Kadai Street');
-            else if (rawLocality.includes('சேலம்')) localityVal = rawLocality.replace('சேலம்', 'Salem').replace('ஜங்ஷன் ரோடு', 'Junction Road');
-            
-            if (rawHours.includes('மணி')) hoursVal = '24 Hours Service';
-            else if (rawHours.includes('காலை') && rawHours.includes('மாலை')) hoursVal = rawHours.replace('காலை', '').replace('மாலை', '').replace('9:00', '9:00 AM').replace('7:00', '7:00 PM');
-            else if (rawHours.includes('காலை') && rawHours.includes('இரவு')) hoursVal = rawHours.replace('காலை', '').replace('இரவு', '').replace('8:00', '8:00 AM').replace('8:00', '8:00 PM').replace('9:00', '9:00 AM').replace('10:00', '10:00 PM').replace('7:00', '7:00 AM').replace('11:00', '11:00 PM');
-          }
-          
-          return {
-            id: item.listing_id || item.id,
-            businessName: nameVal,
-            category: (item.category || '').toLowerCase(),
-            addressLocality: localityVal,
-            workingHours: hoursVal || (lang === 'en' ? '9:00 AM - 9:00 PM' : 'காலை 9:00 - இரவு 9:00'),
-            phoneNumber: item.phoneNumber || item.phone_number,
-            rating: item.rating || 5.0
-          };
-        }) : [];
-        const merged = [...formatted, ...fallbackListings];
-        setListings(merged);
-        setFilteredListings(merged);
+        const formatted = Array.isArray(data) ? data.map(item => ({
+          id: item.listing_id || item.id,
+          businessName: item.businessName || item.business_name || '',
+          category: (item.category || '').toLowerCase(),
+          addressLocality: (item.addressStreet ? `${item.addressStreet}, ` : '') + (item.addressLocality || ''),
+          workingHours: item.workingHours || item.working_hours || (lang === 'en' ? '9:00 AM - 9:00 PM' : 'காலை 9:00 - இரவு 9:00'),
+          phoneNumber: item.phoneNumber || item.phone_number,
+          rating: item.rating || 5.0
+        })) : [];
+        setListings(formatted);
+        setFilteredListings(formatted);
       })
       .catch((err) => {
-        console.warn("Could not fetch directory from API, using fallback", err);
-        setListings(fallbackListings);
-        setFilteredListings(fallbackListings);
+        console.warn("Could not fetch directory from API", err);
+        setListings([]);
+        setFilteredListings([]);
       });
   };
+
 
   useEffect(() => {
     loadData();

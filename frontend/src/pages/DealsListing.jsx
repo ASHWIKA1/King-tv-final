@@ -168,25 +168,8 @@ const DealsListing = () => {
         loadData();
         setNewTitle('');
       })
-      .catch(() => {
-        // local fallback
-        const mockDeal = {
-          deal: {
-            id: Date.now(),
-            title: newTitle,
-            category: newCategory,
-            discountType: newDiscountType,
-            discountValue: Number(newDiscountVal),
-            originalPrice: Number(newOrigPrice),
-            discountedPrice: Number(newDiscPrice),
-            couponCode: newCouponCode,
-            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            bannerUrl: newBanner || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400"
-          },
-          merchant: { businessName: "My Shop", addressLocality: "Chennai" }
-        };
-        setDeals(prev => [mockDeal, ...prev]);
-        setShowCreateModal(false);
+      .catch(err => {
+        alert(lang === 'en' ? 'Failed to post deal. Please try again.' : 'சலுகையை வெளியிட முடியவில்லை. மீண்டும் முயற்சிக்கவும்.');
       });
   };
 
