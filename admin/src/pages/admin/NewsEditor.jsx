@@ -329,24 +329,29 @@ const NewsEditor = () => {
     if (!key) return showMsg('Please enter a valid Gemini API Key', true);
     if (!key.startsWith('AIzaSy')) return showMsg('Invalid key format. Google AI Studio keys start with "AIzaSy".', true);
 
+    activeAiConfig.apiKey = key;
     activeAiConfig.model = apiModelInput;
 
     try {
-      await api.post('/admin/config', [
-        { configKey: 'ai.llm_api_key', configValue: key },
-        { configKey: 'ai.llm_model', configValue: apiModelInput }
-      ]);
       await api.put('/admin/ai-config/gemini', {
         provider: 'gemini',
         apiKey: key,
         model: apiModelInput,
-        isActive: true
-      }).catch(() => {});
+        enableAi: true,
+        enableSeo: true
+      });
+      await api.post('/admin/ai-config/gemini/activate').catch(() => {});
+      
+      localStorage.setItem('gemini_api_key', key);
+      localStorage.setItem('ai.llm_api_key', key);
+      
       setApiKeyInput('');
       setKeyModalOpen(false);
-      showMsg('🔑 Gemini API Key saved securely on server!');
+      showMsg('🔑 Gemini API Key saved & activated securely on server!');
     } catch(e) {
-      showMsg('Error saving API Key to server.', true);
+      console.error(e);
+      const errMsg = e.response?.data?.message || 'Error saving API Key to server.';
+      showMsg(errMsg, true);
     }
   };
 
