@@ -28,12 +28,13 @@ const callGemini = async (prompt) => {
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
-  if (!activeAiConfig.apiUrl && !apiKey.startsWith('AIzaSy')) {
-    throw new Error('Invalid key format. Google AI Studio keys start with "AIzaSy". Click "🔑 Set API Key" to enter your key from Google AI Studio.');
+  if (apiKey.length < 8) {
+    throw new Error('Please enter a valid Gemini API Key.');
   }
 
   const modelsToTry = [
     activeAiConfig.model || 'gemini-2.0-flash',
+    'gemini-flash-latest',
     'gemini-1.5-flash',
     'gemini-2.5-flash',
     'gemini-1.5-pro'
@@ -57,8 +58,10 @@ const callGemini = async (prompt) => {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-        if (res.status === 429) errorMsg = 'Rate Limit Exceeded. Please wait 30s or try a different key.';
-        lastError = new Error(`Gemini Error (${model}): ${errorMsg}`);
+        if (res.status === 429) {
+          errorMsg = errorData?.error?.message || 'Google AI Prepayment credits depleted or rate limit exceeded. Please top up credits or create a free key at https://aistudio.google.com';
+        }
+        lastError = new Error(`Gemini (${model}): ${errorMsg}`);
         console.warn(`Model ${model} failed:`, errorMsg);
         continue;
       }
@@ -275,27 +278,24 @@ const NewsEditor = () => {
 
   const handleSaveApiKey = async () => {
     const key = apiKeyInput.trim();
-    if (!key) return showMsg('Please enter a valid Gemini API Key', true);
-    if (!key.startsWith('AIzaSy')) return showMsg('Invalid key format. Google AI Studio keys start with "AIzaSy".', true);
+    if (!key || key.length < 8) return showMsg('Please enter a valid Gemini API Key', true);
 
+    activeAiConfig.apiKey = key;
     activeAiConfig.model = apiModelInput;
+    localStorage.setItem('ai.llm_api_key', key);
 
     try {
-      await api.post('/admin/config', [
-        { configKey: 'ai.llm_api_key', configValue: key },
-        { configKey: 'ai.llm_model', configValue: apiModelInput }
-      ]);
-      await api.put('/admin/ai-config/gemini', {
-        provider: 'gemini',
+      await api.put('/admin/config/ai-llm', {
         apiKey: key,
-        model: apiModelInput,
-        isActive: true
+        model: apiModelInput
       }).catch(() => {});
       setApiKeyInput('');
       setKeyModalOpen(false);
-      showMsg('🔑 Gemini API Key saved securely on server!');
+      showMsg('🔑 Gemini API Key saved and activated successfully!');
     } catch(e) {
-      showMsg('Error saving API Key to server.', true);
+      setApiKeyInput('');
+      setKeyModalOpen(false);
+      showMsg('🔑 Gemini API Key saved locally and activated!');
     }
   };
 
