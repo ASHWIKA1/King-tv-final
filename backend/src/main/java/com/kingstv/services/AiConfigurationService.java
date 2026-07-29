@@ -264,7 +264,7 @@ public class AiConfigurationService {
                 config = new AiConfiguration();
                 config.setProvider("gemini");
                 config.setApiKey(sysKey);
-                config.setModel(systemConfigService.getConfigValueOrDefault(com.kingstv.models.SystemConfig.AI_LLM_MODEL, "gemini-2.0-flash"));
+                config.setModel(systemConfigService.getConfigValueOrDefault(com.kingstv.models.SystemConfig.AI_LLM_MODEL, "gemini-flash-latest"));
                 config.setBaseUrl("https://generativelanguage.googleapis.com/v1beta");
             }
         }

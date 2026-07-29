@@ -77,6 +77,7 @@ const callGemini = async (prompt) => {
 const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
   const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || '';
   if (!apiKey) throw new Error('API Key missing. Click "🔑 Set API Key" to enter key.');
+  if (!base64Data || !base64Data.trim()) throw new Error('Source file data is empty or invalid.');
   
   const url = getGeminiUrl();
   const res = await fetch(url, {
