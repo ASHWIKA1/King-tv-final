@@ -19,7 +19,7 @@ export const ControlColor = ({ label, value, onChange }) => (
   <div style={rowStyle}>
     <label style={labelStyle}>{label}</label>
     <div style={{ display: 'flex', flex: 1, alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
-      <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)} style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }} />
+      <input type="color" value={value || '#000000'} onInput={e => onChange(e.target.value)} onChange={e => onChange(e.target.value)} style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }} />
       <input type="text" value={value || ''} onChange={e => onChange(e.target.value)} placeholder="#000000" style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: '11px', outline: 'none' }} />
     </div>
   </div>

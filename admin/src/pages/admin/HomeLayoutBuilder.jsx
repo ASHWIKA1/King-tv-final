@@ -92,9 +92,40 @@ export const generateBlockStyles = (configStr, viewMode = 'desktop', includeGrid
     if (typo.letterSpacing) styles.letterSpacing = `${typo.letterSpacing}px`;
     if (typo.textTransform && typo.textTransform !== 'none') styles.textTransform = typo.textTransform;
 
-    // Colors
+    // Colors & CSS variables cascading override
     if (config.colors) {
-      if (config.colors.text) styles.color = config.colors.text;
+      if (config.colors.text) {
+        styles.color = config.colors.text;
+        styles['--text-dark'] = config.colors.text;
+        styles['--text-primary'] = config.colors.text;
+        styles['--header-text'] = config.colors.text;
+      }
+      if (config.colors.textSecondary) {
+        styles['--text-muted'] = config.colors.textSecondary;
+        styles['--text-secondary'] = config.colors.textSecondary;
+      }
+      if (config.colors.accent) {
+        styles['--primary'] = config.colors.accent;
+        styles['--accent'] = config.colors.accent;
+        styles['--hover-color'] = config.colors.accent;
+      }
+      if (config.colors.border) {
+        styles['--border-color'] = config.colors.border;
+      }
+      if (config.colors.background) {
+        styles['--white'] = config.colors.background;
+        styles['--bg-card'] = config.colors.background;
+        styles['--bg-secondary'] = config.colors.background;
+        styles['--section-bg'] = config.colors.background;
+      }
+      if (config.colors.button) {
+        styles['--button-bg'] = config.colors.button;
+        styles['--btn-primary-bg'] = config.colors.button;
+      }
+      if (config.colors.buttonText) {
+        styles['--button-text'] = config.colors.buttonText;
+        styles['--btn-primary-text'] = config.colors.buttonText;
+      }
     }
 
     // Spacing (Margins, Paddings, Gaps)
@@ -588,8 +619,22 @@ const HomeLayoutBuilder = () => {
   };
 
   const handleSaveAll = async () => {
+    // Automatically apply current configuration parameters if sidebar editor is open/active
+    let layoutToSave = [...layout];
+    if (activeConfigSection) {
+      layoutToSave = layoutToSave.map(item => {
+        if (item.id === activeConfigSection.id) {
+          return {
+            ...item,
+            sectionLabel: configTitle,
+            configJson: JSON.stringify(configParams)
+          };
+        }
+        return item;
+      });
+    }
+
     // Inject current taxonomy categories and custom navItems into website_navigation block before saving
-    const layoutToSave = [...layout];
     const navIndex = layoutToSave.findIndex(item => item.sectionKey === 'website_navigation');
     if (navIndex !== -1) {
       let config = {};
@@ -600,8 +645,9 @@ const HomeLayoutBuilder = () => {
       } catch (e) { }
 
       config.categories = categories;
-      if (activeConfigSection?.sectionKey === 'website_navigation' && configParams && configParams.navItems) {
-        config.navItems = configParams.navItems;
+      const activeNavParams = activeConfigSection?.sectionKey === 'website_navigation' ? configParams : config;
+      if (activeNavParams && activeNavParams.navItems) {
+        config.navItems = activeNavParams.navItems;
       }
       layoutToSave[navIndex] = { ...layoutToSave[navIndex], configJson: JSON.stringify(config) };
     }
@@ -816,6 +862,37 @@ const HomeLayoutBuilder = () => {
 
   // Open plain-language sidebar configuration
   const handleOpenConfig = (section, isDynamicNode = false, rootSectionId = null) => {
+    // Auto-save previous active configuration before switching
+    if (activeConfigSection) {
+      let updated = [];
+      if (activeRootSectionId && activeRootSectionId !== activeConfigSection.id) {
+        updated = layout.map(item => {
+          if (item.id === activeRootSectionId) {
+            const parsed = JSON.parse(item.configJson || '{}');
+            const children = parsed.children || [];
+            const updatedChildren = updateNode(children, activeConfigSection.id, {
+              name: configTitle,
+              config: configParams
+            });
+            return { ...item, configJson: JSON.stringify({ ...parsed, children: updatedChildren }) };
+          }
+          return item;
+        });
+      } else {
+        updated = layout.map(item => {
+          if (item.id === activeConfigSection.id) {
+            return {
+              ...item,
+              sectionLabel: configTitle,
+              configJson: JSON.stringify(configParams)
+            };
+          }
+          return item;
+        });
+      }
+      setLayout(updated);
+    }
+
     setActiveConfigSection(section);
     setActiveRootSectionId(rootSectionId || section.id);
     setConfigTitle(isDynamicNode ? (section.name || section.type) : section.sectionLabel);
@@ -1106,7 +1183,14 @@ const HomeLayoutBuilder = () => {
   // Render mock HTML preview elements inside canvas
   const renderVisualMock = (sectionKey, label, configJsonStr, viewMode) => {
     const config = typeof configJsonStr === 'string' ? JSON.parse(configJsonStr || '{}') : (configJsonStr || {});
-    const themeColor = config.themeColor || config.colors?.accent || '#3B82F6';
+    // themeColor picks up from accent, button fill, or themeColor property
+    const themeColor = config.themeColor || config.colors?.accent || config.colors?.button || '#3B82F6';
+    const textColor = config.colors?.text;
+    const textSecondaryColor = config.colors?.textSecondary;
+    const bgColor = config.colors?.background || config.background?.color;
+    const borderColor = config.colors?.border;
+    const buttonFillColor = config.colors?.button;
+    const buttonTextColor = config.colors?.buttonText;
 
     // Helper to find selected category from state
     const selectedCat = config.categoryId ? categories.find(c => String(c.id) === String(config.categoryId)) : null;
@@ -1134,13 +1218,14 @@ const HomeLayoutBuilder = () => {
           ? config.navItems.filter(i => i.isActive !== false)
           : null;
 
-        const navBg = config.colors?.background || config.background?.color || '#000000';
-        const navTextColor = config.colors?.text || '#ffffff';
+        const navBg = bgColor || '#000000';
+        const navTextColor = textColor || '#ffffff';
+        const navBorderColor = borderColor || 'rgba(255,255,255,0.1)';
 
         return (
           <div style={{ fontFamily: '"Inter", "Mukta Malar", sans-serif', width: '100%', overflow: 'hidden' }}>
             {/* Top Black/Custom Header */}
-            <div style={{ background: navBg, padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: navTextColor }}>
+            <div style={{ background: navBg, padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: navTextColor, borderBottom: `1px solid ${navBorderColor}` }}>
 
               {/* Left Side: Menu, Logo, Title */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1248,8 +1333,8 @@ const HomeLayoutBuilder = () => {
       case 'news_ticker': {
         const tickerContent = config.content || config.text || config.tickerText || "தங்கம் (24K/10g): ₹72,429 • நெல் கொள்முதல் விலை உயர்வு...";
         return (
-          <div style={{ background: config.colors?.background || '#FEF3C7', color: config.colors?.text || '#D97706', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: `4px solid ${themeColor}`, fontWeight: 600 }}>
-            <span style={{ background: themeColor, color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700 }}>{label || "LIVE TICKER"}</span>
+          <div style={{ background: bgColor || config.colors?.background || '#FEF3C7', color: textColor || config.colors?.text || '#D97706', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: `4px solid ${themeColor}`, fontWeight: 600 }}>
+            <span style={{ background: themeColor, color: buttonTextColor || '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700 }}>{label || "LIVE TICKER"}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tickerContent}</span>
           </div>
         );
@@ -1259,17 +1344,17 @@ const HomeLayoutBuilder = () => {
         const catBadge = selectedCat ? selectedCat.name.toUpperCase() : (config.tag || 'FEATURED');
         return (
           <div style={{ display: 'grid', gridTemplateColumns: viewMode === 'mobile' ? '1fr' : '2fr 1.2fr', gap: '10px', minHeight: '130px' }}>
-            <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '6px', padding: '16px', display: 'flex', alignItems: 'flex-end', color: '#ffffff', borderTop: `4px solid ${themeColor}` }}>
+            <div style={{ background: bgColor ? bgColor : 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '6px', padding: '16px', display: 'flex', alignItems: 'flex-end', color: textColor || '#ffffff', borderTop: `4px solid ${themeColor}` }}>
               <div>
-                <span style={{ fontSize: '9px', background: themeColor, color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{catBadge}</span>
+                <span style={{ fontSize: '9px', background: themeColor, color: buttonTextColor || '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{catBadge}</span>
                 <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '6px', lineHeight: 1.3 }}>{label || config.content || "Breaking News: Key updates unfolding live across Tamil Nadu..."}</div>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {Array.from({ length: sideCount }).map((_, i) => (
-                <div key={i} style={{ flex: 1, background: '#F1F5F9', borderRadius: '4px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div key={i} style={{ flex: 1, background: bgColor || '#F1F5F9', borderRadius: '4px', padding: '8px 10px', border: `1px solid ${borderColor || '#E2E8F0'}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: themeColor, flexShrink: 0 }}></div>
-                  <div style={{ fontSize: '10px', fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: textColor || '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     Top Story #{i + 1}: Important announcement published...
                   </div>
                 </div>
@@ -1281,10 +1366,10 @@ const HomeLayoutBuilder = () => {
       case 'quick_access': {
         const items = config.items || (categories.length > 0 ? categories.slice(0, 8).map(c => c.name) : ['All', 'Directory', 'Wishes', 'Obituaries', 'Jobs', 'Classifieds']);
         return (
-          <div style={{ ...applyGridStyles(config, viewMode), background: config.colors?.background || 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+          <div style={{ ...applyGridStyles(config, viewMode), background: bgColor || 'var(--bg-secondary)', padding: '10px', borderRadius: '6px', border: `1px solid ${borderColor || 'var(--border-color)'}` }}>
             {items.map((cat, idx) => (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '9px', fontWeight: 600, color: config.colors?.text || 'var(--text-secondary)' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: themeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: 700 }}>
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '9px', fontWeight: 600, color: textSecondaryColor || textColor || 'var(--text-secondary)' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: buttonFillColor || themeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: buttonTextColor || '#fff', fontSize: '10px', fontWeight: 700 }}>
                   {(typeof cat === 'string' ? cat : cat.name || '')[0] || '★'}
                 </div>
                 <span>{typeof cat === 'string' ? cat : cat.name || cat.nameEn}</span>
@@ -1300,17 +1385,17 @@ const HomeLayoutBuilder = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <div style={{ width: '4px', height: '14px', background: themeColor, borderRadius: '2px' }}></div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: config.colors?.text || '#334155' }}>{gridTitle}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: textColor || '#334155' }}>{gridTitle}</div>
             </div>
             <div style={applyGridStyles(config, viewMode)}>
               {Array.from({ length: count }).map((_, i) => (
-                <div key={i} style={{ border: `1px solid ${config.colors?.border || 'var(--border-color)'}`, borderRadius: '6px', overflow: 'hidden', background: config.colors?.background || 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div key={i} style={{ border: `1px solid ${borderColor || 'var(--border-color)'}`, borderRadius: '6px', overflow: 'hidden', background: bgColor || 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
                   <div style={{ height: '80px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '10px' }}>
                     Article Image #{i + 1}
                   </div>
                   <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span style={{ fontSize: '9px', color: themeColor, fontWeight: 700 }}>{selectedCat ? selectedCat.name.toUpperCase() : 'NEWS'}</span>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: config.colors?.text || '#1e293b', lineHeight: 1.3 }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: textColor || '#1e293b', lineHeight: 1.3 }}>
                       {selectedCat ? `${selectedCat.name} update #${i + 1}...` : `Headline news story #${i + 1}...`}
                     </div>
                   </div>
@@ -1326,16 +1411,16 @@ const HomeLayoutBuilder = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <div style={{ width: '4px', height: '14px', background: themeColor, borderRadius: '2px' }}></div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: config.colors?.text || '#334155' }}>{label || 'Video Gallery'}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: textColor || '#334155' }}>{label || 'Video Gallery'}</div>
             </div>
             <div style={applyGridStyles(config, viewMode)}>
               {Array.from({ length: count }).map((_, i) => (
-                <div key={i} style={{ border: `1px solid ${config.colors?.border || 'var(--border-color)'}`, borderRadius: '6px', overflow: 'hidden', background: config.colors?.background || 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '220px' : 'auto', scrollSnapAlign: 'start' }}>
+                <div key={i} style={{ border: `1px solid ${borderColor || 'var(--border-color)'}`, borderRadius: '6px', overflow: 'hidden', background: bgColor || 'var(--bg-card)', minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '220px' : 'auto', scrollSnapAlign: 'start' }}>
                   <div style={{ height: '90px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: '#fff', position: 'relative' }}>
                     ▶
                     <span style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: '9px', padding: '2px 4px', borderRadius: '3px' }}>04:15</span>
                   </div>
-                  <div style={{ padding: '8px', fontSize: '10px', fontWeight: 600, color: config.colors?.text || '#1e293b' }}>
+                  <div style={{ padding: '8px', fontSize: '10px', fontWeight: 600, color: textColor || '#1e293b' }}>
                     {selectedCat ? `${selectedCat.name} Video #${i + 1}` : `Exclusive Video Broadcast #${i + 1}`}
                   </div>
                 </div>
@@ -1350,12 +1435,12 @@ const HomeLayoutBuilder = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <div style={{ width: '4px', height: '14px', background: themeColor, borderRadius: '2px' }}></div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: config.colors?.text || '#334155' }}>{label || 'Web Stories'}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: textColor || '#334155' }}>{label || 'Web Stories'}</div>
             </div>
             <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
               {Array.from({ length: count }).map((_, i) => (
-                <div key={i} style={{ minWidth: '85px', height: '125px', borderRadius: '8px', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)', border: `2px solid ${themeColor}`, position: 'relative', display: 'flex', alignItems: 'flex-end', padding: '6px', scrollSnapAlign: 'start' }}>
-                  <span style={{ fontSize: '9px', color: '#fff', fontWeight: 700, lineHeight: 1.2 }}>Story #{i + 1}</span>
+                <div key={i} style={{ minWidth: '85px', height: '125px', borderRadius: '8px', background: bgColor ? `linear-gradient(to top, ${bgColor}ee, transparent)` : 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)', border: `2px solid ${themeColor}`, position: 'relative', display: 'flex', alignItems: 'flex-end', padding: '6px', scrollSnapAlign: 'start' }}>
+                  <span style={{ fontSize: '9px', color: textColor || '#fff', fontWeight: 700, lineHeight: 1.2 }}>Story #{i + 1}</span>
                 </div>
               ))}
             </div>
@@ -1366,13 +1451,13 @@ const HomeLayoutBuilder = () => {
         const count = getLimitCount(5);
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
-            <div style={{ background: config.colors?.background || 'var(--bg-secondary)', padding: '12px', borderRadius: '6px', border: `1px solid ${config.colors?.border || 'var(--border-color)'}`, width: '100%' }}>
+            <div style={{ background: bgColor || 'var(--bg-secondary)', padding: '12px', borderRadius: '6px', border: `1px solid ${borderColor || 'var(--border-color)'}`, width: '100%' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: themeColor, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 🔥 {label || config.content || 'TRENDING NEWS'}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {Array.from({ length: count }).map((_, i) => (
-                  <div key={i} style={{ fontSize: '10px', borderBottom: i < count - 1 ? '1px solid var(--border-color)' : 'none', paddingBottom: '6px', color: config.colors?.text || 'var(--text-primary)', fontWeight: 600 }}>
+                  <div key={i} style={{ fontSize: '10px', borderBottom: i < count - 1 ? `1px solid ${borderColor || 'var(--border-color)'}` : 'none', paddingBottom: '6px', color: textColor || 'var(--text-primary)', fontWeight: 600 }}>
                     {i + 1}. Trending headline story item #{i + 1}...
                   </div>
                 ))}
@@ -1387,7 +1472,7 @@ const HomeLayoutBuilder = () => {
         const condition = config.condition || 'Partly Cloudy';
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
-            <div style={{ background: config.colors?.background || '#F0F9FF', border: `1px solid ${config.colors?.border || '#B9E6FE'}`, padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: config.colors?.text || '#0369A1', width: '100%' }}>
+            <div style={{ background: bgColor || '#F0F9FF', border: `1px solid ${borderColor || '#B9E6FE'}`, padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: textColor || '#0369A1', width: '100%' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700 }}>{city}</div>
                 <div style={{ fontSize: '10px', opacity: 0.8 }}>{condition}</div>
@@ -1402,7 +1487,7 @@ const HomeLayoutBuilder = () => {
         const subtitle = config.content || config.subtitle || 'Submit ground breaking news alerts directly here!';
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
-            <div style={{ border: `1.5px dashed ${themeColor}`, background: config.colors?.background || '#FEF3C7', padding: '14px', borderRadius: '8px', textAlign: 'center', color: config.colors?.text || '#D97706', width: '100%' }}>
+            <div style={{ border: `1.5px dashed ${themeColor}`, background: bgColor || '#FEF3C7', padding: '14px', borderRadius: '8px', textAlign: 'center', color: textColor || '#D97706', width: '100%' }}>
               <div style={{ fontSize: '12px', fontWeight: 700 }}>{title}</div>
               <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.9 }}>{subtitle}</div>
             </div>
@@ -1413,7 +1498,7 @@ const HomeLayoutBuilder = () => {
         const count = getLimitCount(3);
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
-            <div style={{ background: config.colors?.background || '#F5F3FF', border: `1px solid ${config.colors?.border || '#DDD6FE'}`, padding: '12px', borderRadius: '8px', color: config.colors?.text || '#6D28D9', width: '100%' }}>
+            <div style={{ background: bgColor || '#F5F3FF', border: `1px solid ${borderColor || '#DDD6FE'}`, padding: '12px', borderRadius: '8px', color: textColor || '#6D28D9', width: '100%' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '8px' }}>💼 {label || 'Local Business Spotlights'}</div>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: '8px' }}>
                 {Array.from({ length: count }).map((_, i) => (
@@ -1430,7 +1515,7 @@ const HomeLayoutBuilder = () => {
         const digestText = config.content || 'Summarized news briefs generated automatically by AI editors.';
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
-            <div style={{ background: config.colors?.background || '#ECFDF5', border: `1px solid ${config.colors?.border || '#A7F3D0'}`, padding: '12px', borderRadius: '8px', color: config.colors?.text || '#047857', width: '100%' }}>
+            <div style={{ background: bgColor || '#ECFDF5', border: `1px solid ${borderColor || '#A7F3D0'}`, padding: '12px', borderRadius: '8px', color: textColor || '#047857', width: '100%' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>📬 {label || 'Curated News Digest'}</div>
               <div style={{ fontSize: '10px', opacity: 0.9 }}>{digestText}</div>
             </div>
@@ -1442,7 +1527,7 @@ const HomeLayoutBuilder = () => {
         return (
           <div style={applyGridStyles(config, viewMode)} className="horizontal-scroll-grid">
             {Array.from({ length: count }).map((_, i) => (
-              <div key={i} style={{ flex: 1, padding: '20px', background: config.colors?.background || '#F1F5F9', border: `1px dashed ${config.colors?.border || '#CBD5E1'}`, borderRadius: '6px', textAlign: 'center', color: config.colors?.text || '#64748B', fontSize: '12px', fontWeight: 600, minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
+              <div key={i} style={{ flex: 1, padding: '20px', background: bgColor || '#F1F5F9', border: `1px dashed ${borderColor || '#CBD5E1'}`, borderRadius: '6px', textAlign: 'center', color: textColor || '#64748B', fontSize: '12px', fontWeight: 600, minWidth: config.gridLayout?.[viewMode]?.displayMode === 'carousel' ? '200px' : 'auto', scrollSnapAlign: 'start' }}>
                 <div style={{ fontSize: '18px', marginBottom: '8px' }}>🧩</div>
                 {label || sectionKey} Component {i + 1}
               </div>
@@ -1558,81 +1643,37 @@ const HomeLayoutBuilder = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* ── TEST-ONLY DUMMY LAYOUT INTEGRATION BUTTON ───────────────── */}
-            {/* Remove this block along with dummyLayoutService.js to cleanly delete this feature. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'rgba(124, 58, 237, 0.1)', border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '8px' }}>
-              {/* Status badge */}
-              {dummyTestStatus === 'tested' && (
-                <span style={{ fontSize: '10px', color: '#a78bfa', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  ✓ Tested on Dummy
-                  {lastDummyTestedAt && ` · ${new Date(lastDummyTestedAt).toLocaleTimeString()}`}
-                </span>
-              )}
-              {dummyTestStatus === 'not_tested' && (
-                <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 700 }}>⚠ Not Tested</span>
-              )}
-              {dummyTestStatus === 'failed' && (
-                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 700 }}>✗ Test Failed</span>
-              )}
-              {dummyErrorMessage && dummyTestStatus === 'failed' && (
-                <span style={{ fontSize: '10px', color: '#ef4444', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={dummyErrorMessage}>{dummyErrorMessage}</span>
-              )}
-              <button
-                onClick={() => setShowDummyConfirmModal(true)}
-                disabled={!hasUntestedChanges || isApplyingToDummy}
-                title="Apply the current layout changes only to the Dummy Layout Page for testing."
-                style={{
-                  padding: '8px 14px',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  background: hasUntestedChanges && !isApplyingToDummy
-                    ? 'linear-gradient(135deg, #7c3aed, #6d28d9)'
-                    : 'rgba(124, 58, 237, 0.2)',
-                  color: hasUntestedChanges && !isApplyingToDummy ? '#fff' : '#7c3aed',
-                  border: '1px solid rgba(124, 58, 237, 0.4)',
-                  borderRadius: '6px', fontWeight: 600, fontSize: '13px',
-                  cursor: hasUntestedChanges && !isApplyingToDummy ? 'pointer' : 'not-allowed',
-                  opacity: hasUntestedChanges && !isApplyingToDummy ? 1 : 0.6,
-                  transition: 'all 0.2s',
-                  boxShadow: hasUntestedChanges ? '0 4px 14px rgba(124, 58, 237, 0.3)' : 'none',
-                  whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => { if (hasUntestedChanges && !isApplyingToDummy) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                <FlaskConical size={14} />
-                {isApplyingToDummy ? 'Applying…' : 'Go for Test in Dummy Panel'}
-              </button>
-              <button
-                onClick={() => window.open('/dummy-layout', '_blank')}
-                title="Open the Dummy Layout Page in a new tab."
-                style={{
-                  padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px',
-                  background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa',
-                  border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)'; }}
-              >
-                👁 View Dummy Page
-              </button>
-              <button
-                onClick={() => setShowDummyResetConfirm(true)}
-                title="Reset the Dummy Layout Page to empty placeholder state."
-                style={{
-                  padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '4px',
-                  background: 'transparent', color: '#94a3b8',
-                  border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.3)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              >
-                <RotateCw size={12} /> Reset Dummy
-              </button>
-            </div>
-            {/* ── END TEST-ONLY DUMMY LAYOUT INTEGRATION BUTTON ───────────── */}
-            <div style={{ height: '24px', width: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+            {/* Preview on Homepage button - saves layout to localStorage and opens frontend */}
+            <button
+              onClick={() => {
+                // Auto-commit active section config before previewing
+                const layoutToPreview = layout.map(item => {
+                  const isActive = activeConfigSection && activeConfigSection.id === item.id;
+                  return isActive
+                    ? { ...item, configJson: JSON.stringify(configParams) }
+                    : item;
+                });
+                try {
+                  localStorage.setItem('dummy_layout_config', JSON.stringify(layoutToPreview));
+                } catch (e) {
+                  console.warn('Could not save to localStorage', e);
+                }
+                window.open('http://localhost:5173/', '_blank');
+              }}
+              title="Save current layout as preview and open it on the actual homepage"
+              style={{
+                padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                color: '#fff', border: 'none', borderRadius: '6px',
+                fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                transition: 'all 0.2s', whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(249,115,22,0.5)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(249,115,22,0.35)'; }}
+            >
+              👁 Preview on Homepage
+            </button>
             <button
               onClick={() => setShowAiModal(true)}
               style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(168, 85, 247, 0.15)', color: '#d8b4fe', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
@@ -2201,7 +2242,20 @@ const HomeLayoutBuilder = () => {
                     setDummyTestStatus('applying');
                     setDummyErrorMessage('');
                     try {
-                      await applyLayoutToDummy(layout);
+                      let layoutToTest = layout;
+                      if (activeConfigSection) {
+                        layoutToTest = layout.map(item => {
+                          if (item.id === activeConfigSection.id) {
+                            return {
+                              ...item,
+                              sectionLabel: configTitle,
+                              configJson: JSON.stringify(configParams)
+                            };
+                          }
+                          return item;
+                        });
+                      }
+                      await applyLayoutToDummy(layoutToTest);
                       setDummyTestStatus('tested');
                       setLastDummyTestedAt(new Date());
                       setHasUntestedChanges(false);
