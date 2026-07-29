@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, Plus, Folder, Eye, Flame, Bell, Globe, Search, Calendar, User, Tag, Layers, Sliders } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
@@ -17,10 +17,9 @@ export let activeAiConfig = {
   model: 'gemini-2.0-flash' 
 };
 
-export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
+export const getGeminiUrl = (modelOverride) => {
   const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  const apiKey = apiKeyOverride || activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY;
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent${apiKey ? '?key=' + apiKey : ''}`;
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 };
 
 const callGemini = async (prompt) => {
@@ -44,7 +43,7 @@ const callGemini = async (prompt) => {
 
   for (const model of uniqueModels) {
     try {
-      const url = getGeminiUrl(model, apiKey);
+      const url = getGeminiUrl(model);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 
@@ -97,18 +96,13 @@ const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 };
 
-// Unicode-Safe Slug Generator for Tamil & English titles
-const slugify = (text, fallbackText = '') => {
-  if (!text && !fallbackText) return '';
-  const str = (text || fallbackText).trim();
-  let s = str.toLowerCase()
-    .replace(/[^\w\s-\u0B80-\u0BFF]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-  if (!s || s === '-') {
-    s = (fallbackText || 'article').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-  }
-  return s.trim();
+const slugify = (text) => {
+  if (!text) return '';
+  const cleaned = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+  if (cleaned && cleaned.length > 2) return cleaned;
+  // Smart Fallback for Tamil / Non-Latin scripts: create clean unique slug
+  const hash = Math.floor(100000 + Math.random() * 900000);
+  return `article-${Date.now().toString(36)}-${hash}`;
 };
 
 // ── Contextual AI Helper ─────────────────────────────────────────────────────
@@ -180,10 +174,67 @@ const NewsEditor = () => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   
-  // Unified Upload State
   const [mediaList, setMediaList] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadType, setUploadType] = useState('source'); 
+
+  // Draft Backup & Auto-Save State
+  const [hasDraftBackup, setHasDraftBackup] = useState(false);
+  const [draftSavedTime, setDraftSavedTime] = useState('');
+
+  // ── Auto-Save to LocalStorage every 15s ────────────────────────────────────
+  useEffect(() => {
+    const draftKey = `news_editor_draft_${isEdit ? id : 'new'}`;
+    const timer = setInterval(() => {
+      if (form.titleEn || form.titleTa || form.contentEn || form.contentTa) {
+        const draftData = {
+          ...form,
+          contentTa: editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa,
+          contentEn: editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [form, isEdit, id]);
+
+  // Check for auto-saved draft on mount
+  useEffect(() => {
+    const draftKey = `news_editor_draft_${isEdit ? id : 'new'}`;
+    const savedDraftStr = localStorage.getItem(draftKey);
+    if (savedDraftStr && !isEdit) {
+      try {
+        const saved = JSON.parse(savedDraftStr);
+        if (saved && (saved.titleEn || saved.titleTa || saved.contentEn || saved.contentTa)) {
+          setHasDraftBackup(true);
+          setDraftSavedTime(saved.savedAt ? new Date(saved.savedAt).toLocaleTimeString() : 'recently');
+        }
+      } catch (e) {}
+    }
+  }, [isEdit, id]);
+
+  const handleRestoreDraft = () => {
+    const draftKey = `news_editor_draft_${isEdit ? id : 'new'}`;
+    const savedDraftStr = localStorage.getItem(draftKey);
+    if (savedDraftStr) {
+      try {
+        const saved = JSON.parse(savedDraftStr);
+        setForm(f => ({ ...f, ...saved }));
+        if (editorRefTa.current && saved.contentTa) editorRefTa.current.setContent(saved.contentTa);
+        if (editorRefEn.current && saved.contentEn) editorRefEn.current.setContent(saved.contentEn);
+        showMsg('⚡ Unsaved draft restored from local backup!');
+      } catch (e) {}
+    }
+    setHasDraftBackup(false);
+  };
+
+  const handleDiscardDraft = () => {
+    const draftKey = `news_editor_draft_${isEdit ? id : 'new'}`;
+    localStorage.removeItem(draftKey);
+    setHasDraftBackup(false);
+    showMsg('Local draft backup discarded.');
+  };
   
   const [form, setForm] = useState({
     titleTa: '', titleEn: '', contentTa: '', contentEn: '',
@@ -317,6 +368,10 @@ const NewsEditor = () => {
 
   // Helper to upload a single file
   const uploadSingleFile = async (file) => {
+    const maxSizeBytes = 50 * 1024 * 1024; // 50 MB max limit
+    if (file.size > maxSizeBytes) {
+      throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds maximum limit of 50MB.`);
+    }
     const formData = new FormData();
     formData.append('file', file);
     const res = await api.post('/articles/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -685,29 +740,7 @@ const NewsEditor = () => {
         });
         raw = res.data?.resultText || '';
       } catch (e) {
-        const draftPrompt = `You are a world-class news editor. Generate a complete news article draft in JSON format based on the following raw content and category list:
-
-Raw Content:
-${baseContent}
-
-Categories: ${catNames}
-
-Return ONLY a valid JSON object matching this schema with NO markdown:
-{
-  "titleEn": "English Title",
-  "titleTa": "Tamil Title",
-  "contentEn": "<p>English Article Content HTML</p>",
-  "contentTa": "<p>Tamil Article Content HTML</p>",
-  "excerptEn": "1-2 sentence English summary",
-  "excerptTa": "1-2 sentence Tamil summary",
-  "seoTitle": "SEO Meta Title max 60 chars",
-  "metaDescription": "SEO Meta Description max 160 chars",
-  "focusKeywords": "primary, keywords",
-  "metaKeywords": "news, tags, comma, separated",
-  "slug": "english-url-slug",
-  "categoryId": "suggested category ID"
-}`;
-        raw = await callGemini(draftPrompt);
+        raw = await callGemini(prompt);
       }
 
       let parsed = {};
@@ -749,6 +782,123 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
       setAiGeneratingDraft(false);
       setAiDraftProgress('');
     }
+  };
+
+  // ── Rule-Based Instant Auto-SEO (0 Keys, Instant, Tamil + English) ─────────
+  const handleRuleBasedAutoFill = () => {
+    const title = (form.titleEn || form.titleTa || '').trim();
+    const contentTa = editorRefTa.current ? editorRefTa.current.getContent({ format: 'text' }) : (form.contentTa || '');
+    const contentEn = editorRefEn.current ? editorRefEn.current.getContent({ format: 'text' }) : (form.contentEn || '');
+
+    if (!title && !contentTa && !contentEn) {
+      showMsg('Please enter an Article Title or Content first.', true);
+      return;
+    }
+
+    const cleanTa = contentTa.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    const cleanEn = contentEn.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+    const descEn = cleanEn.slice(0, 155) || (title ? `${title} - Kings 24x7 News Update` : '');
+    const descTa = cleanTa.slice(0, 155) || (title ? `${title} - கிங்ஸ் 24x7 செய்திகள்` : '');
+
+    const generatedMetaTitle = title ? `${title} | Kings 24x7` : form.metaTitle;
+    const generatedSlug = form.slug ? slugify(form.slug) : slugify(title);
+
+    const combinedText = `${title} ${cleanEn} ${cleanTa}`;
+    const words = combinedText.split(/\s+/).filter(w => w.length > 3 && !/^(the|and|for|with|that|this|from|about)$/i.test(w));
+    const uniqueKeywords = [...new Set(words)].slice(0, 8).join(', ');
+
+    setForm(f => ({
+      ...f,
+      metaTitle: f.metaTitle || generatedMetaTitle,
+      metaDescription: f.metaDescription || (f.titleTa ? descTa : descEn),
+      focusKeywords: f.focusKeywords || uniqueKeywords,
+      metaKeywords: f.metaKeywords || uniqueKeywords,
+      slug: generatedSlug,
+      shortDescEn: f.shortDescEn || cleanEn.slice(0, 200),
+      shortDescTa: f.shortDescTa || cleanTa.slice(0, 200)
+    }));
+
+    showMsg('⚡ Instant Rule-Based SEO & Metadata generated successfully!');
+  };
+
+  // ── RankMath-Style Dynamic SEO Score & Readability Metrics Engine ──────────
+  const getSeoMetrics = () => {
+    const title = (form.titleEn || form.titleTa || '').trim();
+    const metaTitle = (form.metaTitle || title || '').trim();
+    const metaDesc = (form.metaDescription || form.shortDescEn || form.shortDescTa || '').trim();
+    const content = (activeTab === 0 
+      ? (editorRefTa.current ? editorRefTa.current.getContent({ format: 'text' }) : form.contentTa) 
+      : (editorRefEn.current ? editorRefEn.current.getContent({ format: 'text' }) : form.contentEn)) || '';
+
+    const cleanContent = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    
+    const words = cleanContent ? cleanContent.split(/\s+/).filter(Boolean) : [];
+    const wordCount = words.length;
+    const sentenceCount = cleanContent ? (cleanContent.match(/[.!?]+(\s|$)/g) || []).length + 1 : 0;
+    const paragraphCount = cleanContent ? cleanContent.split(/\n\s*\n/).filter(Boolean).length : 0;
+    const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+    let score = 0;
+    const checklist = [];
+
+    if (metaTitle.length >= 35 && metaTitle.length <= 70) {
+      score += 15;
+      checklist.push({ label: 'Title length is optimal (35-70 chars)', pass: true });
+    } else {
+      checklist.push({ label: 'Title length should be between 35-70 characters', pass: false });
+    }
+
+    if (metaDesc.length >= 90 && metaDesc.length <= 165) {
+      score += 15;
+      checklist.push({ label: 'Meta Description length is optimal (90-165 chars)', pass: true });
+    } else {
+      checklist.push({ label: 'Meta Description should be between 90-165 characters', pass: false });
+    }
+
+    if (form.categoryId) {
+      score += 15;
+      checklist.push({ label: 'Primary Category assigned', pass: true });
+    } else {
+      checklist.push({ label: 'Assign a Category for proper site indexing', pass: false });
+    }
+
+    if (form.featuredImage || form.imageUrl) {
+      score += 15;
+      checklist.push({ label: 'Featured Image present', pass: true });
+    } else {
+      checklist.push({ label: 'Add a Featured Image for social sharing & SERP', pass: false });
+    }
+
+    if (form.focusKeywords || form.metaKeywords) {
+      score += 15;
+      checklist.push({ label: 'Focus / Meta Keywords defined', pass: true });
+    } else {
+      checklist.push({ label: 'Add Focus Keywords for search relevance', pass: false });
+    }
+
+    if (form.slug && form.slug.length >= 3) {
+      score += 15;
+      checklist.push({ label: 'Clean search-friendly URL slug', pass: true });
+    } else {
+      checklist.push({ label: 'Generate a clean URL slug', pass: false });
+    }
+
+    if (wordCount >= 100) {
+      score += 10;
+      checklist.push({ label: 'Content length meets depth standards (>100 words)', pass: true });
+    } else {
+      checklist.push({ label: 'Expand content depth (at least 100 words)', pass: false });
+    }
+
+    return {
+      score: Math.min(100, score),
+      wordCount,
+      sentenceCount,
+      paragraphCount,
+      readingTime,
+      checklist
+    };
   };
 
   // ── 1-Click AI Proofread, Grammar Correction & Full Auto-Fill ───────────────
@@ -816,89 +966,42 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
     }
   };
 
-  const calculateSeoScore = (formState) => {
-    let score = 0;
-    const title = formState.metaTitle || formState.titleEn || formState.titleTa || '';
-    const desc = formState.metaDescription || formState.shortDescEn || formState.shortDescTa || '';
-    const kw = formState.focusKeywords || formState.metaKeywords || '';
-    const img = formState.featuredImage || formState.imageUrl || '';
+  const handleSave = async (statusOverride) => {
+    const finalStatus = statusOverride || form.status;
 
-    if (title.length >= 20 && title.length <= 70) score += 25;
-    else if (title.length > 0) score += 10;
-
-    if (desc.length >= 80 && desc.length <= 160) score += 25;
-    else if (desc.length > 0) score += 10;
-
-    if (kw.trim().length > 0) {
-      score += 20;
-      const keywords = kw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-      const firstKw = keywords[0] || '';
-      if (firstKw && (title.toLowerCase().includes(firstKw) || desc.toLowerCase().includes(firstKw))) {
-        score += 15;
-      }
+    // 1. Mandatory Validation Guardrails
+    const title = (form.titleEn || form.titleTa || '').trim();
+    if (!title) {
+      showMsg('Validation Error: Article Title (English or Tamil) is required.', true);
+      return;
     }
-
-    if (img) score += 15;
-    return Math.min(score, 100);
-  };
-
-  const handleAutoGenerateSeo = () => {
-    const rawTaText = editorRefTa.current ? editorRefTa.current.getContent({ format: 'text' }) : (form.contentTa || '');
-    const rawEnText = editorRefEn.current ? editorRefEn.current.getContent({ format: 'text' }) : (form.contentEn || '');
-
-    const title = form.titleEn || form.titleTa || '';
-    const content = (rawEnText || rawTaText || '').trim();
-
-    if (!title && !content) {
-      showMsg('Please enter an article title or write content in TinyMCE first.', true);
+    if (!form.categoryId) {
+      showMsg('Validation Error: Please select a Category for the article.', true);
       return;
     }
 
-    // 1. Clean URL Slug
-    const generatedSlug = slugify(title, form.titleEn || form.titleTa || 'news-article');
-
-    // 2. Meta Title (Truncate cleanly at word boundary under 60 chars)
-    let metaTitle = title;
-    if (metaTitle.length > 60) {
-      metaTitle = metaTitle.substring(0, 57).trim() + '...';
+    // 2. Role-Based Editorial Workflow Guard
+    const userRole = user?.role ? String(user.role).replace(/^ROLE_/, '') : '';
+    const isChiefOrAdmin = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'ADMIN'].includes(userRole);
+    let targetStatus = finalStatus;
+    if (finalStatus === 'published' && !isChiefOrAdmin) {
+      targetStatus = 'pending_review';
     }
 
-    // 3. Meta Description (First 155 chars of summary or content)
-    const plainText = (form.shortDescEn || form.shortDescTa || content || '').replace(/\s+/g, ' ').trim();
-    let metaDesc = plainText;
-    if (metaDesc.length > 155) {
-      metaDesc = metaDesc.substring(0, 152).trim() + '...';
-    }
+    // 3. Ensure valid unique slug
+    let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
+    if (!finalSlug) finalSlug = `article-${Date.now()}`;
 
-    // 4. Focus Keywords & News Tags
-    const textForKeywords = (title + ' ' + plainText).replace(/[^\w\s\u0B80-\u0BFF]/g, '');
-    const wordList = textForKeywords.split(/\s+/).filter(w => w.length > 3);
-    const uniqueWords = [...new Set(wordList)].slice(0, 6);
-    const focusKeywords = uniqueWords.slice(0, 3).join(', ');
-    const metaKeywords = [...new Set([...uniqueWords, 'Kings TV', 'Tamil News', 'Breaking News'])].join(', ');
-
-    const newForm = {
-      ...form,
-      slug: generatedSlug,
-      metaTitle: metaTitle,
-      metaDescription: metaDesc,
-      focusKeywords: focusKeywords,
-      metaKeywords: metaKeywords
-    };
-
-    const newScore = calculateSeoScore(newForm);
-    newForm.seoScore = newScore;
-
-    setForm(newForm);
-    showMsg(`⚡ Automated SEO Metadata Generated! (SEO Score: ${newScore}/100)`);
-  };
-
-  const handleSave = async (statusOverride) => {
-    const finalStatus = statusOverride || form.status;
     setSaving(true);
     setMsg(null);
     try {
-      const payload = { ...form, status: finalStatus };
+      const payload = { 
+        ...form, 
+        slug: finalSlug,
+        status: targetStatus,
+        contentTa: editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa,
+        contentEn: editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn
+      };
       if (!payload.publishedAt) delete payload.publishedAt;
       
       let res;
@@ -907,14 +1010,20 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
       } else {
         res = await api.post('/articles', payload);
       }
-      showMsg(`Article ${finalStatus === 'published' ? 'published' : 'saved'} successfully!`);
-      if (finalStatus === 'published') {
+      
+      const successLabel = targetStatus === 'published' 
+        ? 'published' 
+        : (targetStatus === 'pending_review' ? 'submitted for Chief Editor review' : 'saved as draft');
+      showMsg(`Article ${successLabel} successfully!`);
+
+      if (targetStatus === 'published' || targetStatus === 'pending_review') {
         setTimeout(() => navigate('/admin/news'), 1500);
       } else if (!isEdit && res.data?.id) {
         setTimeout(() => navigate(`/admin/news/${res.data.id}/edit`), 1500);
       }
     } catch (err) {
-      showMsg('Failed to save article.', true);
+      const errDetail = err.response?.data?.message || err.message || 'Failed to save article.';
+      showMsg(`Save Error: ${errDetail}`, true);
     } finally {
       setSaving(false);
     }
@@ -989,6 +1098,42 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
             {isEdit ? 'Edit Article' : 'Write New Article'}
           </h1>
         </div>
+
+      {/* Local Draft Recovery Banner */}
+      {hasDraftBackup && (
+        <div style={{
+          background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '8px',
+          padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', color: '#92400E', fontSize: '14px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <RotateCcw size={18} color="#D97706" />
+            <span>
+              <strong>Unsaved Draft Backup Found:</strong> An unsaved draft from {draftSavedTime} was recovered from your local session.
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handleRestoreDraft}
+              style={{
+                padding: '6px 14px', background: '#D97706', color: '#ffffff',
+                border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '13px'
+              }}
+            >
+              Restore Unsaved Draft
+            </button>
+            <button
+              onClick={handleDiscardDraft}
+              style={{
+                padding: '6px 14px', background: 'transparent', color: '#92400E',
+                border: '1px solid #D97706', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '13px'
+              }}
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
         
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => {
@@ -1225,30 +1370,25 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
                         <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>🔍 SEO & Meta Engine Settings</h3>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Automated or custom meta titles, description, keywords, and URL slug optimization.</p>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <button
-                          type="button"
-                          onClick={handleAutoGenerateSeo}
-                          style={{
-                            padding: '8px 16px', background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                            color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '13px',
-                            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                            boxShadow: '0 2px 6px rgba(37,99,235,0.3)'
-                          }}
-                        >
-                          <Zap size={15} /> ⚡ Auto-Generate SEO
-                        </button>
-                        {(form.seoScore > 0 || (form.metaTitle && form.metaDescription)) && (
-                          <span style={{ padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: (form.seoScore || calculateSeoScore(form)) > 70 ? '#10B981' : '#F59E0B', color: '#fff' }}>
-                            SEO Score: {form.seoScore || calculateSeoScore(form)}/100
-                          </span>
-                        )}
-                      </div>
+                      {form.seoScore > 0 && (
+                        <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: form.seoScore > 70 ? '#10B981' : '#F59E0B', color: '#fff' }}>
+                          SEO Score: {form.seoScore}/100
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Title</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Title</label>
+                          <span style={{ 
+                            fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                            background: (form.metaTitle || '').length >= 40 && (form.metaTitle || '').length <= 70 ? '#D1FAE5' : ((form.metaTitle || '').length > 70 ? '#FEE2E2' : '#FEF3C7'),
+                            color: (form.metaTitle || '').length >= 40 && (form.metaTitle || '').length <= 70 ? '#10B981' : ((form.metaTitle || '').length > 70 ? '#EF4444' : '#F59E0B')
+                          }}>
+                            {(form.metaTitle || '').length} / 60 chars
+                          </span>
+                        </div>
                         <input 
                           type="text" 
                           value={form.metaTitle || ''} 
@@ -1270,7 +1410,16 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Description</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>SEO Meta Description</label>
+                        <span style={{ 
+                          fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                          background: (form.metaDescription || '').length >= 100 && (form.metaDescription || '').length <= 165 ? '#D1FAE5' : ((form.metaDescription || '').length > 165 ? '#FEE2E2' : '#FEF3C7'),
+                          color: (form.metaDescription || '').length >= 100 && (form.metaDescription || '').length <= 165 ? '#10B981' : ((form.metaDescription || '').length > 165 ? '#EF4444' : '#F59E0B')
+                        }}>
+                          {(form.metaDescription || '').length} / 160 chars
+                        </span>
+                      </div>
                       <textarea 
                         rows="3" 
                         value={form.metaDescription || ''} 
@@ -1475,135 +1624,128 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
         {/* Right Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '340px' }}>
           
-          {/* Publishing Controls Card */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-              <Send size={16} color="#2563EB" /> Article Status & Schedule
-            </h3>
+          {/* RankMath-Style SEO Scorecard & SERP Card */}
+          {(() => {
+            const metrics = getSeoMetrics();
+            const scoreColor = metrics.score >= 80 ? '#10B981' : (metrics.score >= 50 ? '#F59E0B' : '#EF4444');
+            const scoreBadgeBg = metrics.score >= 80 ? '#D1FAE5' : (metrics.score >= 50 ? '#FEF3C7' : '#FEE2E2');
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Publish Status</label>
-                <select 
-                  value={form.status || 'draft'} 
-                  onChange={e => set('status', e.target.value)} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600 }}
-                >
-                  <option value="draft">📝 Draft</option>
-                  <option value="pending">⏳ Pending Review</option>
-                  <option value="scheduled">📅 Scheduled</option>
-                  <option value="published">🚀 Published (Live)</option>
-                </select>
-              </div>
+            return (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={18} color={scoreColor} /> SEO & Audit Score
+                  </h3>
+                  <div style={{ background: scoreBadgeBg, color: scoreColor, padding: '4px 12px', borderRadius: '20px', fontWeight: 800, fontSize: '14px' }}>
+                    {metrics.score} / 100
+                  </div>
+                </div>
 
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Publication Date & Time</label>
-                <input 
-                  type="datetime-local" 
-                  value={form.publishedAt || ''} 
-                  onChange={e => set('publishedAt', e.target.value)} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }} 
-                />
+                {/* Content Metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px', background: 'var(--bg-secondary)', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{metrics.wordCount}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Words</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{metrics.paragraphCount}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Paragraphs</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#2563EB' }}>⏱️ {metrics.readingTime}m</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Read Time</div>
+                  </div>
+                </div>
+
+                {/* Quick Auto-SEO Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={handleRuleBasedAutoFill}
+                    style={{
+                      width: '100%', padding: '10px', background: '#2563EB', color: '#ffffff',
+                      border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <Zap size={16} /> ⚡ Auto-SEO (Instant Rule-Based)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAiProofreadAndAutoFill}
+                    disabled={aiProofreading}
+                    style={{
+                      width: '100%', padding: '10px', background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
+                      color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      opacity: aiProofreading ? 0.7 : 1
+                    }}
+                  >
+                    <Sparkles size={16} /> {aiProofreading ? 'AI Optimizing...' : '✨ AI Enhance (Gemini Proxy)'}
+                  </button>
+                </div>
+
+                {/* Checklist items */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {metrics.checklist.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px' }}>
+                      {item.pass ? <CheckCircle size={14} color="#10B981" style={{ marginTop: '2px', flexShrink: 0 }} /> : <AlertCircle size={14} color="#EF4444" style={{ marginTop: '2px', flexShrink: 0 }} />}
+                      <span style={{ color: item.pass ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Google SERP Preview Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '12px', background: '#ffffff', color: '#1a0dab' }}>
+                  <div style={{ fontSize: '11px', color: '#5f6368', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    https://kings24x7.com › news › {form.slug || 'article-slug'}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a0dab', marginBottom: '4px', lineHeight: 1.3, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {form.metaTitle || form.titleEn || form.titleTa || 'Article Title Preview'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#4d5156', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {form.metaDescription || form.shortDescEn || form.shortDescTa || 'Article description preview will appear here in Google Search results...'}
+                  </div>
+                </div>
+
               </div>
-            </div>
+            );
+          })()}
+
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
+            <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => {
+              set('featuredImage', url);
+              // Auto Image SEO: auto-populate meta fields if blank
+              const title = (form.titleEn || form.titleTa || '').trim();
+              if (title && !form.metaDescription) {
+                set('metaDescription', `${title} - Kings 24x7 Coverage`);
+              }
+            }} />
           </div>
 
-          {/* Featured Image Card */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-              <ImageIcon size={16} color="#8B5CF6" /> Featured Image
-            </h3>
-            <ImageUploadPreview 
-              imageUrl={form.featuredImage || form.imageUrl} 
-              onUploadSuccess={(url) => setForm(f => ({ ...f, featuredImage: url, imageUrl: url }))} 
-            />
-          </div>
-
-          {/* Taxonomy & Categorization Card */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-              <Layers size={16} color="#0EA5E9" /> Taxonomy & Classification
-            </h3>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlignLeft size={16} /> Taxonomy</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category *</label>
-                <select 
-                  value={form.categoryId} 
-                  onChange={e => setForm(f => ({ ...f, categoryId: e.target.value, subcategoryId: '' }))} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 500 }}
-                >
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category</label>
+                <select value={form.categoryId} onChange={e => set('categoryId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
                   <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category</option>
                   {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameEn || c.name}</option>)}
                 </select>
               </div>
-
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Subcategory</label>
-                <select 
-                  value={form.subcategoryId} 
-                  onChange={e => set('subcategoryId', e.target.value)} 
-                  disabled={!subCategories.length} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', opacity: subCategories.length ? 1 : 0.6 }}
-                >
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                    {subCategories.length ? 'Select Subcategory' : 'No subcategories available'}
-                  </option>
+                <select value={form.subcategoryId} onChange={e => set('subcategoryId', e.target.value)} disabled={!subCategories.length} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory</option>
                   {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameTa ? `${s.nameTa} / ${s.name}` : s.name}</option>)}
                 </select>
               </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Target District</label>
-                <select 
-                  value={form.districtId} 
-                  onChange={e => set('districtId', e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                >
-                  <option value="">All Districts (State-wide)</option>
-                  {districts.map(d => <option key={d.id} value={d.id}>{d.nameEn || d.name}</option>)}
-                </select>
-              </div>
-
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>News Tags (comma separated)</label>
-                <input 
-                  type="text" 
-                  value={form.metaKeywords || ''} 
-                  onChange={e => set('metaKeywords', e.target.value)} 
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }} 
-                  placeholder="e.g. TamilNadu, Politics, Breaking" 
-                />
+                <input type="text" value={form.metaKeywords} onChange={e => set('metaKeywords', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }} placeholder="e.g. TamilNadu, Politics, Breaking" />
               </div>
-            </div>
-          </div>
-
-          {/* Highlights & Alerts Card */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-              <Flame size={16} color="#F59E0B" /> Highlights & Broadcast Toggles
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#EF4444' }}>
-                  <Zap size={14} /> Breaking News Ticker
-                </span>
-                <input type="checkbox" checked={form.isBreaking === true} onChange={e => set('isBreaking', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B' }}>
-                  <Flame size={14} /> Trending Sidebar Story
-                </span>
-                <input type="checkbox" checked={form.isTrending === true} onChange={e => set('isTrending', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#8B5CF6' }}>
-                  <Bell size={14} /> Push Notification Alert
-                </span>
-                <input type="checkbox" checked={form.sendPush === true} onChange={e => set('sendPush', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-              </label>
             </div>
           </div>
           
@@ -1835,7 +1977,7 @@ Return ONLY a valid JSON object matching this schema with NO markdown:
                     fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
                   }}
                 >
-                  <Folder size={16} /> Choose from Media Library ({mediaLibraryItems.length})
+                  <FolderIcon size={16} /> Choose from Media Library ({mediaLibraryItems.length})
                 </button>
                 <button
                   onClick={() => setGalleryModalTab('upload')}
