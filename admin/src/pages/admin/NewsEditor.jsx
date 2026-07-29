@@ -322,8 +322,8 @@ const NewsEditor = () => {
 
   // API Key Modal State
   const [keyModalOpen, setKeyModalOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [apiModelInput, setApiModelInput] = useState('gemini-2.0-flash');
+  const [apiKeyInput, setApiKeyInput] = useState(() => localStorage.getItem('gemini_api_key') || localStorage.getItem('ai.llm_api_key') || '');
+  const [apiModelInput, setApiModelInput] = useState('gemini-flash-latest');
 
   const handleSaveApiKey = async () => {
     const key = apiKeyInput.trim();
@@ -346,7 +346,7 @@ const NewsEditor = () => {
       localStorage.setItem('gemini_api_key', key);
       localStorage.setItem('ai.llm_api_key', key);
       
-      setApiKeyInput('');
+      setApiKeyInput(key);
       setKeyModalOpen(false);
       showMsg('🔑 Gemini API Key saved & activated securely on server!');
     } catch(e) {
@@ -622,12 +622,21 @@ const NewsEditor = () => {
       setReporters(users);
     }).catch(() => {});
     
-    api.get('/admin/config').then(res => {
-      if (Array.isArray(res.data)) {
-        res.data.forEach(item => {
-          if (item.configKey === 'ai.llm_api_url' && item.configValue) activeAiConfig.apiUrl = item.configValue;
-          if (item.configKey === 'ai.llm_model' && item.configValue) activeAiConfig.model = item.configValue;
-        });
+    const savedKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('ai.llm_api_key') || '';
+    if (savedKey) {
+      activeAiConfig.apiKey = savedKey;
+      setApiKeyInput(savedKey);
+    }
+
+    api.get('/admin/ai-config/gemini').then(res => {
+      if (res.data) {
+        if (res.data.model && !res.data.model.includes('2.0-flash')) {
+          activeAiConfig.model = res.data.model;
+          setApiModelInput(res.data.model);
+        } else {
+          activeAiConfig.model = 'gemini-flash-latest';
+          setApiModelInput('gemini-flash-latest');
+        }
       }
     }).catch(() => {});
 
