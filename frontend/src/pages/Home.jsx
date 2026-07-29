@@ -100,7 +100,13 @@ const Home = () => {
       .then(data => {
         const list = data && Array.isArray(data.content) ? data.content : [];
         if (list.length > 0) {
-          const formatted = list.map(item => (lang === 'en' ? item.title : item.titleTa) || item.title);
+          const formatted = list.map(item => {
+            if (lang === 'en') {
+              return item.titleEn || item.title || item.titleTa;
+            } else {
+              return item.titleTa || item.title || item.titleEn;
+            }
+          });
           setTickers(formatted);
         } else {
           setTickers([]);
@@ -133,6 +139,9 @@ const Home = () => {
         console.warn("Could not load web stories from API, using fallback", err);
         setStories(storiesList);
       });
+
+    Promise.allSettled([pCategories, pArticles, pBreakingNews, pWebStories])
+      .finally(() => setLoading(false));
 
     const categorizeVideo = (title = '', description = '') => {
       const text = `${title} ${description}`.toLowerCase();
@@ -695,12 +704,17 @@ const Home = () => {
   };
 
   const renderNewsTicker = () => {
-    const activeTickers = tickers.length > 0 ? tickers : [
+    const activeTickers = tickers.length > 0 ? tickers : (lang === 'en' ? [
+      "Heavy rain warning in Tamil Nadu starting tomorrow - Meteorological Department",
+      "India vs Pakistan Cricket Match begins today at 3 PM",
+      "Gold price per sovereign reduced by Rs. 400 - Today's rates",
+      "Chennai Super Kings qualifies for playoff round with a grand victory"
+    ] : [
       "தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு",
       "இந்தியா - பாகிஸ்தான் கிரிக்கெட் போட்டி இன்று மாலை 3 மணிக்கு தொடக்கம்",
       "ஆபரணத் தங்கத்தின் விலை சவரனுக்கு ரூ.400 குறைந்தது - இன்றைய நிலவரம்",
       "சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றியுடன் பிளே-ஆஃப் சுற்றுக்கு தகுதி"
-    ];
+    ]);
 
     return (
       <div className="breaking-news-wrapper" style={{ background: '#FFFBEB', borderTop: '1px solid #FDE68A', borderBottom: '1px solid #FCD34D' }}>
