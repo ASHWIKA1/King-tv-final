@@ -567,6 +567,9 @@ public class DataInitializer {
         seedSystemConfig(SystemConfig.TELEGRAM_BOT_TOKEN, "", "telegram", "Telegram Bot API Auth Token");
         seedSystemConfig(SystemConfig.TELEGRAM_CHAT_ID, "", "telegram", "Telegram Channel/Chat Target ID");
         seedSystemConfig(SystemConfig.TELEGRAM_ENABLED, "false", "telegram", "Enable or disable automatic Telegram pushes (true/false)");
+        seedSystemConfig(SystemConfig.AI_LLM_API_KEY, "", "ai", "AI LLM API Key");
+        seedSystemConfig(SystemConfig.AI_LLM_MODEL, "gemini-2.0-flash", "ai", "AI Model Name");
+        seedSystemConfig(SystemConfig.SMS_GATEWAY_API_KEY, "", "sms", "SMS Gateway API Key");
         seedSystemConfig(SystemConfig.AI_PROMPT_GENERATE_DRAFT, 
             "You are a professional news editor. Given the following source notes/documents, generate a complete, ready-to-publish news article in both English and Tamil. Return ONLY a valid JSON object matching this exact schema, with no markdown formatting or explanation outside the JSON:\n\n{\n  \"titleEn\": \"English Title (max 12 words)\",\n  \"titleTa\": \"Tamil Title (max 12 words)\",\n  \"contentEn\": \"Full professional English news article with HTML paragraphs <p>\",\n  \"contentTa\": \"Full professional Tamil news article with HTML paragraphs <p>\",\n  \"excerptEn\": \"1-2 sentence English summary\",\n  \"excerptTa\": \"1-2 sentence Tamil summary\",\n  \"seoTitle\": \"SEO optimized title max 60 chars\",\n  \"metaDescription\": \"SEO description max 160 chars\",\n  \"metaKeywords\": \"comma, separated, tags\",\n  \"focusKeywords\": \"primary, keywords\",\n  \"slug\": \"english-url-slug\",\n  \"categoryId\": \"Suggest the best category ID from this list: {catNames}\"\n}\n\nSource Notes:\n\"{baseContent}\"",
             "ai", "Prompt template for generating full article draft");
