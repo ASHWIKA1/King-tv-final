@@ -150,7 +150,6 @@ const Sidebar = () => {
             <SidebarNavLink to="/admin/ugc-queue" icon={Users} label={t('ugcQueue')} badge={counts.pendingUgc} />
             <SidebarNavLink to="/admin/breaking" icon={AlertTriangle} label={t('breakingNews')} badge={counts.activeBreaking} />
             <SidebarNavLink to="/admin/rss" icon={Globe} label="RSS Importer" />
-            <SidebarNavLink to="/admin/kyc" icon={Shield} label={t('kycVerification') || 'KYC Verification'} />
           </SidebarSection>
         )}
 
@@ -167,6 +166,7 @@ const Sidebar = () => {
             <SidebarNavLink to="/admin/push" icon={BellRing} label={t('push')} />
             <SidebarNavLink to="/admin/layout" icon={Layout} label={t('layout')} />
             <SidebarNavLink to="/admin/community" icon={Building2} label="Community Modules" />
+            <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
           </SidebarSection>
         )}
 
@@ -188,7 +188,10 @@ const Sidebar = () => {
             badge={counts.pendingProfanity}
           >
             {canManageUsers && (
-              <SidebarNavLink to="/admin/users" icon={Users} label={t('userAccounts')} />
+              <>
+                <SidebarNavLink to="/admin/users" icon={Users} label={t('userAccounts')} />
+                <SidebarNavLink to="/admin/kyc" icon={Shield} label={t('kycVerification') || 'KYC Verification'} />
+              </>
             )}
             {isAdmin && (
               <>
@@ -196,7 +199,6 @@ const Sidebar = () => {
                 <SidebarNavLink to="/admin/subscribers" icon={Users} label="Subscribers" />
                 <SidebarNavLink to="/admin/taxonomy" icon={Tags} label={t('taxonomy')} />
                 <SidebarNavLink to="/admin/seo" icon={Search} label={t('seoConsole') || 'SEO & Sitemap'} />
-                <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
                 <SidebarNavLink to="/admin/settings" icon={Settings} label={t('settings')} />
                 <SidebarNavLink to="/admin/settings/ai" icon={Sparkles} label="AI Configuration" />
                 <SidebarNavLink to="/admin/settings/language" icon={Languages} label="Language & Fonts" />
