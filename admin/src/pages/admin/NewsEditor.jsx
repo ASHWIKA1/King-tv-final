@@ -34,6 +34,7 @@ const callGemini = async (prompt) => {
 
   const modelsToTry = [
     activeAiConfig.model || 'gemini-2.0-flash',
+    'gemini-flash-latest',
     'gemini-1.5-flash',
     'gemini-2.5-flash',
     'gemini-1.5-pro'
@@ -57,8 +58,10 @@ const callGemini = async (prompt) => {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-        if (res.status === 429) errorMsg = 'Rate Limit Exceeded. Please wait 30s or try a different key.';
-        lastError = new Error(`Gemini Error (${model}): ${errorMsg}`);
+        if (res.status === 429) {
+          errorMsg = errorData?.error?.message || 'Google AI Prepayment credits depleted or rate limit exceeded. Please top up credits or create a free key at https://aistudio.google.com';
+        }
+        lastError = new Error(`Gemini (${model}): ${errorMsg}`);
         console.warn(`Model ${model} failed:`, errorMsg);
         continue;
       }
