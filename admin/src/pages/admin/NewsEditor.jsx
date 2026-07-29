@@ -691,33 +691,64 @@ const NewsEditor = () => {
     const uploaded = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (uploadType === 'source' && file.type === 'application/pdf' || file.type === 'text/plain') {
+      const isSourceMode = uploadType === 'source';
+      const isTextOrPdfOrAudio = file.type === 'application/pdf' || 
+                                file.type.startsWith('text/') || 
+                                file.type.startsWith('audio/') || 
+                                file.name.endsWith('.txt') || 
+                                file.name.endsWith('.pdf') ||
+                                file.name.endsWith('.doc') ||
+                                file.name.endsWith('.docx');
+
+      if (isSourceMode && isTextOrPdfOrAudio) {
         let textContent = '';
-        if (file.type === 'text/plain') {
+        if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
           textContent = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsText(file); });
         } else {
-          const base64Data = await new Promise((r, rej) => { const reader = new FileReader(); reader.onload = () => r(reader.result.split(',')[1]); reader.readAsDataURL(file); });
-          setUploadProgress(Math.round(((i + 0.5) / files.length) * 100));
           try {
-            textContent = await callGeminiMultimodal(base64Data, file.type, "Extract all text exactly as written.");
-          } catch(err) { console.error(err); }
+            const base64Data = await new Promise((r) => {
+              const reader = new FileReader();
+              reader.onload = () => r((reader.result || '').split(',')[1] || '');
+              reader.readAsDataURL(file);
+            });
+            setUploadProgress(Math.round(((i + 0.5) / files.length) * 100));
+            if (base64Data) {
+              const prompt = file.type.startsWith('audio/') 
+                ? "Transcribe all audio speech into clear news text." 
+                : "Extract all news text and key points from this document exactly.";
+              textContent = await callGeminiMultimodal(base64Data, file.type || 'application/pdf', prompt);
+            }
+          } catch(err) {
+            console.error('File text extraction failed', err);
+          }
         }
-        uploaded.push({ name: file.name, type: file.type, text: textContent });
+        uploaded.push({ name: file.name, type: file.type || 'document', text: textContent, isSource: true });
       } else {
-        const formData = new FormData();
-        formData.append('file', file);
+        // Image or Video upload for insertion into rich text editor
+        let fileUrl = '';
         try {
+          const formData = new FormData();
+          formData.append('file', file);
           const res = await api.post('/articles/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
           if (res.data?.url) {
             const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
-            uploaded.push({ name: file.name, url: serverBase + res.data.url, type: file.type });
+            fileUrl = res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
           }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+          console.warn('Server upload failed, using local object URL', err);
+          fileUrl = URL.createObjectURL(file);
+        }
+
+        if (fileUrl) {
+          uploaded.push({ name: file.name, url: fileUrl, type: file.type || 'image/jpeg', isInsert: true });
+        }
       }
       setUploadProgress(Math.round(((i + 1) / files.length) * 100));
     }
+    
     setMediaList(p => [...p, ...uploaded]);
     setUploadProgress(null);
+    showMsg(`Successfully processed ${uploaded.length} file(s) for ${uploadType === 'source' ? 'AI Source Notes' : 'Article Insertion'}!`);
   };
 
   const insertMedia = (url, type) => {
