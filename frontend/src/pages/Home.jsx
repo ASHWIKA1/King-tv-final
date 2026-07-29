@@ -1666,59 +1666,17 @@ const Home = () => {
     const customLabel = section.sectionLabel;
     const blockStyles = generateBlockStyles(config, viewMode, key === 'custom_builder');
 
-<<<<<<< HEAD
-    switch (key) {
-      case 'news_ticker':
-        return (
-          <React.Fragment key={section.id || key}>
-            {renderCommodityTicker()}
-            {renderNewsTicker(config, customLabel)}
-          </React.Fragment>
-        );
-      case 'hero':
-        return <React.Fragment key={section.id || key}>{renderHero(config, customLabel)}</React.Fragment>;
-      case 'quick_access':
-        return <React.Fragment key={section.id || key}>{renderQuickAccess()}</React.Fragment>;
-      case 'latest_news':
-        return <React.Fragment key={section.id || key}>{renderLatestNews(config, customLabel)}</React.Fragment>;
-      case 'video_news':
-        return <React.Fragment key={section.id || key}>{renderVideoNews(config, customLabel)}</React.Fragment>;
-      case 'web_stories':
-        return <React.Fragment key={section.id || key}>{renderWebStories(config, customLabel)}</React.Fragment>;
-      case 'crowd_reporter':
-      case 'crowd_reporter_highlight':
-        return <React.Fragment key={section.id || key}>{renderCrowdReporterHighlight()}</React.Fragment>;
-      case 'institution_news':
-      case 'business_case':
-        return <React.Fragment key={section.id || key}>{renderInstitutionNews(config, customLabel)}</React.Fragment>;
-      case 'trending_sidebar':
-        return <React.Fragment key={section.id || key}>{renderTrendingSidebar(config, customLabel)}</React.Fragment>;
-      case 'weather':
-        return <React.Fragment key={section.id || key}>{renderWeather(config, customLabel)}</React.Fragment>;
-      case 'live_tv':
-        return <React.Fragment key={section.id || key}>{renderLiveTv(config, customLabel)}</React.Fragment>;
-      case 'rss_news':
-      case 'rss_aggregator':
-        return <React.Fragment key={section.id || key}>{renderRssAggregatedNews()}</React.Fragment>;
-      case 'news_digest':
-        return <React.Fragment key={section.id || key}>{renderNewsDigest()}</React.Fragment>;
-      case 'newsletter':
-        return <React.Fragment key={section.id || key}>{renderNewsletterStrip()}</React.Fragment>;
-      default:
-        return <React.Fragment key={section.id || key}>{renderLatestNews(config, customLabel)}</React.Fragment>;
-    }
-=======
     const renderContent = () => {
       switch (key) {
         case 'news_ticker':
           return (
             <>
               {renderCommodityTicker()}
-              {renderNewsTicker()}
+              {renderNewsTicker(config, customLabel)}
             </>
           );
         case 'hero':
-          return renderHero();
+          return renderHero(config, customLabel);
         case 'quick_access':
           return renderQuickAccess();
         case 'latest_news':
@@ -1728,6 +1686,7 @@ const Home = () => {
         case 'web_stories':
           return renderWebStories(config, customLabel);
         case 'crowd_reporter':
+        case 'crowd_reporter_highlight':
           return renderCrowdReporterHighlight();
         case 'institution_news':
         case 'business_case':
@@ -1735,9 +1694,9 @@ const Home = () => {
         case 'trending_sidebar':
           return renderTrendingSidebar(config, customLabel);
         case 'weather':
-          return renderWeather();
+          return renderWeather(config, customLabel);
         case 'live_tv':
-          return renderLiveTv();
+          return renderLiveTv(config, customLabel);
         case 'rss_news':
         case 'rss_aggregator':
           return renderRssAggregatedNews();
@@ -1746,7 +1705,7 @@ const Home = () => {
         case 'newsletter':
           return renderNewsletterStrip();
         default:
-          return null;
+          return renderLatestNews(config, customLabel);
       }
     };
 
@@ -1758,7 +1717,7 @@ const Home = () => {
         {content}
       </div>
     );
->>>>>>> origin/test-2
+
   };
 
   const topKeys = ['website_navigation', 'news_ticker', 'hero', 'quick_access'];
