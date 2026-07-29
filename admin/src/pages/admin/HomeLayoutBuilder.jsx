@@ -1603,6 +1603,20 @@ const HomeLayoutBuilder = () => {
                 {isApplyingToDummy ? 'Applying…' : 'Go for Test in Dummy Panel'}
               </button>
               <button
+                onClick={() => window.open('/dummy-layout', '_blank')}
+                title="Open the Dummy Layout Page in a new tab."
+                style={{
+                  padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px',
+                  background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa',
+                  border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)'; }}
+              >
+                👁 View Dummy Page
+              </button>
+              <button
                 onClick={() => setShowDummyResetConfirm(true)}
                 title="Reset the Dummy Layout Page to empty placeholder state."
                 style={{

@@ -50,6 +50,7 @@ import BizDirectoryRegister from './pages/BizDirectoryRegister';
 import BizDirectoryDashboard from './pages/BizDirectoryDashboard';
 import MyRfqs from './pages/MyRfqs';
 import MyQuotes from './pages/MyQuotes';
+import DummyLayoutPage from './pages/DummyLayoutPage';
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
@@ -120,6 +121,9 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/dummy-layout" element={<DummyLayoutPage />} />
+          <Route path="/dummy" element={<DummyLayoutPage />} />
+          <Route path="/dummy-page" element={<DummyLayoutPage />} />
           <Route path="/kingstv" element={<Home />} />
           <Route path="/kingstv/" element={<Home />} />
           <Route path="/king-tv" element={<Home />} />
