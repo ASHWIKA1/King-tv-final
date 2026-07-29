@@ -172,8 +172,10 @@ public class DataInitializer {
         seedSitemapConfigs();
         seedHomeLayoutConfigs();
         updateChiefEditorPermissions();
+        seedBreakingNews();
+        seedFiftyArticlesPerCategory();
 
-        if (categoryRepository.count() > 0) {
+        if (categoryRepository.count() > 0 && articleRepository.count() >= 300) {
             System.out.println("Database already has data. Skipping database seeding to preserve dynamic data.");
             return;
         }
@@ -1029,6 +1031,126 @@ public class DataInitializer {
             }
         } catch (Exception e) {
             System.err.println("Could not seed breaking news: " + e.getMessage());
+        }
+    }
+
+    private void seedFiftyArticlesPerCategory() {
+        try {
+            List<Category> categories = categoryRepository.findAll();
+            if (categories.isEmpty()) return;
+
+            String[] sampleImages = {
+                "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800",
+                "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800",
+                "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800",
+                "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800",
+                "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800",
+                "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800",
+                "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800",
+                "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800",
+                "https://images.unsplash.com/photo-1508962914676-134849a727f0?w=800",
+                "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800",
+                "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800",
+                "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800"
+            };
+
+            Map<String, String[][]> categoryTemplates = new HashMap<>();
+
+            categoryTemplates.put("politics", new String[][]{
+                {"தமிழக சட்டமன்ற பட்ஜெட் விவாதம்: முக்கிய திட்டங்கள் அறிவிப்பு", "Tamil Nadu Assembly Budget Debate: Key Welfare Schemes Announced", "சட்டமன்றத்தில் இன்று பட்ஜெட் மீதான விவாதம் காரசாரமாக நடைபெற்றது. மக்கள் நலன் சார்ந்த பல முக்கிய புதிய அறிவிப்புகளை முதல்வர் வெளியிட்டார்."},
+                {"மத்திய அமைச்சரவை கூட்டம்: புதிய கொள்கை முடிவுகளுக்கு ஒப்புதல்", "Union Cabinet Meeting: Approval Granted for New Policy Reforms", "புது தில்லியில் நடைபெற்ற மத்திய அமைச்சரவைக் கூட்டத்தில் முக்கிய வளர்ச்சி திட்டங்கள் மற்றும் பொருளாதார கொள்கைகளுக்கு ஒப்புதல் வழங்கப்பட்டது."},
+                {"தேர்தல் ஆணையம் முக்கிய அறிவிப்பு: வாக்காளர் பட்டியல் சரிபார்ப்பு முகாம்", "Election Commission Notice: Voter List Verification Drive", "வாக்காளர் பட்டியலில் பெயர் சேர்த்தல் மற்றும் திருத்தங்களை செய்ய மாநிலம் முழுவதும் சிறப்பு முகாம்கள் நடத்த திட்டமிடப்பட்டுள்ளது."},
+                {"தமிழகத்தில் உள்கட்டமைப்பு மேம்பாடு: புதிய நெடுஞ்சாலை திட்டங்களுக்கு அனுமதி", "TN Infrastructure Expansion: Approval for New Highway Projects", "மாவட்டங்களுக்கு இடையேயான போக்குவரத்து தொடர்பை வலுப்படுத்த புதிய 4 வழி நெடுஞ்சாலை பணிகளை துவங்க அனுமதி வழங்கப்பட்டுள்ளது."},
+                {"உள்ளாட்சி அமைப்புகளுக்கு கூடுதல் நிதி: அரசு அரசாணை வெளியீடு", "Additional Grants for Local Bodies: Government Order Released", "கிராமப்புற மற்றும் நகர்ப்புற உள்ளாட்சி அமைப்புகளின் குடிநீர் மற்றும் சுகாதார மேம்பாட்டிற்காக சிறப்பு நிதி ஒதுக்கப்பட்டுள்ளது."}
+            });
+
+            categoryTemplates.put("business", new String[][]{
+                {"பங்குச்சந்தை புதிய உச்சம்: சென்செக்ஸ் 84,000 புள்ளிகளை தொட்டது", "Stock Market Milestone: Sensex Reaches 84,000 Points", "உள்நாட்டு மற்றும் சர்வதேச சாதகமான பொருளாதார காரணிகளால் இந்திய பங்குச்சந்தைகள் வரலாறு காணாத உயர்வை பதிவு செய்துள்ளன."},
+                {"தங்கம் விலை மாற்றம்: சவரனுக்கு அதிரடி விலை குறைவு", "Gold Rate Update: Significant Price Reduction Per Sovereign", "சர்வதேச சந்தையில் தங்கம் விலை குறைந்ததை அடுத்து தமிழகத்தில் ஆபரண தங்கம் விலை சவரனுக்கு கணிசமாக குறைந்துள்ளது."},
+                {"ஸ்டார்ட்அப் நிறுவனங்களுக்கு புதிய முதலீட்டு நிதி: அரசு திட்டம்", "New Venture Fund Launched to Support Growing Startups", "இளம் தொழில் முனைவோரை ஊக்குவிக்கும் வகையில் ரூ. 500 கோடி மதிப்பிலான புதிய ஸ்டார்ட்அப் நிதி திட்டம் தொடங்கப்பட்டுள்ளது."},
+                {"இந்திய ஏற்றுமதி 12% உயர்வு: வணிக அமைச்சகம் அறிக்கை", "Indian Exports Surge 12%: Commerce Ministry Report", "நடப்பு நிதியாண்டின் முதல் காலாண்டில் மின்னணு பொருள்கள் மற்றும் ஜவுளி ஏற்றுமதி எதிர்பார்த்ததை விட பெருமளவு அதிகரித்துள்ளது."},
+                {"வங்கிகளின் வட்டி விகிதங்கள் சீரமைப்பு: முதலீட்டாளர்களுக்கு நல்ல செய்தி", "Bank Interest Rates Revised: Positive News for Fixed Deposit Holders", "வாடிக்கையாளர்களின் வைப்புத்தொகைகளுக்கான வட்டி விகிதங்களை முன்னணி பொதுத்துறை மற்றும் தனியார் வங்கிகள் உயர்த்தியுள்ளன."}
+            });
+
+            categoryTemplates.put("sports", new String[][]{
+                {"ஐபிஎல் 2026: சிஎஸ்கே அணியின் தீவிர பயிற்சி ஆட்டங்கள் தொடக்கம்", "IPL 2026: CSK Commences Intensive Training Camp", "சென்னை சேப்பாக்கம் மைதானத்தில் சிஎஸ்கே அணி வீரர்கள் தீவிர பயிற்சியில் ஈடுபட்டு வருகின்றனர். ரசிகர்கள் உற்சாகம்."},
+                {"இந்திய கிரிக்கெட் அணி வரலாற்று வெற்றி: 3-0 என தொடரை கைப்பற்றியது", "Indian Cricket Team Historic Series Win: Clean Sweep 3-0", "ஆஸ்திரேலியாவுக்கு எதிரான ஒருநாள் தொடரை இந்திய அணி முழுமையாக வென்று புதிய சாதனை படைத்துள்ளது."},
+                {"உலக செஸ் சாம்பியன்ஷிப்: இந்திய இளம் வீரர் அபார வெற்றி", "World Chess Championship: Indian Prodigy Claims Victory", "சர்வதேச செஸ் தொடரில் முன்னணி வீரர்களை வீழ்த்தி இந்திய இளம் செஸ் கிராண்ட்மாஸ்டர் முதலிடம் பிடித்துள்ளார்."},
+                {"ஆசிய தடகளப் போட்டி: தமிழக வீராங்கனை தங்கப் பதக்கம் வென்றார்", "Asian Athletics Championships: TN Athlete Secures Gold Medal", "மகளிர் 400 மீட்டர் ஓட்டப்பந்தயத்தில் தமிழகத்தைச் சேர்ந்த வீராங்கனை தங்கப் பதக்கம் வென்று இந்தியாவிற்கு பெருமை சேர்த்துள்ளார்."},
+                {"ஒலிம்பிக் தகுதிச் சுற்று: இந்திய ஆடவர் ஹாக்கி அணி அபார செயல்பாடு", "Olympic Qualifiers: Indian Men's Hockey Team Dominates", "தகுதிச் சுற்று ஆட்டத்தில் இந்திய ஹாக்கி அணி 5-1 என்ற கோல் கணக்கில் அபார வெற்றி பெற்று அடுத்த சுற்றுக்கு முன்னேறியுள்ளது."}
+            });
+
+            categoryTemplates.put("cinema", new String[][]{
+                {"தளபதி விஜய்யின் 69-வது படம்: பிரம்மாண்ட இசை வெளியீட்டு விழா", "Thalapathy Vijay's 69th Movie: Grand Audio Launch Scheduled", "திரையுலகில் பெரும் எதிர்பார்ப்பை ஏற்படுத்தியுள்ள தளபதி விஜய்யின் புதிய திரைப்பட இசை வெளியீட்டு விழா மலேசியாவில் நடைபெறுகிறது."},
+                {"சர்வதேச திரைப்பட விழா: சிறந்த தமிழ் படத்திற்கு விருது", "International Film Festival: Prestigious Award for Tamil Film", "பிரான்ஸ் நாட்டில் நடைபெற்ற சர்வதேச திரைப்பட விழாவில் தமிழ் திரைப்படம் நடுவர்களின் சிறப்பு விருதை வென்றுள்ளது."},
+                {"சூப்பர் ஸ்டார் ரஜினிகாந்தின் புதிய படப்பிடிப்பு சென்னையில் தொடக்கம்", "Superstar Rajinikanth Begins Shooting for New Action Entertainer", "சென்னையில் அமைக்கப்பட்டுள்ள பிரம்மாண்ட செட்டில் சூப்பர் ஸ்டார் ரஜினிகாந்தின் புதிய படத்தின் முதல்கட்ட படப்பிடிப்பு தொடங்கியது."},
+                {"திரையரங்குகளில் வசூல் சாதனை: பாக்ஸ் ஆபீஸில் ரூ. 200 கோடி கடந்தது", "Box Office Triumph: New Movie Crosses Rs 200 Crore Mark Globally", "ரசிகர்களின் அமோக வரவேற்பால் கடந்த வாரம் வெளியான புதிய திரைப்படம் உலகளவில் ரூ. 200 கோடி வசூலை எட்டியுள்ளது."},
+                {"இசைஞானி இளையராஜாவின் நேரடி இசைக்கச்சேரி கோவை நகரில்", "Maestro Ilaiyaraaja Live Symphony Concert Announced in Coimbatore", "கோயம்புத்தூரில் நடைபெறவுள்ள இசைஞானி இளையராஜாவின் பிரம்மாண்ட நேரடி இசைக்கச்சேரிக்கு நுழைவுச்சீட்டுகள் விறுவிறுப்பாக விற்பனையாகின்றன."}
+            });
+
+            categoryTemplates.put("tech", new String[][]{
+                {"செயற்கை நுண்ணறிவு புரட்சி: புதிய AI மாடலை அறிமுகப்படுத்தியது கூகுள்", "AI Revolution: Google Unveils Next-Gen Multimodal Model", "தொழில்நுட்ப உலகில் புதிய மைல்கல்லாக அதிவேகமாக செயல்படும் புதிய செயற்கை நுண்ணறிவு தொழில்நுட்பம் அறிமுகப்படுத்தப்பட்டுள்ளது."},
+                {"இந்தியாவில் 6G தொழில்நுட்ப ஆராய்ச்சி: புதிய மையத்தை திறந்தது அரசு", "6G Telecom Research Hub Inaugurated in India", "அடுத்த தலைமுறை தொலைத்தொடர்பு சேவையான 6G ஆராய்ச்சிக்காக சென்னை ஐஐடியில் சிறப்பு தொழில்நுட்ப மையம் அமைக்கப்பட்டுள்ளது."},
+                {"ஸ்மார்ட்போன் சந்தையில் புதிய அறிமுகம்: 200MP கேமரா சிறப்பம்சம்", "New Smartphone Launch Features 200MP Ultra Camera", "அதிநவீன செயலி மற்றும் 200 மெகாபிக்சல் கேமரா வசதியுடன் கூடிய புதிய ஸ்மார்ட்போன் சந்தையில் விற்பனைக்கு வந்துள்ளது."},
+                {"சைய்பர் பாதுகாப்பு விழிப்புணர்வு: பயனர்களுக்கு புதிய வழிகாட்டுதல்கள்", "Cybersecurity Awareness: Essential Guidelines Issued for Internet Users", "இணையவழி நிதி மோசடிகளை தடுக்க பொதுமக்கள் பின்பற்ற வேண்டிய முக்கிய பாதுகாப்பு வழிமுறைகளை இந்திய சைய்பர் பிரிவு வெளியிட்டுள்ளது."},
+                {"இந்திய விண்வெளி ஆராய்ச்சி மையம் சாதனை: புதிய செயற்கைக்கோள் ஏவப்பட்டது", "ISRO Satellite Launch Success: Advanced Earth Observation Satellite Switched On", "ஸ்ரீஹரிகோட்டா விண்வெளி தளத்தில் இருந்து வெற்றிகரமாக செலுத்தப்பட்ட புதிய புவி கண்காணிப்பு செயற்கைக்கோள் சுற்றுப்பாதையில் நிலைநிறுத்தப்பட்டது."}
+            });
+
+            String[][] defaultTemplate = new String[][]{
+                {"முக்கிய செய்திகள் மற்றும் புதுப்பிப்புகள்: புதிய அறிவிப்பு", "Major News Updates: Key Announcements Released Today", "பொதுமக்கள் நலன் மற்றும் உள்கட்டமைப்பு சார்ந்த புதிய அறிவிப்புகள் மற்றும் தகவல்கள் விரிவாக வெளியிடப்பட்டுள்ளன."},
+                {"வளர்ச்சி திட்டங்கள் மற்றும் புதிய முன்முயற்சிகள்", "Developmental Projects and Strategic Initiatives Launched", "மாவட்டங்கள் தோறும் மேற்கொள்ளப்பட்டு வரும் உள்கட்டமைப்பு பணிகளின் தற்போதைய நிலவரம் குறித்து ஆய்வுக் கூட்டம் நடைபெற்றது."},
+                {"சிறப்பு நிகழ்வுகள் மற்றும் செயல்பாடுகள் நேரடி பதிவு", "Special Coverage on Live Events and Civic Activities", "நகர்ப்புற மேம்பாடு மற்றும் பொது சுகாதார சேவைகளை விரைவுபடுத்த சிறப்பு குழுக்கள் அமைக்கப்பட்டு நடவடிக்கைகள் தீவிரப்படுத்தப்பட்டுள்ளன."}
+            };
+
+            int totalSeeded = 0;
+            int imgIndex = 0;
+
+            for (Category cat : categories) {
+                long existingCount = articleRepository.countByCategoryId(cat.getId());
+                int targetCount = 50;
+                int toAdd = (int) (targetCount - existingCount);
+                if (toAdd <= 0) continue;
+
+                String catSlug = cat.getSlug() != null ? cat.getSlug().toLowerCase() : "";
+                String[][] templates = categoryTemplates.getOrDefault(catSlug, defaultTemplate);
+
+                for (int i = 1; i <= toAdd; i++) {
+                    String[] template = templates[(i - 1) % templates.length];
+                    Article article = new Article();
+                    article.setCategoryId(cat.getId());
+                    
+                    String seqTag = " #" + (existingCount + i);
+                    article.setTitleTa(template[0] + seqTag);
+                    article.setTitleEn(template[1] + seqTag);
+                    
+                    article.setContentTa("<p>" + template[2] + "</p><p>இந்த செய்தி குறித்து மேலும் விவரங்கள் மற்றும் கருத்துக்களை Kings 24x7 செய்தித் தளத்தில் தொடர்ந்து பெறலாம்.</p>");
+                    article.setContentEn("<p>" + template[1] + "</p><p>" + template[2] + "</p><p>Stay tuned to Kings 24x7 for continuous updates on this developing story.</p>");
+                    
+                    article.setShortDescTa(template[2]);
+                    article.setShortDescEn(template[1]);
+                    
+                    article.setImageUrl(sampleImages[imgIndex % sampleImages.length]);
+                    imgIndex++;
+
+                    article.setViewsCount(100 + (i * 23) % 1500);
+                    article.setStatus("published");
+                    article.setPublishedAt(LocalDateTime.now().minusHours(i * 3));
+                    article.setSlug(catSlug + "-news-item-" + (existingCount + i) + "-" + (System.currentTimeMillis() % 100000) + i);
+                    article.setMetaTitle(template[1]);
+                    article.setMetaDescription(template[2]);
+                    article.setMetaKeywords(catSlug + ", news, tamil, india, updates");
+                    article.setFocusKeywords(catSlug + " news");
+                    article.setAuthorName("Kings TV Desk");
+
+                    articleRepository.save(article);
+                    totalSeeded++;
+                }
+            }
+            if (totalSeeded > 0) {
+                System.out.println("Successfully seeded " + totalSeeded + " dynamic articles across database categories.");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to seed fifty articles per category: " + e.getMessage());
         }
     }
 }

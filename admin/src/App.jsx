@@ -41,6 +41,7 @@ import CommunityModules from './pages/admin/CommunityModules';
 import LanguageFontSettings from './pages/admin/LanguageFontSettings';
 import EmployersManagement from './pages/admin/EmployersManagement';
 import CandidatesManagement from './pages/admin/CandidatesManagement';
+import DummyLayoutPage from './pages/DummyLayoutPage';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -108,6 +109,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<Login />} />
+          <Route path="/dummy-layout" element={<DummyLayoutPage />} />
+          <Route path="/admin/dummy-layout" element={<DummyLayoutPage />} />
           
           <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={

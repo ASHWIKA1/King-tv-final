@@ -6,7 +6,6 @@ import { AuthContext } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
-import HeaderWidgetSlider from './HeaderWidgetSlider';
 
 const subcatEnTranslations = {
   'மாநிலம்': 'State',
@@ -113,9 +112,52 @@ const Header = () => {
       })
       .catch(err => console.warn("Failed to fetch default temp", err));
   }, []);
+  const [breakingNewsList, setBreakingNewsList] = useState([]);
+
+  useEffect(() => {
+    // 1. Try public web breaking news endpoint
+    fetchApi('/breaking-news/getAllWeb?size=15')
+      .then(res => {
+        const data = res?.content || res?.data || (Array.isArray(res) ? res : []);
+        if (data && data.length > 0) {
+          setBreakingNewsList(data);
+        } else {
+          // 2. Try generic breaking news list
+          fetchApi('/breaking-news?size=15')
+            .then(res2 => {
+              const data2 = res2?.content || res2?.data || (Array.isArray(res2) ? res2 : []);
+              if (data2 && data2.length > 0) {
+                setBreakingNewsList(data2);
+              } else {
+                // 3. Try breaking articles
+                fetchApi('/articles?isBreaking=true&size=10')
+                  .then(res3 => {
+                    const data3 = res3?.content || res3?.data || (Array.isArray(res3) ? res3 : []);
+                    if (data3 && data3.length > 0) setBreakingNewsList(data3);
+                  })
+                  .catch(() => {});
+              }
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(err => console.warn("Failed to fetch breaking news for header", err));
+  }, []);
+
+  const fallbackBreakingNews = lang === 'en' ? [
+    'Tamil Nadu Budget Session 2026: Key Major Announcements Released',
+    'New Integrated Bus Terminus to be set up in Koyambedu, Chennai',
+    'Gold Price Drops by ₹400 per sovereign today across Tamil Nadu',
+    'Free Ration Essentials Distribution Announced for all Smart Card Holders'
+  ] : [
+    'தமிழக பட்ஜெட் கூட்டத்தொடர் 2026: முக்கிய அறிவிப்புகள் வெளியீடு',
+    'சென்னை கோயம்பேட்டில் புதிய பேருந்து நிலையம் அமைப்பு',
+    'தங்கம் விலை இன்று சவரனுக்கு ₹400 குறைந்தது',
+    'தமிழகத்தில் அனைத்து ரேஷன் கடைகளிலும் இலவச பொருட்கள் விநியோகம் அறிவிப்பு'
+  ];
+
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [breakingNewsList, setBreakingNewsList] = useState([]);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [siteSettings, setSiteSettings] = useState({
@@ -126,6 +168,52 @@ const Header = () => {
   const [navCategories, setNavCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showHeaderSubcatDropdown, setShowHeaderSubcatDropdown] = useState(false);
+
+  useEffect(() => {
+    const loadDynamicNav = async () => {
+      try {
+        const localDummy = localStorage.getItem('dummy_layout_config');
+        if (localDummy) {
+          const parsed = JSON.parse(localDummy);
+          const navSection = Array.isArray(parsed) ? parsed.find(s => s.sectionKey === 'website_navigation') : null;
+          if (navSection && navSection.configJson) {
+            const config = typeof navSection.configJson === 'string' ? JSON.parse(navSection.configJson) : navSection.configJson;
+            if (config && config.navItems && config.navItems.length > 0) {
+              setMenuItems(config.navItems.filter(i => i.isActive !== false));
+              return;
+            }
+          }
+        }
+
+        const res = await fetchApi('/public/home-layout');
+        const sections = res?.data || (Array.isArray(res) ? res : []);
+        const navSec = sections.find(s => s.sectionKey === 'website_navigation');
+        if (navSec && navSec.configJson) {
+          const cfg = typeof navSec.configJson === 'string' ? JSON.parse(navSec.configJson) : navSec.configJson;
+          if (cfg && cfg.navItems && cfg.navItems.length > 0) {
+            setMenuItems(cfg.navItems.filter(i => i.isActive !== false));
+            return;
+          }
+        }
+
+        const menusRes = await fetchApi('/public/menus');
+        if (Array.isArray(menusRes) && menusRes.length > 0) {
+          setMenuItems(menusRes);
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic navigation bar menu:", err);
+      }
+    };
+    loadDynamicNav();
+
+    const handleNavUpdate = () => loadDynamicNav();
+    window.addEventListener('storage', handleNavUpdate);
+    window.addEventListener('layoutUpdated', handleNavUpdate);
+    return () => {
+      window.removeEventListener('storage', handleNavUpdate);
+      window.removeEventListener('layoutUpdated', handleNavUpdate);
+    };
+  }, []);
   const [districtsList, setDistrictsList] = useState([]);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [dropdownLeft, setDropdownLeft] = useState(0);
@@ -225,23 +313,38 @@ const Header = () => {
 
   const getDynamicNavItems = () => {
     if (menuItems && menuItems.length > 0) {
-      return menuItems.filter(Boolean).map(item => ({
-        id: item.id,
-        path: item.linkUrl,
-        label: lang === 'en' ? item.titleEn : item.titleTa,
-        subcategories: (item.subcategories || []).filter(Boolean).map(sub => ({
-          id: sub.id,
-          path: sub.linkUrl,
-          name: sub.titleEn,
-          nameTa: sub.titleTa,
-          subcategories: (sub.subcategories || []).filter(Boolean).map(subsub => ({
-            id: subsub.id,
-            path: subsub.linkUrl,
-            name: subsub.titleEn,
-            nameTa: subsub.titleTa
+      return menuItems.filter(Boolean).map(item => {
+        let path = item.linkUrl || item.path;
+        if (!path || path === '#' || path === 'undefined') {
+          if (item.slug === 'regional') path = '/directory';
+          else if (item.slug === 'videos' || item.slug === 'video') path = '/videos';
+          else if (item.slug === 'web-stories') path = '/web-stories';
+          else if (item.slug) path = `/category/${item.slug}`;
+          else path = '/';
+        }
+
+        const label = lang === 'en'
+          ? (item.titleEn || item.label || item.name || item.titleTa)
+          : (item.titleTa || item.nameTa || item.label || item.titleEn);
+
+        return {
+          id: item.id || item.slug,
+          path,
+          label,
+          subcategories: (item.subcategories || []).filter(Boolean).map(sub => ({
+            id: sub.id || sub.slug,
+            path: sub.linkUrl || sub.path || `/category/${sub.slug}`,
+            name: sub.titleEn || sub.name || sub.titleTa,
+            nameTa: sub.titleTa || sub.nameTa || sub.titleEn,
+            subcategories: (sub.subcategories || []).filter(Boolean).map(subsub => ({
+              id: subsub.id || subsub.slug,
+              path: subsub.linkUrl || subsub.path || `/category/${subsub.slug}`,
+              name: subsub.titleEn || subsub.name || subsub.titleTa,
+              nameTa: subsub.titleTa || subsub.nameTa || subsub.titleEn
+            }))
           }))
-        }))
-      }));
+        };
+      });
     }
 
     let dynamicItems = [];
@@ -521,13 +624,6 @@ const Header = () => {
         setAllVideos([]);
       });
 
-    fetchApi('/breaking-news/getAllWeb?size=10')
-      .then(data => {
-        const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-        if (list.length > 0) setBreakingNewsList(list);
-      })
-      .catch(err => console.warn("Header failed to load breaking news", err));
-
     fetchApi('/directory')
       .then(data => {
         if (Array.isArray(data)) {
@@ -684,16 +780,38 @@ const Header = () => {
 
   const renderLogo = (size = 'normal', forceDark = false) => {
     const isDark = forceDark || theme === 'dark';
-    const logoUrl = isDark
-      ? (siteSettings['site.logo_dark_url'] || siteSettings['site.logo_url'] || "assets/images/logo-banner-dark.png")
-      : (siteSettings['site.logo_url'] || "assets/images/logo-banner-light.png");
+    let rawLogoUrl = isDark ? "/assets/images/logo-banner-dark.png" : "/assets/images/logo-banner-light.png";
+
+    const customDark = siteSettings['site.logo_dark_url'];
+    const customLight = siteSettings['site.logo_url'];
+    const customUrl = isDark ? (customDark || customLight) : customLight;
+
+    if (customUrl && !customUrl.includes('logo-icon')) {
+      rawLogoUrl = customUrl;
+    }
+
+    const logoUrl = (rawLogoUrl && !rawLogoUrl.startsWith('http') && !rawLogoUrl.startsWith('/') && !rawLogoUrl.startsWith('data:'))
+      ? '/' + rawLogoUrl
+      : rawLogoUrl;
+
     return (
-      <Link to="/" className="logo-link" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+      <Link to="/" className="logo-link" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
         <img
           src={logoUrl}
           alt={siteSettings['site.name'] || "KING 24x7"}
           className="header-logo-img"
-          style={{ height: size === 'small' ? '30px' : '55px', width: 'auto', objectFit: 'contain', display: 'block' }}
+          style={{
+            height: size === 'small' ? '42px' : '56px',
+            width: 'auto',
+            maxHeight: size === 'small' ? '46px' : '64px',
+            maxWidth: '100%',
+            objectFit: 'contain',
+            display: 'block'
+          }}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = isDark ? "/assets/images/logo-banner-dark.png" : "/assets/images/logo-banner-light.png";
+          }}
         />
       </Link>
     );
@@ -1340,71 +1458,8 @@ const Header = () => {
   };
 
   return (
-    <header className="header-mobile-app-style" style={{ position: 'relative', background: theme === 'dark' ? '#000000' : '#ffffff', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', width: '100%' }}>
-      {/* 1. Blue Top Bar */}
-      <div style={{ background: '#0040B8', color: '#ffffff', fontSize: '12px', padding: '6px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span><i className="far fa-calendar-alt"></i> {new Date().toLocaleDateString(lang === 'ta' ? 'ta-IN' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-            <span><i className="far fa-clock"></i> {new Date().toLocaleTimeString(lang === 'ta' ? 'ta-IN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <i className="fas fa-map-marker-alt"></i> {renderDistrictSelector(true)}
-            </span>
-            <span><i className="fas fa-thermometer-half"></i> {weatherTemp}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {renderSocials()}
-            <button onClick={toggleTheme} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-              <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'}></i> {theme === 'light' ? 'இருள்' : 'ஒளி'}
-            </button>
-            <button onClick={() => setLang(lang === 'en' ? 'ta' : 'en')} style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-              {lang === 'en' ? 'தமிழ்' : 'English'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Main Logo & Live Market Ticker Header Area */}
-      <div style={{ background: theme === 'dark' ? '#0f172a' : '#ffffff', padding: '14px 0', borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #E2E8F0' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {renderLogo('large', false)}
-            <div>
-              <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--primary, #0057FF)', letterSpacing: '-0.5px', lineHeight: '1.1' }}>
-                KING <span style={{ color: '#EF4444' }}>24x7</span>
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)', fontWeight: 600, marginTop: '2px' }}>
-                {lang === 'en' ? 'Truth. Understanding. In Tamil.' : 'உண்மை. புரிதல். தமிழில்.'}
-              </div>
-            </div>
-          </div>
-          <HeaderWidgetSlider />
-        </div>
-      </div>
-
-      {/* 3. Breaking News Ticker Banner */}
-      <div style={{ background: '#EF4444', color: '#ffffff', padding: '6px 0', fontSize: '13px', fontWeight: '700', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-          <span style={{ background: '#000000', color: '#FACC15', padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.5px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <i className="fas fa-bolt" style={{ color: '#FACC15' }}></i> {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்திகள்'}
-          </span>
-          <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0 }}>
-              {breakingNewsList && breakingNewsList.length > 0 ? (
-                breakingNewsList.map((item, idx) => (
-                  <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <span>•</span> {(lang === 'en' ? item.titleEn || item.title : item.titleTa || item.title)}
-                  </span>
-                ))
-              ) : (
-                <span>• தமிழக பட்ஜெட் கூட்டத்தொடர் 2026: முக்கிய அறிவிப்புகள் வெளியீடு • சென்னை கோயம்பேட்டில் புதிய பேருந்து நிலையம் அமைப்பு • தங்கம் விலை உயர்வு...</span>
-              )}
-            </marquee>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Minimal Navigation Bar with 3-bar Hamburger Menu */}
+    <header className="header-mobile-app-style" style={{ position: 'relative', background: '#000000', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', width: '100%' }}>
+      {/* Minimal top bar */}
       {isSearchOpen ? (
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px', background: theme === 'dark' ? '#1E293B' : '#1e1e1e', padding: '6px 12px', borderRadius: '24px' }}>
@@ -1445,17 +1500,17 @@ const Header = () => {
           </button>
         </div>
       ) : (
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: theme === 'dark' ? '#0f172a' : '#1e293b' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
-              onClick={() => setDrawerOpen(prev => !prev)}
+              onClick={() => setDrawerOpen(true)}
               style={{
                 background: 'transparent',
                 border: 'none',
-                fontSize: '22px',
+                fontSize: '20px',
                 color: '#ffffff',
                 cursor: 'pointer',
-                paddingRight: '8px',
+                paddingRight: '6px',
                 display: 'flex',
                 alignItems: 'center'
               }}
@@ -1468,8 +1523,8 @@ const Header = () => {
               {renderDistrictSelector(true)}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-            {renderLiveTvBtn()}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {renderHeaderTopSlider()}
             <button
               onClick={() => setIsSearchOpen(true)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px' }}
@@ -1484,12 +1539,32 @@ const Header = () => {
               aria-label="Toggle Language"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+                {/* Top Left Circle */}
                 <circle cx="9.5" cy="9.5" r="6.5" fill="#ffffff" stroke="#ffffff" strokeWidth="1" />
                 <text x="9.5" y="12.5" fontSize="9.5" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fill="#000000" textAnchor="middle">A</text>
+
+                {/* Bottom Right Circle */}
                 <circle cx="15.5" cy="15.5" r="6.5" fill="#000000" stroke="#ffffff" strokeWidth="1" />
-                <text x="15.5" y="18.5" fontSize="9" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fill="#ffffff" textAnchor="middle">அ</text>
+                <text x="15.5" y="18.5" fontSize="8.5" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fill="#ffffff" textAnchor="middle">அ</text>
+
+                {/* Bottom Arrow */}
+                <path d="M 8 14.5 C 8 17.5, 10 18.5, 12 17.5" stroke="#ffffff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                <path d="M 10.5 18.5 L 12.5 17.5 L 12 15.5" stroke="#ffffff" strokeWidth="1.2" fill="none" strokeLinejoin="round" />
+
+                {/* Top Arrow */}
+                <path d="M 16 9.5 C 16 6.5, 14 5.5, 12 6.5" stroke="#ffffff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                <path d="M 13.5 5.5 L 11.5 6.5 L 12 8.5" stroke="#ffffff" strokeWidth="1.2" fill="none" strokeLinejoin="round" />
               </svg>
             </button>
+            <button
+              onClick={toggleTheme}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+              aria-label="Toggle Theme"
+            >
+              <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'} style={{ color: '#ffffff' }}></i>
+            </button>
+            {renderLiveTvBtn()}
+            {renderProfileIcon()}
           </div>
         </div>
       )}
@@ -1629,6 +1704,68 @@ const Header = () => {
         </div>
       )}
 
+      {/* Breaking News Ticker Banner strictly below the black top header bar and above the main nav bar */}
+      <div 
+        className="header-breaking-news-banner"
+        style={{ 
+          background: '#DC2626', 
+          color: '#ffffff', 
+          padding: '6px 0', 
+          fontSize: '13px', 
+          fontWeight: '700', 
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
+          width: '100%',
+          overflow: 'hidden'
+        }}
+      >
+        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+          <span style={{ 
+            background: '#000000', 
+            color: '#FACC15', 
+            padding: '3px 10px', 
+            borderRadius: '4px', 
+            fontSize: '11px', 
+            fontWeight: '900', 
+            letterSpacing: '0.5px', 
+            flexShrink: 0, 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px' 
+          }}>
+            <i className="fas fa-bolt" style={{ color: '#FACC15' }}></i> {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்திகள்'}
+          </span>
+          <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0, color: '#ffffff' }}>
+              {breakingNewsList && breakingNewsList.length > 0 ? (
+                breakingNewsList.map((item, idx) => {
+                  const title = lang === 'en' ? (item.titleEn || item.title || item.titleTa) : (item.titleTa || item.title || item.titleEn);
+                  const articleId = item.id || item.article_id;
+                  return (
+                    <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: '#FACC15', fontWeight: '900' }}>•</span>
+                      {articleId ? (
+                        <Link to={`/article/${articleId}`} style={{ color: '#ffffff', textDecoration: 'none' }}>
+                          {title}
+                        </Link>
+                      ) : (
+                        <span>{title}</span>
+                      )}
+                    </span>
+                  );
+                })
+              ) : (
+                fallbackBreakingNews.map((text, idx) => (
+                  <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#FACC15', fontWeight: '900' }}>•</span>
+                    <span>{text}</span>
+                  </span>
+                ))
+              )}
+            </marquee>
+          </div>
+        </div>
+      </div>
+
       {/* Horizontal scrollable category navigation bar in single line */}
       <style>{`
         @media (min-width: 769px) {
@@ -1642,17 +1779,20 @@ const Header = () => {
         }
         @media (max-width: 768px) {
           .logo-district-container {
-            flex-direction: column !important;
-            align-items: flex-start !important;
+            flex-direction: row !important;
+            align-items: center !important;
             justify-content: center !important;
-            gap: 2px !important;
+            gap: 8px !important;
           }
           .header-logo-img {
-            height: 30px !important;
+            height: 38px !important;
+            max-height: 40px !important;
+            width: auto !important;
+            object-fit: contain !important;
           }
           .header-district-btn {
             font-size: 11px !important;
-            padding: 2px 0px !important;
+            padding: 2px 4px !important;
           }
         }
         @media (min-width: 769px) {
@@ -1662,7 +1802,10 @@ const Header = () => {
             gap: 12px !important;
           }
           .header-logo-img {
-            height: 40px !important;
+            height: 44px !important;
+            max-height: 48px !important;
+            width: auto !important;
+            object-fit: contain !important;
           }
           .header-district-btn {
             font-size: 13px !important;

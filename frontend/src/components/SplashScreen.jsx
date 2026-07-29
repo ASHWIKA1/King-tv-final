@@ -54,7 +54,7 @@ const SplashScreen = ({ onComplete }) => {
         `}} />
 
         <img 
-          src="assets/images/logo-banner-dark.png" 
+          src="/assets/images/logo-banner-dark.png" 
           alt="KING Logo" 
           style={{ 
             width: '160px', 

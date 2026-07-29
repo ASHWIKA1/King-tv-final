@@ -8,4 +8,8 @@ import java.util.List;
 @Repository
 public interface HomeLayoutHistoryRepository extends JpaRepository<HomeLayoutHistory, Long> {
     List<HomeLayoutHistory> findTop10ByLayoutTypeOrderByCreatedAtDesc(String layoutType);
+    java.util.Optional<HomeLayoutHistory> findFirstByLayoutTypeOrderByCreatedAtDesc(String layoutType);
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteByLayoutType(String layoutType);
 }

@@ -49,8 +49,9 @@ public class PublicConfigController {
         
         // Define default settings
         response.put("site.name", "KING 24x7");
-        response.put("site.logo_url", "/assets/icons/logo-icon-light.png");
-        response.put("site.logo_footer", "/assets/icons/logo-icon-light.png");
+        response.put("site.logo_url", "/assets/images/logo-banner-light.png");
+        response.put("site.logo_dark_url", "/assets/images/logo-banner-dark.png");
+        response.put("site.logo_footer", "/assets/images/logo-banner-dark.png");
         response.put("site.tagline", "Truth. Responsibility. In Tamil.");
         response.put("site.tagline_ta", "உண்மை. பொறுப்புடன். தமிழ்.");
         response.put("site.description", "KING 24x7 is a leading Tamil news portal. We deliver instant, reliable news from Tamil Nadu, India, and across the globe.");

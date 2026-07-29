@@ -1,5 +1,4 @@
 RewriteEngine On
-RewriteBase /
 
 # Force No-Cache for HTML files so newly deployed React bundles are immediately fetched by live browsers
 <IfModule mod_headers.c>

@@ -120,6 +120,10 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/kingstv" element={<Home />} />
+          <Route path="/kingstv/" element={<Home />} />
+          <Route path="/king-tv" element={<Home />} />
+          <Route path="/king-tv/" element={<Home />} />
           <Route path="/index.html" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/login.html" element={<Navigate to="/login" replace />} />
@@ -198,10 +202,19 @@ function AppContent() {
   );
 }
 
+function getBasename() {
+  const p = window.location.pathname;
+  if (p.startsWith('/kingstv/')) return '/kingstv';
+  if (p === '/kingstv') return '/kingstv';
+  if (p.startsWith('/king-tv/')) return '/king-tv';
+  if (p === '/king-tv') return '/king-tv';
+  return '/';
+}
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={getBasename()}>
         <AppContent />
       </Router>
     </AuthProvider>

@@ -75,6 +75,7 @@ public class SecurityConfig {
                     "/t/{shortCode}",
                     "/api/v1/deals", "/api/v1/deals/**",
                     "/api/v1/rfq", "/api/v1/rfq/**",
+                    "/api/v1/public/**", "/api/v1/admin/layout/public/**",
                     "/api/v1/nfc/stats", "/api/v1/nfc/taps", "/api/v1/nfc/request",
                     "/api/v1/rss-aggregator", "/api/v1/rss-aggregator/**",
                     "/api/v1/analytics/trending-keywords",

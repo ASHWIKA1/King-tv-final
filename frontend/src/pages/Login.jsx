@@ -102,44 +102,62 @@ const Login = () => {
     };
   }, []);
 
-  const handleSendPhoneOtp = () => {
+  const sendBackendSmsOtp = async (cleanPhone) => {
+    try {
+      const res = await authService.sendSmsOtp(cleanPhone);
+      setPhoneOtpSent(true);
+      setPhoneOtpCountdown(30);
+      if (res.sandbox && res.otpCode) {
+        setSandboxOtp(res.otpCode);
+        setPhoneOtp(res.otpCode);
+        triggerToast(lang === 'en' ? `OTP Sent (Sandbox Code: ${res.otpCode})` : `OTP அனுப்பப்பட்டது (Sandbox Code: ${res.otpCode})`);
+      } else {
+        triggerToast(lang === 'en' ? 'SMS OTP sent successfully!' : 'SMS OTP வெற்றிகரமாக அனுப்பப்பட்டது!');
+      }
+    } catch (backendErr) {
+      console.error("Backend SMS send failed:", backendErr);
+      triggerToast(`SMS failed: ${backendErr.message}`, '#EF4444');
+    }
+  };
+
+  const handleSendPhoneOtp = async () => {
     if (!phoneNumber.trim()) {
       triggerToast(lang === 'en' ? 'Please enter a valid phone number' : 'தயவுசெய்து செல்லுபடியாகும் தொலைபேசி எண்ணை உள்ளிடவும்', '#EF4444');
       return;
     }
 
-    if (!firebaseAuth) {
-      triggerToast(lang === 'en' ? 'Firebase configuration is missing in .env. Please configure VITE_FIREBASE_* variables to send SMS.' : 'Firebase கட்டமைப்பு .env இல் இல்லை. SMS அனுப்ப VITE_FIREBASE_* மாறிகளை உள்ளமைக்கவும்.', '#EF4444');
-      return;
+    const cleanPhone = phoneNumber.trim().replace(/[^0-9]/g, '');
+
+    // Try Firebase first if available, otherwise fallback to Backend SMS API directly
+    if (firebaseAuth) {
+      try {
+        const appVerifier = setupRecaptcha();
+        if (appVerifier) {
+          let formattedPhone = phoneNumber.trim();
+          if (!formattedPhone.startsWith('+')) {
+            formattedPhone = '+91' + cleanPhone;
+          }
+
+          signInWithPhoneNumber(firebaseAuth, formattedPhone, appVerifier)
+            .then((confirmationResult) => {
+              window.confirmationResult = confirmationResult;
+              setPhoneOtpSent(true);
+              setPhoneOtpCountdown(30);
+              triggerToast(lang === 'en' ? 'Real-time SMS OTP sent successfully!' : 'நேரடி SMS OTP வெற்றிகரமாக அனுப்பப்பட்டது!');
+            })
+            .catch(async (error) => {
+              console.warn("Firebase SMS send failed, attempting backend SMS fallback:", error);
+              await sendBackendSmsOtp(cleanPhone);
+            });
+          return;
+        }
+      } catch (err) {
+        console.warn("Firebase SMS initialization failed, using backend SMS fallback:", err);
+      }
     }
 
-    try {
-      const appVerifier = setupRecaptcha();
-      if (!appVerifier) {
-        triggerToast("Failed to initialize recaptcha verifier", '#EF4444');
-        return;
-      }
-      
-      let formattedPhone = phoneNumber.trim();
-      if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+91' + formattedPhone.replace(/[^0-9]/g, '');
-      }
-
-      signInWithPhoneNumber(firebaseAuth, formattedPhone, appVerifier)
-        .then((confirmationResult) => {
-          window.confirmationResult = confirmationResult;
-          setPhoneOtpSent(true);
-          setPhoneOtpCountdown(30);
-          triggerToast(lang === 'en' ? 'Real-time SMS OTP sent successfully!' : 'நேரடி SMS OTP வெற்றிகரமாக அனுப்பப்பட்டது!');
-        })
-        .catch((error) => {
-          console.error("Firebase SMS send failed:", error);
-          triggerToast(`SMS failed: ${error.message}`, '#EF4444');
-        });
-    } catch (err) {
-      console.error("SMS initialization error:", err);
-      triggerToast(`Error: ${err.message}`, '#EF4444');
-    }
+    // Fallback to backend SMS API
+    await sendBackendSmsOtp(cleanPhone);
   };
 
   // Automatically trigger Send OTP once a valid 10-digit (or 12-digit with 91) phone number is entered
@@ -166,58 +184,80 @@ const Login = () => {
       return;
     }
 
-    if (!firebaseAuth || !window.confirmationResult) {
-      triggerToast(lang === 'en' ? 'Firebase Auth is not initialized or OTP has not been sent yet.' : 'Firebase Auth துவக்கப்படவில்லை அல்லது இன்னும் OTP அனுப்பப்படவில்லை.', '#EF4444');
+    if (!phoneOtp || !phoneOtp.trim()) {
+      triggerToast(lang === 'en' ? 'Please enter the OTP code' : 'தயவுசெய்து OTP குறியீட்டை உள்ளிடவும்', '#EF4444');
       return;
     }
 
+    // Handle Firebase Confirmation
+    if (window.confirmationResult) {
+      try {
+        const confirmationResult = window.confirmationResult;
+        const result = await confirmationResult.confirm(phoneOtp);
+        const user = result.user;
+        const cleanPhone = user.phoneNumber.replace(/[^0-9]/g, '');
+        const mockEmail = `phone_${cleanPhone}@king24x7.com`;
+        const mockName = `Phone User ${cleanPhone.slice(-4)}`;
+        
+        try {
+          const idToken = await user.getIdToken();
+          localStorage.setItem('firebase_id_token', idToken);
+        } catch (tokenErr) {
+          console.error("Failed to retrieve Firebase ID Token:", tokenErr);
+        }
+        
+        const res = await authService.googleLogin(mockEmail, mockName, '');
+        login(res.user, res.accessToken, res.refreshToken, rememberMe);
+        triggerToast(lang === 'en' ? 'Successfully logged in with verified Phone!' : 'சரியான தொலைபேசி எண் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
+        
+        const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+        if (res.user && adminRoles.includes(res.user.role)) {
+          const getAdminPortalUrl = () => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+              return 'http://localhost:3000/admin/dashboard';
+            }
+            return `${window.location.origin}/admin/dashboard`;
+          };
+          setTimeout(() => {
+            window.location.href = getAdminPortalUrl();
+          }, 1200);
+        } else {
+          const from = location.state?.from || '/';
+          const redirectState = location.state?.jobRole ? { openJobRole: location.state.jobRole } : null;
+          setTimeout(() => navigate(from, { state: redirectState }), 1200);
+        }
+        return;
+      } catch (error) {
+        console.error("Firebase OTP confirmation failed, attempting backend verification:", error);
+      }
+    }
+
+    // Fallback to Backend OTP verification
     try {
-      const confirmationResult = window.confirmationResult;
-      confirmationResult.confirm(phoneOtp)
-        .then(async (result) => {
-          const user = result.user;
-          const cleanPhone = user.phoneNumber.replace(/[^0-9]/g, '');
-          const mockEmail = `phone_${cleanPhone}@king24x7.com`;
-          const mockName = `Phone User ${cleanPhone.slice(-4)}`;
-          
-          try {
-            const idToken = await user.getIdToken();
-            localStorage.setItem('firebase_id_token', idToken);
-          } catch (tokenErr) {
-            console.error("Failed to retrieve Firebase ID Token:", tokenErr);
+      const cleanPhone = phoneNumber.trim().replace(/[^0-9]/g, '');
+      const res = await authService.verifySmsOtp(cleanPhone, phoneOtp.trim());
+      login(res.user, res.accessToken, res.refreshToken, rememberMe);
+      triggerToast(lang === 'en' ? 'Successfully logged in with verified Phone!' : 'சரியான தொலைபேசி எண் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
+      
+      const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
+      if (res.user && adminRoles.includes(res.user.role)) {
+        const getAdminPortalUrl = () => {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000/admin/dashboard';
           }
-          
-          const res = await authService.googleLogin(mockEmail, mockName, '');
-          login(res.user, res.accessToken, res.refreshToken, rememberMe);
-          triggerToast(lang === 'en' ? 'Successfully logged in with verified Phone!' : 'சரியான தொலைபேசி எண் மூலம் வெற்றிகரமாக உள்நுழைந்தீர்கள்!');
-          
-          const adminRoles = ['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'];
-          if (res.user && adminRoles.includes(res.user.role)) {
-            const getAdminPortalUrl = () => {
-              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                return 'http://localhost:3001/admin/dashboard';
-              }
-              return `${window.location.origin}/admin/dashboard`;
-            };
-            setTimeout(() => {
-              window.location.href = getAdminPortalUrl();
-            }, 1200);
-          } else {
-            const from = location.state?.from || '/';
-            const redirectState = location.state?.jobRole ? { openJobRole: location.state.jobRole } : null;
-            setTimeout(() => navigate(from, { state: redirectState }), 1200);
-          }
-        })
-        .catch((error) => {
-          console.error("Firebase OTP confirmation failed:", error);
-          if (error.code === 'auth/code-expired') {
-            triggerToast(lang === 'en' ? 'OTP expired. Please request a new OTP.' : 'OTP காலாவதியானது. புதிய OTP ஐக் கோரவும்.', '#EF4444');
-          } else {
-            triggerToast(lang === 'en' ? 'Invalid verification code!' : 'தவறான சரிபார்ப்புக் குறியீடு!', '#EF4444');
-          }
-        });
+          return `${window.location.origin}/admin/dashboard`;
+        };
+        setTimeout(() => {
+          window.location.href = getAdminPortalUrl();
+        }, 1200);
+      } else {
+        const from = location.state?.from || '/';
+        const redirectState = location.state?.jobRole ? { openJobRole: location.state.jobRole } : null;
+        setTimeout(() => navigate(from, { state: redirectState }), 1200);
+      }
     } catch (err) {
-      triggerToast(err.message, '#EF4444');
+      console.error("Backend OTP verification failed:", err);
+      triggerToast(lang === 'en' ? (err.message || 'Invalid verification code!') : 'தவறான சரிபார்ப்புக் குறியீடு!', '#EF4444');
     }
   };
 

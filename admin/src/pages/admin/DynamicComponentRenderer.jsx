@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { generateBlockStyles } from './HomeLayoutBuilder'; // We will need to export this or move it
 
-const extractStyles = (config) => {
-  // Use the existing generateBlockStyles function by faking a layout item
-  // But wait, generateBlockStyles takes a stringified configJson.
-  // We can just use it or write a simpler one for nodes.
-  return generateBlockStyles(JSON.stringify(config || {}));
+const extractStyles = (config, viewMode) => {
+  return generateBlockStyles(JSON.stringify(config || {}), viewMode, true);
 };
 
 export const DynamicComponentRenderer = ({ 
@@ -15,6 +12,8 @@ export const DynamicComponentRenderer = ({
   onUpdateNode,
   onDeleteNode,
   onDuplicateNode,
+  viewMode = 'desktop',
+  activeConfigParams,
   // Drag and drop props
   draggedNodeId,
   onDragStart,
@@ -46,7 +45,8 @@ export const DynamicComponentRenderer = ({
     onSelectNode(node.id);
   };
 
-  const styles = extractStyles(node.config);
+  const configToUse = (activeNodeId === node.id && activeConfigParams) ? activeConfigParams : node.config;
+  const styles = extractStyles(configToUse, viewMode);
   
   // Base outline for edit mode
   const editorStyles = {
@@ -109,6 +109,8 @@ export const DynamicComponentRenderer = ({
                 onUpdateNode={onUpdateNode}
                 onDeleteNode={onDeleteNode}
                 onDuplicateNode={onDuplicateNode}
+                viewMode={viewMode}
+                activeConfigParams={activeConfigParams}
                 draggedNodeId={draggedNodeId}
                 onDragStart={onDragStart}
                 onDragOver={onDragOver}
@@ -189,12 +191,14 @@ export const DynamicComponentRenderer = ({
       case 'rich_text':
         return (
           <div {...getWrapperProps()} style={{ ...styles, ...editorStyles, padding: '10px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>Rich Text Block</h3>
-            <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>This is a rich text area where you can format text, add links, and more.</p>
-            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#64748b' }}>
-              <li>Bullet point 1</li>
-              <li>Bullet point 2</li>
-            </ul>
+            {configToUse.content || configToUse.text ? (
+              <div dangerouslySetInnerHTML={{ __html: configToUse.content || configToUse.text }} />
+            ) : (
+              <>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>Rich Text Block</h3>
+                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>This is a rich text area where you can format text, add links, and more.</p>
+              </>
+            )}
           </div>
         );
       case 'quote':
@@ -403,6 +407,33 @@ export const DynamicComponentRenderer = ({
             {`<div class="custom-content">...</div>`}
           </div>
         );
+
+      case 'website_navigation': {
+        const navItemsToRender = (configToUse && configToUse.navItems && configToUse.navItems.length > 0)
+          ? configToUse.navItems.filter(i => i.isActive !== false)
+          : [
+              { titleEn: 'Home', titleTa: 'முகப்பு', linkUrl: '/' },
+              { titleEn: 'Regional', titleTa: 'நம்ம ஊர்', linkUrl: '/directory' },
+              { titleEn: 'Politics', titleTa: 'அரசியல்', linkUrl: '/category/politics' },
+              { titleEn: 'Business', titleTa: 'வணிகம்', linkUrl: '/category/business' },
+              { titleEn: 'Sports', titleTa: 'விளையாட்டு', linkUrl: '/category/sports' },
+              { titleEn: 'Cinema', titleTa: 'சினிமா', linkUrl: '/category/cinema' },
+              { titleEn: 'Technology', titleTa: 'தொழில்நுட்பம்', linkUrl: '/category/tech' }
+            ];
+
+        return (
+          <div {...getWrapperProps()} style={{ ...styles, ...editorStyles, background: '#000000', color: '#ffffff', padding: '12px 20px', borderRadius: '6px', overflowX: 'auto', borderBottom: '2px solid #334155' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px', whiteSpace: 'nowrap', fontSize: '13px', fontWeight: 700 }}>
+              {navItemsToRender.map((item, idx) => (
+                <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: (item.slug === 'regional' || item.linkUrl === '/directory') ? '#38bdf8' : '#ffffff', cursor: 'pointer' }}>
+                  <span>{item.titleEn || item.name}</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>({item.titleTa || item.nameTa})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       default:
         // Generic fallback for unknown widgets
