@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { fetchApi, getImageUrl } from '../utils/api';
+import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
 const MOCK_ARTICLES = [
@@ -221,6 +222,16 @@ const Home = () => {
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
   const [institutionNews, setInstitutionNews] = useState([]);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [viewMode, setViewMode] = useState(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewMode(window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop');
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [commodityPrices, setCommodityPrices] = useState([
     { nameEn: 'Gold (24K/10g)', nameTa: 'தங்கம் (24K/10g)', price: '₹72,450', change: '+₹150' },
     { nameEn: 'Silver (1kg)', nameTa: 'வெள்ளி (1kg)', price: '₹91,200', change: '-₹450' },
@@ -409,21 +420,58 @@ const Home = () => {
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
-        const localLayout = localStorage.getItem('dummy_layout_config');
-        if (localLayout) {
-          try {
-            const parsed = JSON.parse(localLayout);
+        // Check localStorage first — admin builder preview overrides API
+        try {
+          const previewData = localStorage.getItem('dummy_layout_config');
+          if (previewData) {
+            const parsed = JSON.parse(previewData);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setLayoutSections(parsed);
+              setLayoutSections(parsed.filter(s => s.isVisible !== false));
+              setIsPreviewMode(true);
               return;
             }
-          } catch (e) {}
-        }
+          }
+        } catch (e) { /* ignore */ }
+        // No preview config — use API data
         if (Array.isArray(data)) {
           setLayoutSections(data);
+          setIsPreviewMode(false);
         }
       })
-      .catch(() => {});
+
+      .catch(() => {
+        // Even if API fails, try localStorage
+        try {
+          const previewData = localStorage.getItem('dummy_layout_config');
+          if (previewData) {
+            const parsed = JSON.parse(previewData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLayoutSections(parsed.filter(s => s.isVisible !== false));
+              setIsPreviewMode(true);
+            }
+          }
+        } catch (e) { /* ignore */ }
+      });
+
+    // Listen for localStorage changes from the admin builder (real-time preview)
+    const handleStorageUpdate = () => {
+      try {
+        const previewData = localStorage.getItem('dummy_layout_config');
+        if (previewData) {
+          const parsed = JSON.parse(previewData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLayoutSections(parsed.filter(s => s.isVisible !== false));
+            setIsPreviewMode(true);
+          }
+        } else {
+          setIsPreviewMode(false);
+        }
+      } catch (e) { /* ignore */ }
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+    // Cleanup handled at component unmount via the useEffect return
+    // Store cleanup in window for cross-cleanup
+    window.__homeLayoutCleanup = () => window.removeEventListener('storage', handleStorageUpdate);
 
     const pTrending = fetchApi('/articles/public/trending')
       .then(data => {
@@ -1616,7 +1664,9 @@ const Home = () => {
     } catch (e) {}
 
     const customLabel = section.sectionLabel;
+    const blockStyles = generateBlockStyles(config, viewMode, key === 'custom_builder');
 
+<<<<<<< HEAD
     switch (key) {
       case 'news_ticker':
         return (
@@ -1657,6 +1707,58 @@ const Home = () => {
       default:
         return <React.Fragment key={section.id || key}>{renderLatestNews(config, customLabel)}</React.Fragment>;
     }
+=======
+    const renderContent = () => {
+      switch (key) {
+        case 'news_ticker':
+          return (
+            <>
+              {renderCommodityTicker()}
+              {renderNewsTicker()}
+            </>
+          );
+        case 'hero':
+          return renderHero();
+        case 'quick_access':
+          return renderQuickAccess();
+        case 'latest_news':
+          return renderLatestNews(config, customLabel);
+        case 'video_news':
+          return renderVideoNews(config, customLabel);
+        case 'web_stories':
+          return renderWebStories(config, customLabel);
+        case 'crowd_reporter':
+          return renderCrowdReporterHighlight();
+        case 'institution_news':
+        case 'business_case':
+          return renderInstitutionNews(config, customLabel);
+        case 'trending_sidebar':
+          return renderTrendingSidebar(config, customLabel);
+        case 'weather':
+          return renderWeather();
+        case 'live_tv':
+          return renderLiveTv();
+        case 'rss_news':
+        case 'rss_aggregator':
+          return renderRssAggregatedNews();
+        case 'news_digest':
+          return renderNewsDigest();
+        case 'newsletter':
+          return renderNewsletterStrip();
+        default:
+          return null;
+      }
+    };
+
+    const content = renderContent();
+    if (!content) return null;
+
+    return (
+      <div key={section.id || key} style={blockStyles} className={`generic-section-block section-${key}`}>
+        {content}
+      </div>
+    );
+>>>>>>> origin/test-2
   };
 
   const topKeys = ['website_navigation', 'news_ticker', 'hero', 'quick_access'];
@@ -1684,6 +1786,37 @@ const Home = () => {
 
   return (
     <div style={{ width: '100%' }}>
+      {/* Admin Builder Preview Banner */}
+      {isPreviewMode && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999,
+          background: 'linear-gradient(90deg, #f97316, #ea580c)',
+          color: '#fff', padding: '10px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 700,
+          boxShadow: '0 4px 20px rgba(249,115,22,0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ background: 'rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', letterSpacing: '1px' }}>PREVIEW MODE</span>
+            <span>You are viewing a layout preview from the Admin Builder — not the live site</span>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('dummy_layout_config');
+              window.dispatchEvent(new Event('storage'));
+              window.location.reload();
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.5)',
+              color: '#fff', padding: '4px 14px', borderRadius: '6px',
+              cursor: 'pointer', fontSize: '12px', fontWeight: 700
+            }}
+          >✕ Exit Preview</button>
+        </div>
+      )}
+      {/* Spacer for preview banner */}
+      {isPreviewMode && <div style={{ height: '45px' }} />}
+
       {hasDynamicLayout && sortedTopSections.length > 0 ? (
         sortedTopSections.map(s => renderSectionByKey(s))
       ) : (

@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import {
   dummyNavItems, dummyCategories, dummyLatestNewsCards, dummyLowerGridCards
 } from './dummyLayoutData';
+import { generateBlockStyles } from '../utils/styleHelper';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 const DUMMY_API_URL = `${API_BASE}/admin/layout/dummy`;
@@ -53,7 +54,7 @@ const SECTION_ACCENT_MAP = {
  * Renders a single canvas block for a given layout section.
  * Uses the section's configJson for styling hints where available.
  */
-const LayoutSectionBlock = ({ section, index }) => {
+const LayoutSectionBlockContent = ({ section, index }) => {
   let config = {};
   try { config = JSON.parse(section.configJson || '{}'); } catch { /* ignore */ }
 
@@ -206,6 +207,18 @@ const LayoutSectionBlock = ({ section, index }) => {
           Section #{index + 1} · {section.isVisible ? 'Visible' : 'Hidden'}
         </div>
       </div>
+    </div>
+  );
+};
+
+const LayoutSectionBlock = ({ section, index }) => {
+  let config = {};
+  try { config = JSON.parse(section.configJson || '{}'); } catch { /* ignore */ }
+  const blockStyles = generateBlockStyles(config, 'desktop', section.sectionKey === 'custom_builder');
+
+  return (
+    <div style={blockStyles}>
+      <LayoutSectionBlockContent section={section} index={index} />
     </div>
   );
 };
