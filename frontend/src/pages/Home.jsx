@@ -296,9 +296,9 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load categories", err));
 
-    const pArticles = fetchApi('/articles')
+    const pArticles = fetchApi('/articles/getAll?size=50&sortBy=publishedAt&direction=desc')
       .then(data => {
-        const list = Array.isArray(data) ? data : [];
+        const list = Array.isArray(data) ? data : (data?.content || []);
         setArticles(list);
       })
       .catch(err => {

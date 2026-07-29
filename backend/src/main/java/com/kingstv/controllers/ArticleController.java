@@ -69,7 +69,6 @@ public class ArticleController {
 
     // --- KEEP Existing Front-End Endpoint Map ---
     @GetMapping
-    @Cacheable(value = "articles", key = "#status != null ? #status : 'published'")
     public List<Article> getArticles(@RequestParam(required = false) String status) {
         String activeStatus = status != null ? status : "published";
         return articleRepository.findTop50ByStatusOrderByPublishedAtDesc(activeStatus);
