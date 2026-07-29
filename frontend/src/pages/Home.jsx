@@ -33,33 +33,11 @@ const Home = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const [commodityPrices, setCommodityPrices] = useState([
-    { nameEn: 'Gold (24K/10g)', nameTa: 'தங்கம் (24K/10g)', price: '₹72,450', change: '+₹150' },
-    { nameEn: 'Silver (1kg)', nameTa: 'வெள்ளி (1kg)', price: '₹91,200', change: '-₹450' },
-    { nameEn: 'Paddy (Quintal)', nameTa: 'நெல் (குவிண்டால்)', price: '₹2,300', change: '+₹75' },
-    { nameEn: 'Cotton (Candy)', nameTa: 'பருத்தி (கேண்டி)', price: '₹57,500', change: '₹0' }
-  ]);
-  const initialTickers = [
-    lang === 'en' ? "Paddy procurement price increased - farmers express delight!" : "🌾 நெல் கொள்முதல் விலை உயர்வு - விவசாயிகள் மகிழ்ச்சி",
-    lang === 'en' ? "Vijay 69th movie announcement sends fans into celebration mode!" : "🎬 விஜய் 69-வது படம் அறிவிப்பு - ரசிகர்கள் கொண்டாட்டம்",
-    lang === 'en' ? "Class 12 board results to be declared soon - education department updates." : "📚 +2 தேர்வு முடிவுகள் விரைவில் - கல்வித்துறை தகவல்",
-    lang === 'en' ? "Electricity tariff hike in Chennai creates public concern." : "⚡ சென்னையில் மின் கட்டணம் உயர்வு - நுகர்வோர் அதிருப்தி",
-    lang === 'en' ? "New Vande Bharat rail service introduced by Southern Railway." : "🚆 புதிய வந்தே பாரத் ரயில் சேவை அறிமுகம் - தெற்கு ரயில்வே",
-    lang === 'en' ? "Heavy rain alert issued for tomorrow in Tamil Nadu." : "🔴 தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம்"
-  ];
-  const [tickers, setTickers] = useState(initialTickers);
+  const [commodityPrices, setCommodityPrices] = useState([]);
+  const [tickers, setTickers] = useState([]);
   const [stories, setStories] = useState([]);
-  const [weatherData, setWeatherData] = useState({
-    temp: '32°C',
-    condition: lang === 'en' ? 'Cloudy' : 'மேகமூட்டம்',
-    humidity: '72%',
-    wind: '18 km/h',
-    forecast: [
-      { day: lang === 'en' ? 'Mon' : 'தி', icon: '☀️', temp: '32°' },
-      { day: lang === 'en' ? 'Tue' : 'செ', icon: '⛅', temp: '31°' },
-      { day: lang === 'en' ? 'Wed' : 'பு', icon: '🌤️', temp: '33°' }
-    ]
-  });
+  const [weatherData, setWeatherData] = useState(null);
+
 
   const [trendingNews, setTrendingNews] = useState([]);
   const [aggregatedNews, setAggregatedNews] = useState([]);
@@ -575,6 +553,7 @@ const Home = () => {
   ];
 
   const renderCommodityTicker = () => {
+    if (!commodityPrices || commodityPrices.length === 0) return null;
     return (
       <div style={{
         background: '#1F2937',
@@ -592,7 +571,7 @@ const Home = () => {
           </div>
           <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', padding: '0 10px', flex: 1 }}>
             {commodityPrices.map((item, idx) => {
-              const isUp = item.change.startsWith('+');
+              const isUp = item.change && item.change.startsWith('+');
               return (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                   <span style={{ color: 'rgba(255,255,255,0.7)' }}>{lang === 'en' ? item.nameEn : item.nameTa}:</span>
@@ -615,6 +594,8 @@ const Home = () => {
   }, []);
 
   const renderTopCommoditySlider = () => {
+    if (!commodityPrices || commodityPrices.length === 0) return null;
+
     const sliderCards = [
       {
         titleTa: '🪙 சென்னை தங்கம் விலை',
@@ -1202,9 +1183,8 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    const liveStreamUrl = (liveVideo && liveVideo.videoUrl)
-      ? liveVideo.videoUrl
-      : 'https://www.youtube.com/embed/5qap5aO4i9A';
+    if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
+    const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
 
     return (
       <div className="weather-widget" style={{ marginTop: '20px' }}>
@@ -1224,6 +1204,7 @@ const Home = () => {
       </div>
     );
   };
+
 
   const renderBusinessCase = () => {
     return null;
