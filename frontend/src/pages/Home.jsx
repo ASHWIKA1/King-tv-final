@@ -6,206 +6,7 @@ import { fetchApi, getImageUrl } from '../utils/api';
 import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
-const MOCK_ARTICLES = [
-  {
-    id: 1,
-    article_id: 1,
-    titleTa: 'தமிழக சட்டமன்ற பட்ஜெட் கூட்டத்தொடர் 2026: முக்கிய அறிவிப்புகள் வெளியீடு',
-    titleEn: 'Tamil Nadu Assembly Budget Session 2026 Key Announcements',
-    shortDescTa: 'மாண்புமிகு முதலமைச்சர் பட்ஜெட் உரையில் பல்வேறு மக்கள் நலத் திட்டங்களை அறிவித்தார்.',
-    shortDescEn: 'Chief Minister announced key welfare schemes in the budget speech.',
-    categoryId: 1,
-    authorName: 'செல்வகுமார்',
-    viewsCount: 12500,
-    imageUrl: null
-  },
-  {
-    id: 2,
-    article_id: 2,
-    titleTa: 'சென்னை கோயம்பேட்டில் புதிய பேருந்து நிலையம் - அமைச்சர் அறிவிப்பு',
-    titleEn: 'New Koyambedu Bus Terminal Announcement',
-    shortDescTa: 'போக்குவரத்து நெரிசலை குறைக்க புதிய நவீன பேருந்து முனையம் அமைக்கும் பணி விரைவு.',
-    shortDescEn: 'Modern bus terminal project initiated to reduce traffic congestion.',
-    categoryId: 1,
-    authorName: 'செல்வகுமார்',
-    viewsCount: 8200,
-    imageUrl: null
-  },
-  {
-    id: 3,
-    article_id: 3,
-    titleTa: 'ஐபிஎல் 2026: சிஎஸ்கே அணி அடுத்த சுற்றுக்கு தகுதி',
-    titleEn: 'IPL 2026: CSK Qualifies for Next Round',
-    shortDescTa: 'அபார வெற்றியுடன் சென்னை சூப்பர் கிங்ஸ் அணி புள்ளிகள் பட்டியலில் முதலிடம் பிடித்தது.',
-    shortDescEn: 'CSK secures top spot in points table with a dominant win.',
-    categoryId: 3,
-    authorName: 'விளையாட்டு நிருபர்',
-    viewsCount: 15700,
-    imageUrl: null
-  },
-  {
-    id: 4,
-    article_id: 4,
-    titleTa: 'விவசாயிகளுக்கு ரூ.12,000 நிவாரணம் - மத்திய அரசு அறிவிப்பு',
-    titleEn: 'Rs 12,000 Relief for Farmers Announced',
-    shortDescTa: 'வேளாண் பெருமக்களுக்கு நிதியுதவி வழங்கும் திட்டத்தில் புதிய தவணைத் தொகை.',
-    shortDescEn: 'New instalment released under farmer financial assistance scheme.',
-    categoryId: 2,
-    authorName: 'விவசாய நிருபர்',
-    viewsCount: 11300,
-    imageUrl: null
-  },
-  {
-    id: 5,
-    article_id: 5,
-    titleTa: 'நடிகர் விக்ரம் அடுத்த படம் குறித்த அதிகாரப்பூர்வ அறிவிப்பு',
-    titleEn: 'Actor Vikram Next Film Official Update',
-    shortDescTa: 'பிரமாண்டமாக உருவாகும் புதிய திரைப்படத்தின் படப்பிடிப்பு குறித்த தகவல்.',
-    shortDescEn: 'Official announcement regarding grand upcoming movie shooting.',
-    categoryId: 4,
-    authorName: 'சினிமா நிருபர்',
-    viewsCount: 22100,
-    imageUrl: null
-  }
-];
 
-const MOCK_VIDEOS = [
-  {
-    id: 1,
-    title: 'சென்னை பட்ஜெட் 2026 நேரலை செய்திகள் - சிறப்பு விவாதம்',
-    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
-    thumbnailUrl: null,
-    duration: '15:20',
-    publishedAt: '2026-07-26T10:00:00Z',
-    isLive: true,
-    categoryId: 1
-  },
-  {
-    id: 2,
-    title: 'விவசாயம் & சந்தை நிலவரம் - நேரடி செய்தி அறிக்கை',
-    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
-    thumbnailUrl: null,
-    duration: '08:45',
-    publishedAt: '2026-07-26T08:30:00Z',
-    isLive: false,
-    categoryId: 2
-  },
-  {
-    id: 3,
-    title: 'ஐபிஎல் 2026: சிஎஸ்கே அணி வெற்றி கொண்டாட்டம்',
-    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
-    thumbnailUrl: null,
-    duration: '06:12',
-    publishedAt: '2026-07-26T07:15:00Z',
-    isLive: false,
-    categoryId: 3
-  },
-  {
-    id: 4,
-    title: 'புதிய தொழில்நுட்ப கண்டுபிடிப்புகள் - 2026 ஸ்பெஷல்',
-    videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A',
-    thumbnailUrl: null,
-    duration: '12:00',
-    publishedAt: '2026-07-26T05:00:00Z',
-    isLive: false,
-    categoryId: 5
-  }
-];
-
-const MOCK_CROWD = [
-  {
-    id: 1,
-    reporterName: 'கார்த்திக்',
-    location: 'வேளச்சேரி, சென்னை',
-    title: 'வேளச்சேரி மெயின் ரோட்டில் மழைநீர் வடிகால் பணி நிறைவு',
-    details: 'நீண்ட நாட்களாக நிலுவையில் இருந்த மழைநீர் வடிகால் அமைக்கும் பணி தற்போது நிறைவடைந்துள்ளது.'
-  },
-  {
-    id: 2,
-    reporterName: 'சுரேஷ்',
-    location: 'காந்திபுரம், கோவை',
-    title: 'கோவை மாநகராட்சியில் புதிய பூங்கா திறப்பு',
-    details: 'பொதுமக்கள் பயன்பாட்டிற்காக புதிய பூங்கா அமைக்கப்பட்டு மேயர் துவக்கி வைத்தார்.'
-  },
-  {
-    id: 3,
-    reporterName: 'அருண்',
-    location: 'ஆரப்பாளையம், மதுரை',
-    title: 'மதுரையில் குடிநீர் விநியோகம் சீரமைப்பு பணி',
-    details: 'குடிநீர் குழாய் அடைப்புகளை நீக்கும் பணிகளை மாநகராட்சி ஊழியர்கள் தீவிரமாக மேற்கொண்டு வருகின்றனர்.'
-  }
-];
-
-const MOCK_INSTITUTION = [
-  {
-    id: 1,
-    article_id: 101,
-    authorName: 'அண்ணா பல்கலைக்கழகம்',
-    titleTa: 'அண்ணா பல்கலைக்கழக மாணவர்களுக்கான புதிய ஆராய்ச்சி நிதி உதவி திட்டம்',
-    titleEn: 'Anna University Announces New Research Fellowship Scheme',
-    shortDescTa: 'இளநிலை மற்றும் முதுநிலை மாணவர்களுக்கான புதிய ஆராய்ச்சி நிதி உதவித் திட்டம் அறிவிப்பு.',
-    shortDescEn: 'New research fellowship scheme announced for undergraduate and postgraduate students.',
-    categoryId: 5
-  },
-  {
-    id: 2,
-    article_id: 102,
-    authorName: 'தமிழ்நாடு அறிவியல் நகரம்',
-    titleTa: 'மாநில அளவிலான அறிவியல் கண்காட்சி - மாணவர்கள் விண்ணப்பிக்க அழைப்பு',
-    titleEn: 'State Level Science Exhibition - Call for Student Applications',
-    shortDescTa: 'பள்ளி மாணவர்களின் அறிவியல் படைப்புகளை காட்சிப்படுத்த சிறப்பு கண்காட்சி ஏற்பாடு.',
-    shortDescEn: 'Special exhibition organized to display school students scientific projects.',
-    categoryId: 5
-  },
-  {
-    id: 3,
-    article_id: 103,
-    authorName: 'வேளாண்மைப் பல்கலைக்கழகம்',
-    titleTa: 'கோயம்பேடு வேளாண் சந்தையில் புதிய விளைபொருள் பாதுகாப்பு மையம்',
-    titleEn: 'New Produce Preservation Center in Koyambedu Market',
-    shortDescTa: 'விவசாயிகள் கொண்டு வரும் விளைபொருட்களை நீண்ட நாள் பாதுகாப்பாக வைக்க புதிய வசதி.',
-    shortDescEn: 'New facility introduced for farmers to preserve produce for longer days.',
-    categoryId: 2
-  }
-];
-
-const MOCK_TRENDING = [
-  {
-    id: 1,
-    titleTa: 'சென்னை பெருநகரில் புதிய மெட்ரோ ரயில் திட்டம் அறிவிப்பு',
-    titleEn: 'New Metro Rail Project Announcement in Chennai City',
-    viewsCount: 45200,
-    growthRate: '+2.4K/hr'
-  },
-  {
-    id: 2,
-    titleTa: 'காவிரி நீர் மேலாண்மை குறித்த உச்சநீதிமன்ற முக்கிய உத்தரவு',
-    titleEn: 'Supreme Court Important Order on Cauvery Water Management',
-    viewsCount: 38700,
-    growthRate: '+1.8K/hr'
-  },
-  {
-    id: 3,
-    titleTa: 'இந்திய பொருளாதாரம் 8% வளர்ச்சி - உலக வங்கி அறிக்கை',
-    titleEn: 'Indian Economy 8% Growth - World Bank Report',
-    viewsCount: 32100,
-    growthRate: '+1.5K/hr'
-  },
-  {
-    id: 4,
-    titleTa: 'தமிழ் சினிமாவில் புதிய படங்களின் அணிவகுப்பு',
-    titleEn: 'New Movies Lineup in Tamil Cinema Industry',
-    viewsCount: 28500,
-    growthRate: '+1.2K/hr'
-  },
-  {
-    id: 5,
-    titleTa: 'பள்ளி மாணவர்களுக்கு காலை உணவு திட்டம் விரிவாக்கம்',
-    titleEn: 'Breakfast Scheme Expansion for School Students',
-    viewsCount: 24300,
-    growthRate: '+980/hr'
-  }
-];
 
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
@@ -753,15 +554,16 @@ const Home = () => {
     });
   };
 
-  const displayArticles = (articles && articles.length > 0) ? articles : MOCK_ARTICLES;
-  const displayVideos = (videos && videos.length > 0) ? videos : MOCK_VIDEOS;
-  const displayCrowd = (crowdReports && crowdReports.length > 0) ? crowdReports : MOCK_CROWD;
-  const displayInstitution = (institutionNews && institutionNews.length > 0) ? institutionNews : MOCK_INSTITUTION;
+  const displayArticles = articles || [];
+  const displayVideos = videos || [];
+  const displayCrowd = crowdReports || [];
+  const displayInstitution = institutionNews || [];
 
-  const featured = displayArticles[0];
-  const featuredCat = getCategoryDetails(featured.categoryId);
-  const sideArticles = displayArticles.slice(1, 5);
-  const latestGrid = displayArticles.slice(0, 6);
+  const featured = displayArticles.length > 0 ? displayArticles[0] : null;
+  const featuredCat = featured ? getCategoryDetails(featured.categoryId) : { slug: 'news', en: 'News', ta: 'செய்திகள்' };
+  const sideArticles = displayArticles.length > 1 ? displayArticles.slice(1, 5) : [];
+  const latestGrid = displayArticles.length > 0 ? displayArticles.slice(0, 6) : [];
+
 
   const gradients = [
     "linear-gradient(135deg, #1E40AF, #3B82F6)",
@@ -962,11 +764,12 @@ const Home = () => {
       : displayArticles;
     const activeHeroPool = heroPool.length > 0 ? heroPool : displayArticles;
 
-    const heroFeatured = activeHeroPool[0] || featured || MOCK_ARTICLES[0];
+    if (!activeHeroPool || activeHeroPool.length === 0) return null;
+
+    const heroFeatured = activeHeroPool[0];
     const heroCat = getCategoryDetails(heroFeatured.categoryId);
-    const heroSideItems = activeHeroPool.length >= 5 
-      ? activeHeroPool.slice(1, 5) 
-      : (sideArticles.length >= 4 ? sideArticles.slice(0, 4) : MOCK_ARTICLES.slice(1, 5));
+    const heroSideItems = activeHeroPool.slice(1, 5);
+
 
     return (
       <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
@@ -1192,8 +995,10 @@ const Home = () => {
       ? videos
       : videos.filter(vid => vid.categoryId === homeCatIdMap[videoTab]);
 
-    const activeVideos = (filteredHomeVideos && filteredHomeVideos.length > 0) ? filteredHomeVideos : MOCK_VIDEOS;
+    const activeVideos = filteredHomeVideos || [];
+    if (activeVideos.length === 0) return null;
     const titleText = customLabel || (lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்');
+
 
     return (
       <section className="video-section" id="section-video">
@@ -1280,8 +1085,10 @@ const Home = () => {
   };
 
   const renderTrendingSidebar = (config = {}, customLabel = null) => {
-    const activeTrending = (trendingNews && trendingNews.length > 0) ? trendingNews : MOCK_TRENDING;
+    const activeTrending = trendingNews || [];
+    if (activeTrending.length === 0) return null;
     const titleText = customLabel || (lang === 'en' ? 'Trending News' : 'டிரெண்டிங் செய்திகள்');
+
 
     return (
       <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '20px', border: '1px solid #F1F5F9', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', marginBottom: '20px' }}>
@@ -1443,7 +1250,8 @@ const Home = () => {
   };
 
   const renderCrowdReporterHighlight = () => {
-    const activeCrowd = (crowdReports && crowdReports.length > 0) ? crowdReports : MOCK_CROWD;
+    const activeCrowd = crowdReports || [];
+    if (activeCrowd.length === 0) return null;
 
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
@@ -1487,7 +1295,9 @@ const Home = () => {
   };
 
   const renderInstitutionNews = () => {
-    const activeInstitution = (institutionNews && institutionNews.length > 0) ? institutionNews : MOCK_INSTITUTION;
+    const activeInstitution = institutionNews || [];
+    if (activeInstitution.length === 0) return null;
+
 
     return (
       <section className="news-section" style={{ marginTop: '30px' }}>
