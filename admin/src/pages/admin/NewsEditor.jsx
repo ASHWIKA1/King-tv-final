@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, Plus, Folder, Eye, Flame, Bell, Globe, Search, Calendar, User, Tag, Layers, Sliders } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
@@ -96,7 +96,19 @@ const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 };
 
-const slugify = (text) => (text || '').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+// Unicode-Safe Slug Generator for Tamil & English titles
+const slugify = (text, fallbackText = '') => {
+  if (!text && !fallbackText) return '';
+  const str = (text || fallbackText).trim();
+  let s = str.toLowerCase()
+    .replace(/[^\w\s-\u0B80-\u0BFF]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+  if (!s || s === '-') {
+    s = (fallbackText || 'article').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+  }
+  return s.trim();
+};
 
 // ── Contextual AI Helper ─────────────────────────────────────────────────────
 const handleAiInlineAction = async (editor, action, lang) => {
@@ -781,6 +793,83 @@ const NewsEditor = () => {
     }
   };
 
+  const calculateSeoScore = (formState) => {
+    let score = 0;
+    const title = formState.metaTitle || formState.titleEn || formState.titleTa || '';
+    const desc = formState.metaDescription || formState.shortDescEn || formState.shortDescTa || '';
+    const kw = formState.focusKeywords || formState.metaKeywords || '';
+    const img = formState.featuredImage || formState.imageUrl || '';
+
+    if (title.length >= 20 && title.length <= 70) score += 25;
+    else if (title.length > 0) score += 10;
+
+    if (desc.length >= 80 && desc.length <= 160) score += 25;
+    else if (desc.length > 0) score += 10;
+
+    if (kw.trim().length > 0) {
+      score += 20;
+      const keywords = kw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+      const firstKw = keywords[0] || '';
+      if (firstKw && (title.toLowerCase().includes(firstKw) || desc.toLowerCase().includes(firstKw))) {
+        score += 15;
+      }
+    }
+
+    if (img) score += 15;
+    return Math.min(score, 100);
+  };
+
+  const handleAutoGenerateSeo = () => {
+    const rawTaText = editorRefTa.current ? editorRefTa.current.getContent({ format: 'text' }) : (form.contentTa || '');
+    const rawEnText = editorRefEn.current ? editorRefEn.current.getContent({ format: 'text' }) : (form.contentEn || '');
+
+    const title = form.titleEn || form.titleTa || '';
+    const content = (rawEnText || rawTaText || '').trim();
+
+    if (!title && !content) {
+      showMsg('Please enter an article title or write content in TinyMCE first.', true);
+      return;
+    }
+
+    // 1. Clean URL Slug
+    const generatedSlug = slugify(title, form.titleEn || form.titleTa || 'news-article');
+
+    // 2. Meta Title (Truncate cleanly at word boundary under 60 chars)
+    let metaTitle = title;
+    if (metaTitle.length > 60) {
+      metaTitle = metaTitle.substring(0, 57).trim() + '...';
+    }
+
+    // 3. Meta Description (First 155 chars of summary or content)
+    const plainText = (form.shortDescEn || form.shortDescTa || content || '').replace(/\s+/g, ' ').trim();
+    let metaDesc = plainText;
+    if (metaDesc.length > 155) {
+      metaDesc = metaDesc.substring(0, 152).trim() + '...';
+    }
+
+    // 4. Focus Keywords & News Tags
+    const textForKeywords = (title + ' ' + plainText).replace(/[^\w\s\u0B80-\u0BFF]/g, '');
+    const wordList = textForKeywords.split(/\s+/).filter(w => w.length > 3);
+    const uniqueWords = [...new Set(wordList)].slice(0, 6);
+    const focusKeywords = uniqueWords.slice(0, 3).join(', ');
+    const metaKeywords = [...new Set([...uniqueWords, 'Kings TV', 'Tamil News', 'Breaking News'])].join(', ');
+
+    const newForm = {
+      ...form,
+      slug: generatedSlug,
+      metaTitle: metaTitle,
+      metaDescription: metaDesc,
+      focusKeywords: focusKeywords,
+      metaKeywords: metaKeywords
+    };
+
+    const newScore = calculateSeoScore(newForm);
+    newForm.seoScore = newScore;
+
+    setForm(newForm);
+    showMsg(`⚡ Automated SEO Metadata Generated! (SEO Score: ${newScore}/100)`);
+  };
+
   const handleSave = async (statusOverride) => {
     const finalStatus = statusOverride || form.status;
     setSaving(true);
@@ -1113,11 +1202,25 @@ const NewsEditor = () => {
                         <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>🔍 SEO & Meta Engine Settings</h3>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Automated or custom meta titles, description, keywords, and URL slug optimization.</p>
                       </div>
-                      {form.seoScore > 0 && (
-                        <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: form.seoScore > 70 ? '#10B981' : '#F59E0B', color: '#fff' }}>
-                          SEO Score: {form.seoScore}/100
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={handleAutoGenerateSeo}
+                          style={{
+                            padding: '8px 16px', background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                            color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '13px',
+                            fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                            boxShadow: '0 2px 6px rgba(37,99,235,0.3)'
+                          }}
+                        >
+                          <Zap size={15} /> ⚡ Auto-Generate SEO
+                        </button>
+                        {(form.seoScore > 0 || (form.metaTitle && form.metaDescription)) && (
+                          <span style={{ padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: (form.seoScore || calculateSeoScore(form)) > 70 ? '#10B981' : '#F59E0B', color: '#fff' }}>
+                            SEO Score: {form.seoScore || calculateSeoScore(form)}/100
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -1349,32 +1452,135 @@ const NewsEditor = () => {
         {/* Right Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '340px' }}>
           
+          {/* Publishing Controls Card */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
-            <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => set('featuredImage', url)} />
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+              <Send size={16} color="#2563EB" /> Article Status & Schedule
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Publish Status</label>
+                <select 
+                  value={form.status || 'draft'} 
+                  onChange={e => set('status', e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600 }}
+                >
+                  <option value="draft">📝 Draft</option>
+                  <option value="pending">⏳ Pending Review</option>
+                  <option value="scheduled">📅 Scheduled</option>
+                  <option value="published">🚀 Published (Live)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Publication Date & Time</label>
+                <input 
+                  type="datetime-local" 
+                  value={form.publishedAt || ''} 
+                  onChange={e => set('publishedAt', e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }} 
+                />
+              </div>
+            </div>
           </div>
 
+          {/* Featured Image Card */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlignLeft size={16} /> Taxonomy</h3>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+              <ImageIcon size={16} color="#8B5CF6" /> Featured Image
+            </h3>
+            <ImageUploadPreview 
+              imageUrl={form.featuredImage || form.imageUrl} 
+              onUploadSuccess={(url) => setForm(f => ({ ...f, featuredImage: url, imageUrl: url }))} 
+            />
+          </div>
+
+          {/* Taxonomy & Categorization Card */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+              <Layers size={16} color="#0EA5E9" /> Taxonomy & Classification
+            </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category</label>
-                <select value={form.categoryId} onChange={e => set('categoryId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category *</label>
+                <select 
+                  value={form.categoryId} 
+                  onChange={e => setForm(f => ({ ...f, categoryId: e.target.value, subcategoryId: '' }))} 
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 500 }}
+                >
                   <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category</option>
                   {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameEn || c.name}</option>)}
                 </select>
               </div>
+
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Subcategory</label>
-                <select value={form.subcategoryId} onChange={e => set('subcategoryId', e.target.value)} disabled={!subCategories.length} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory</option>
+                <select 
+                  value={form.subcategoryId} 
+                  onChange={e => set('subcategoryId', e.target.value)} 
+                  disabled={!subCategories.length} 
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', opacity: subCategories.length ? 1 : 0.6 }}
+                >
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {subCategories.length ? 'Select Subcategory' : 'No subcategories available'}
+                  </option>
                   {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameTa ? `${s.nameTa} / ${s.name}` : s.name}</option>)}
                 </select>
               </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Target District</label>
+                <select 
+                  value={form.districtId} 
+                  onChange={e => set('districtId', e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                >
+                  <option value="">All Districts (State-wide)</option>
+                  {districts.map(d => <option key={d.id} value={d.id}>{d.nameEn || d.name}</option>)}
+                </select>
+              </div>
+
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>News Tags (comma separated)</label>
-                <input type="text" value={form.metaKeywords} onChange={e => set('metaKeywords', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }} placeholder="e.g. TamilNadu, Politics, Breaking" />
+                <input 
+                  type="text" 
+                  value={form.metaKeywords || ''} 
+                  onChange={e => set('metaKeywords', e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }} 
+                  placeholder="e.g. TamilNadu, Politics, Breaking" 
+                />
               </div>
+            </div>
+          </div>
+
+          {/* Highlights & Alerts Card */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+              <Flame size={16} color="#F59E0B" /> Highlights & Broadcast Toggles
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#EF4444' }}>
+                  <Zap size={14} /> Breaking News Ticker
+                </span>
+                <input type="checkbox" checked={form.isBreaking === true} onChange={e => set('isBreaking', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#F59E0B' }}>
+                  <Flame size={14} /> Trending Sidebar Story
+                </span>
+                <input type="checkbox" checked={form.isTrending === true} onChange={e => set('isTrending', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: '#8B5CF6' }}>
+                  <Bell size={14} /> Push Notification Alert
+                </span>
+                <input type="checkbox" checked={form.sendPush === true} onChange={e => set('sendPush', e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              </label>
             </div>
           </div>
           
@@ -1606,7 +1812,7 @@ const NewsEditor = () => {
                     fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
                   }}
                 >
-                  <FolderIcon size={16} /> Choose from Media Library ({mediaLibraryItems.length})
+                  <Folder size={16} /> Choose from Media Library ({mediaLibraryItems.length})
                 </button>
                 <button
                   onClick={() => setGalleryModalTab('upload')}
