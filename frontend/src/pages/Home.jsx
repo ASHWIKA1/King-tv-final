@@ -976,8 +976,8 @@ const Home = () => {
       ? videos
       : videos.filter(vid => vid.categoryId === homeCatIdMap[videoTab]);
 
-    const activeVideos = filteredHomeVideos || [];
-    if (activeVideos.length === 0) return null;
+    const activeVideos = (filteredHomeVideos && filteredHomeVideos.length > 0) ? filteredHomeVideos : displayArticles;
+    if (!activeVideos || activeVideos.length === 0) return null;
     const titleText = customLabel || (lang === 'en' ? 'Video News' : 'வீடியோ செய்திகள்');
 
 
@@ -1066,8 +1066,8 @@ const Home = () => {
   };
 
   const renderTrendingSidebar = (config = {}, customLabel = null) => {
-    const activeTrending = trendingNews || [];
-    if (activeTrending.length === 0) return null;
+    const activeTrending = (trendingNews && trendingNews.length > 0) ? trendingNews : displayArticles;
+    if (!activeTrending || activeTrending.length === 0) return null;
     const titleText = customLabel || (lang === 'en' ? 'Trending News' : 'டிரெண்டிங் செய்திகள்');
 
 
