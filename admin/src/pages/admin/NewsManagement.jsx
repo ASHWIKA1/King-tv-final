@@ -164,14 +164,14 @@ const NewsManagement = () => {
         }}>{actionMsg.msg}</div>
       )}
 
-      {/* Filters */}
+      {/* Filters & Bulk Actions */}
       <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: '1 1 250px' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             className="form-control"
             style={{ paddingLeft: '36px' }}
-            placeholder="Search articles by title or author…"
+            placeholder="Search articles by title, slug or author…"
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0); }}
           />
@@ -197,34 +197,47 @@ const NewsManagement = () => {
           <input type="date" className="form-control" style={{ maxWidth: '130px' }} title="End Date"
             value={endDateFilter} onChange={e => { setEndDateFilter(e.target.value); setPage(0); }} />
         </div>
+        
+        {(search || categoryFilter || statusFilter || startDateFilter || endDateFilter) && (
+          <button 
+            onClick={() => { setSearch(''); setCategoryFilter(''); setStatusFilter(''); setStartDateFilter(''); setEndDateFilter(''); setPage(0); }}
+            className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+          >
+            Clear Filters
+          </button>
+        )}
+
         <button onClick={fetchArticles} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <RefreshCw size={14} /> Refresh
         </button>
 
         {selected.size > 0 && (
-          <>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{selected.size} selected</span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{selected.size} selected:</span>
             <button onClick={() => bulkAction('published')} className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}>
               Publish All
             </button>
             <button onClick={() => bulkAction('draft')} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}>
               Move to Draft
             </button>
-          </>
+            <button onClick={() => bulkAction('archived')} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: '#6B7280' }}>
+              Archive All
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Table */}
+      {/* Articles Data Table */}
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <RefreshCw size={28} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 1rem', display: 'block', opacity: 0.4 }} />
-            Loading articles…
+            Loading news articles…
           </div>
         ) : articles.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <FileText size={40} style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }} />
-            No articles found. <NavLink to="/admin/news/create" style={{ color: 'var(--primary)' }}>Create one →</NavLink>
+            No articles found matching filters. <NavLink to="/admin/news/create" style={{ color: 'var(--primary)' }}>Create one →</NavLink>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -234,79 +247,119 @@ const NewsManagement = () => {
                   <input type="checkbox" checked={selected.size === articles.length && articles.length > 0}
                     onChange={selectAll} style={{ cursor: 'pointer' }} />
                 </th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>TITLE</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>ARTICLE TITLE</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '110px' }}>CATEGORY</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '90px' }}>LANG</th>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '100px' }}>STATUS</th>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '110px' }}>AUTHOR</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '70px' }}>VIEWS</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '70px' }}>PRIORITY</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '130px' }}>PUBLISHED</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '160px' }}>ACTIONS</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '65px' }}>SEO</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '65px' }}>VIEWS</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '110px' }}>DATE</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, width: '180px' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
-              {articles.map(art => (
-                <tr key={art.id} style={{
-                  borderBottom: '1px solid var(--border)',
-                  background: selected.has(art.id) ? 'var(--primary-glow)' : 'transparent',
-                  transition: 'background 0.15s'
-                }}>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <input type="checkbox" checked={selected.has(art.id)}
-                      onChange={() => toggleSelect(art.id)} style={{ cursor: 'pointer' }} />
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', lineClamp: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
-                      {art.titleEn || art.titleTa || '(No title)'}
-                    </div>
-                    {art.titleTa && art.titleEn && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '320px' }}>
-                        {art.titleTa}
+              {articles.map(art => {
+                const hasTa = Boolean(art.titleTa || art.contentTa);
+                const hasEn = Boolean(art.titleEn || art.contentEn);
+                const categoryObj = categories.find(c => String(c.id) === String(art.categoryId || art.category?.id));
+                const seoScore = art.seoScore ?? 75;
+                const seoColor = seoScore >= 80 ? '#10B981' : (seoScore >= 50 ? '#F59E0B' : '#EF4444');
+
+                return (
+                  <tr key={art.id} style={{
+                    borderBottom: '1px solid var(--border)',
+                    background: selected.has(art.id) ? 'var(--primary-glow)' : 'transparent',
+                    transition: 'background 0.15s'
+                  }}>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <input type="checkbox" checked={selected.has(art.id)}
+                        onChange={() => toggleSelect(art.id)} style={{ cursor: 'pointer' }} />
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                        {art.titleTa || art.titleEn || '(Untitled Article)'}
                       </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{badge(art.status)}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {art.authorName || 'Unknown'}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {(art.viewsCount ?? 0).toLocaleString()}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {(art.priorityScore ?? 0.0).toFixed(1)}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {art.publishedAt ? new Date(art.publishedAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                      <button title="Edit" onClick={() => navigate(`/admin/news/${art.id}/edit`)}
-                        style={{ background: 'var(--primary-glow)', border: 'none', color: 'var(--primary)', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
-                        <Edit3 size={13} />
-                      </button>
-                      {art.status !== 'published' && (
-                        <button title="Publish" onClick={() => changeStatus(art.id, 'published')}
-                          style={{ background: 'rgba(16,185,129,0.1)', border: 'none', color: '#10B981', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
-                          <CheckCircle size={13} />
-                        </button>
+                      {art.titleEn && art.titleTa && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                          {art.titleEn}
+                        </div>
                       )}
-                      {art.status === 'published' && (
-                        <button title="Move to Draft" onClick={() => changeStatus(art.id, 'draft')}
-                          style={{ background: 'rgba(245,158,11,0.1)', border: 'none', color: '#F59E0B', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
-                          <Clock size={13} />
-                        </button>
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem' }}>
+                      <span style={{ 
+                        background: categoryObj?.color ? `${categoryObj.color}20` : 'rgba(59,130,246,0.15)',
+                        color: categoryObj?.color || '#3B82F6',
+                        padding: '3px 8px', borderRadius: '10px', fontWeight: 600, fontSize: '0.75rem'
+                      }}>
+                        {categoryObj ? (categoryObj.nameTa || categoryObj.name) : 'General'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                      {hasTa && hasEn ? (
+                        <span style={{ fontSize: '0.72rem', background: '#EEF2FF', color: '#4F46E5', padding: '2px 6px', borderRadius: '8px', fontWeight: 700 }}>🌐 Dual</span>
+                      ) : hasTa ? (
+                        <span style={{ fontSize: '0.72rem', background: '#FEF2F2', color: '#DC2626', padding: '2px 6px', borderRadius: '8px', fontWeight: 700 }}>🔴 தமிழ்</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', background: '#EFF6FF', color: '#2563EB', padding: '2px 6px', borderRadius: '8px', fontWeight: 700 }}>🔵 Eng</span>
                       )}
-                      <button title="Archive" onClick={() => changeStatus(art.id, 'archived')}
-                        style={{ background: 'rgba(107,114,128,0.1)', border: 'none', color: '#6B7280', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
-                        <Archive size={13} />
-                      </button>
-                      <button title="Delete" onClick={() => deleteArticle(art.id)}
-                        style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{badge(art.status)}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {art.authorName || 'Kings TV Desk'}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem' }}>
+                      <span style={{ fontWeight: 700, color: seoColor }}>{seoScore}</span>
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {(art.viewsCount ?? 0).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {art.publishedAt ? new Date(art.publishedAt).toLocaleDateString() : (art.createdAt ? new Date(art.createdAt).toLocaleDateString() : '—')}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                        <button title="Edit Article" onClick={() => navigate(`/admin/news/${art.id}/edit`)}
+                          style={{ background: 'var(--primary-glow)', border: 'none', color: 'var(--primary)', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <Edit3 size={13} />
+                        </button>
+                        
+                        {/* View Live Article on Reader App */}
+                        <a 
+                          href={`http://localhost:5173/article/${art.slug || art.id}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          title="View Live Reader Page"
+                          style={{ background: 'rgba(59,130,246,0.1)', border: 'none', color: '#2563EB', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        >
+                          <Eye size={13} />
+                        </a>
+
+                        {art.status !== 'published' && (
+                          <button title="Publish Article" onClick={() => changeStatus(art.id, 'published')}
+                            style={{ background: 'rgba(16,185,129,0.1)', border: 'none', color: '#10B981', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                            <CheckCircle size={13} />
+                          </button>
+                        )}
+                        {art.status === 'published' && (
+                          <button title="Move to Draft" onClick={() => changeStatus(art.id, 'draft')}
+                            style={{ background: 'rgba(245,158,11,0.1)', border: 'none', color: '#F59E0B', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                            <Clock size={13} />
+                          </button>
+                        )}
+                        <button title="Archive" onClick={() => changeStatus(art.id, 'archived')}
+                          style={{ background: 'rgba(107,114,128,0.1)', border: 'none', color: '#6B7280', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <Archive size={13} />
+                        </button>
+                        <button title="Delete" onClick={() => deleteArticle(art.id)}
+                          style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: '5px 7px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
