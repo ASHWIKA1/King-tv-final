@@ -17,9 +17,10 @@ export let activeAiConfig = {
   model: 'gemini-2.0-flash' 
 };
 
-export const getGeminiUrl = (modelOverride) => {
+export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
   const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const apiKey = apiKeyOverride || activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY;
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent${apiKey ? '?key=' + apiKey : ''}`;
 };
 
 const callGemini = async (prompt) => {
@@ -43,7 +44,7 @@ const callGemini = async (prompt) => {
 
   for (const model of uniqueModels) {
     try {
-      const url = getGeminiUrl(model);
+      const url = getGeminiUrl(model, apiKey);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 
@@ -684,7 +685,29 @@ const NewsEditor = () => {
         });
         raw = res.data?.resultText || '';
       } catch (e) {
-        raw = await callGemini(prompt);
+        const draftPrompt = `You are a world-class news editor. Generate a complete news article draft in JSON format based on the following raw content and category list:
+
+Raw Content:
+${baseContent}
+
+Categories: ${catNames}
+
+Return ONLY a valid JSON object matching this schema with NO markdown:
+{
+  "titleEn": "English Title",
+  "titleTa": "Tamil Title",
+  "contentEn": "<p>English Article Content HTML</p>",
+  "contentTa": "<p>Tamil Article Content HTML</p>",
+  "excerptEn": "1-2 sentence English summary",
+  "excerptTa": "1-2 sentence Tamil summary",
+  "seoTitle": "SEO Meta Title max 60 chars",
+  "metaDescription": "SEO Meta Description max 160 chars",
+  "focusKeywords": "primary, keywords",
+  "metaKeywords": "news, tags, comma, separated",
+  "slug": "english-url-slug",
+  "categoryId": "suggested category ID"
+}`;
+        raw = await callGemini(draftPrompt);
       }
 
       let parsed = {};

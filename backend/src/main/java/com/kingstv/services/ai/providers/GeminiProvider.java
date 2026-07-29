@@ -11,38 +11,60 @@ public class GeminiProvider implements LLMProvider {
 
     @Override
     public String generateContent(String prompt, AiConfiguration config) throws Exception {
-        String url = buildUrl(config);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        List<String> modelsToTry = getCandidateModels(config);
+        Exception lastError = null;
 
-        Map<String, Object> textPart = Map.of("text", prompt);
-        Map<String, Object> contentsPart = Map.of("parts", List.of(textPart));
-        Map<String, Object> body = Map.of("contents", List.of(contentsPart));
+        for (String model : modelsToTry) {
+            try {
+                String url = buildUrlForModel(config, model);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+                Map<String, Object> textPart = Map.of("text", prompt);
+                Map<String, Object> contentsPart = Map.of("parts", List.of(textPart));
+                Map<String, Object> body = Map.of("contents", List.of(contentsPart));
 
-        return extractTextFromResponse(response);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+                ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+
+                String text = extractTextFromResponse(response);
+                if (text != null && !text.isBlank()) return text;
+            } catch (Exception e) {
+                lastError = e;
+            }
+        }
+        throw (lastError != null ? lastError : new Exception("Gemini API call failed for all candidate models"));
     }
 
     @Override
     public String generateContentMultimodal(byte[] base64Data, String mimeType, String prompt, AiConfiguration config) throws Exception {
-        String url = buildUrl(config);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        List<String> modelsToTry = getCandidateModels(config);
+        Exception lastError = null;
 
-        // Standard Gemini Multimodal format
         String base64Str = Base64.getEncoder().encodeToString(base64Data);
-        Map<String, Object> inlineData = Map.of("data", base64Str, "mimeType", mimeType);
-        Map<String, Object> inlinePart = Map.of("inlineData", inlineData);
-        Map<String, Object> textPart = Map.of("text", prompt);
-        Map<String, Object> contentsPart = Map.of("parts", List.of(inlinePart, textPart));
-        Map<String, Object> body = Map.of("contents", List.of(contentsPart));
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+        for (String model : modelsToTry) {
+            try {
+                String url = buildUrlForModel(config, model);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
 
-        return extractTextFromResponse(response);
+                Map<String, Object> inlineData = Map.of("data", base64Str, "mimeType", mimeType);
+                Map<String, Object> inlinePart = Map.of("inlineData", inlineData);
+                Map<String, Object> textPart = Map.of("text", prompt);
+                Map<String, Object> contentsPart = Map.of("parts", List.of(inlinePart, textPart));
+                Map<String, Object> body = Map.of("contents", List.of(contentsPart));
+
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+                ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+
+                String text = extractTextFromResponse(response);
+                if (text != null && !text.isBlank()) return text;
+            } catch (Exception e) {
+                lastError = e;
+            }
+        }
+        throw (lastError != null ? lastError : new Exception("Gemini Multimodal API call failed for all candidate models"));
     }
 
     @Override
@@ -55,14 +77,22 @@ public class GeminiProvider implements LLMProvider {
         }
     }
 
-    private String buildUrl(AiConfiguration config) {
+    private List<String> getCandidateModels(AiConfiguration config) {
+        List<String> list = new ArrayList<>();
+        if (config.getModel() != null && !config.getModel().isBlank()) {
+            list.add(config.getModel());
+        }
+        if (!list.contains("gemini-2.0-flash")) list.add("gemini-2.0-flash");
+        if (!list.contains("gemini-1.5-flash")) list.add("gemini-1.5-flash");
+        if (!list.contains("gemini-2.5-flash")) list.add("gemini-2.5-flash");
+        if (!list.contains("gemini-1.5-pro")) list.add("gemini-1.5-pro");
+        return list;
+    }
+
+    private String buildUrlForModel(AiConfiguration config, String model) {
         String baseUrl = config.getBaseUrl();
         if (baseUrl == null || baseUrl.isBlank()) {
             baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-        }
-        String model = config.getModel();
-        if (model == null || model.isBlank()) {
-            model = "gemini-2.0-flash";
         }
         return baseUrl + "/models/" + model + ":generateContent?key=" + config.getApiKey();
     }
