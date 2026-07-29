@@ -22,6 +22,13 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
     List<Article> findTop5ByStatusOrderByViewsCountDesc(String status);
     List<Article> findByAuthorNameInAndStatusOrderByPublishedAtDesc(List<String> authorNames, String status);
 
+    // Scheduling & expiry
+    List<Article> findByStatusAndScheduledAtBefore(String status, java.time.LocalDateTime time);
+    List<Article> findByStatusAndExpiresAtBefore(String status, java.time.LocalDateTime time);
+
+    // Related articles
+    List<Article> findTop10ByStatusAndCategoryIdAndIdNotOrderByPublishedAtDesc(String status, Long categoryId, Long id);
+
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @Query("UPDATE Article a SET a.viewsCount = COALESCE(a.viewsCount, 0) + 1 WHERE a.id = :id")
@@ -34,7 +41,6 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
            "sin(radians(:userLat)) * sin(radians(latitude)))) <= COALESCE(visibility_radius_km, :defaultRadius)) " +
            "ORDER BY published_at DESC LIMIT :limit", nativeQuery = true)
     List<Article> findNearbyArticles(@Param("userLat") Double userLat, @Param("userLon") Double userLon, @Param("defaultRadius") Double defaultRadius, @Param("limit") int limit);
-    List<Article> findTop10ByStatusAndCategoryIdAndIdNotOrderByPublishedAtDesc(String status, Long categoryId, Long id);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional

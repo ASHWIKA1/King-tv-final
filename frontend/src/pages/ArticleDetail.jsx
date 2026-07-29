@@ -71,6 +71,98 @@ const ArticleDetail = () => {
     }
   }, [article]);
 
+  // === Enterprise SEO: OG + Twitter Card + NewsArticle JSON-LD ===
+  useEffect(() => {
+    if (!article) return;
+
+    const siteUrl = window.location.origin;
+    const articleUrl = window.location.href;
+    const title = (lang === 'ta' ? article.titleTa : article.titleEn) || article.titleTa || '';
+    const description = (lang === 'ta' ? article.shortDescTa : article.shortDescEn) || article.metaDescription || '';
+    const image = article.ogImage || article.featuredImage || article.imageUrl || '';
+    const author = article.authorName || 'Kings TV News Desk';
+    const pubDate = article.publishedAt ? new Date(article.publishedAt).toISOString() : new Date().toISOString();
+    const modDate = article.updatedAt ? new Date(article.updatedAt).toISOString() : pubDate;
+
+    const setMeta = (selector, attrName, attrVal, content) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attrName, attrVal);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+      return el;
+    };
+
+    document.title = `${title} | Kings 24x7`;
+
+    setMeta('meta[name="description"]', 'name', 'description', description);
+    setMeta('meta[property="og:title"]', 'property', 'og:title', title);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', description);
+    setMeta('meta[property="og:url"]', 'property', 'og:url', articleUrl);
+    setMeta('meta[property="og:type"]', 'property', 'og:type', 'article');
+    setMeta('meta[property="og:site_name"]', 'property', 'og:site_name', 'Kings 24x7');
+    setMeta('meta[property="og:locale"]', 'property', 'og:locale', lang === 'ta' ? 'ta_IN' : 'en_IN');
+    if (image) setMeta('meta[property="og:image"]', 'property', 'og:image', image);
+    setMeta('meta[property="article:published_time"]', 'property', 'article:published_time', pubDate);
+    setMeta('meta[property="article:modified_time"]', 'property', 'article:modified_time', modDate);
+    setMeta('meta[property="article:author"]', 'property', 'article:author', author);
+
+    setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+    setMeta('meta[name="twitter:site"]', 'name', 'twitter:site', '@kings24x7');
+    setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
+    if (image) setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image);
+
+    // NewsArticle JSON-LD structured data
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'NewsArticle',
+          'headline': title,
+          'description': description,
+          'image': image ? [image] : [],
+          'datePublished': pubDate,
+          'dateModified': modDate,
+          'author': [{ '@type': 'Person', 'name': author, 'url': `${siteUrl}/author/${encodeURIComponent(author)}` }],
+          'publisher': {
+            '@type': 'Organization',
+            'name': 'Kings 24x7',
+            'logo': { '@type': 'ImageObject', 'url': `${siteUrl}/assets/icons/logo.png` }
+          },
+          'mainEntityOfPage': { '@type': 'WebPage', '@id': articleUrl },
+          'inLanguage': lang === 'ta' ? 'ta' : 'en',
+          'isAccessibleForFree': true,
+          ...(article.isAiGenerated && { 'additionalType': 'https://schema.org/AIGeneratedContent' }),
+        },
+        {
+          '@type': 'BreadcrumbList',
+          'itemListElement': [
+            { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteUrl },
+            { '@type': 'ListItem', 'position': 2, 'name': title, 'item': articleUrl }
+          ]
+        }
+      ]
+    };
+
+    let scriptEl = document.querySelector('script[data-kings-jsonld]');
+    if (!scriptEl) {
+      scriptEl = document.createElement('script');
+      scriptEl.type = 'application/ld+json';
+      scriptEl.setAttribute('data-kings-jsonld', 'true');
+      document.head.appendChild(scriptEl);
+    }
+    scriptEl.textContent = JSON.stringify(jsonLd);
+
+    return () => {
+      document.title = 'Kings 24x7 | Tamil News';
+      ['meta[property^="og:"]', 'meta[property^="article:"]', 'meta[name^="twitter:"]', 'script[data-kings-jsonld]']
+        .forEach(sel => document.querySelectorAll(sel).forEach(el => el.remove()));
+    };
+  }, [article, lang]);
+
   const toggleOfflineSave = () => {
     try {
       const stored = localStorage.getItem('kings_offline_bookmarks');

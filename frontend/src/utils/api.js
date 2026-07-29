@@ -1,4 +1,4 @@
-const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'https://kings-tv.onrender.com';
+const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'http://localhost:8080';
 const API_BASE = import.meta.env.VITE_API_BASE || `${SERVER_BASE}/api/v1`;
 
 export const getImageUrl = (path) => {

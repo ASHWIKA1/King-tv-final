@@ -409,6 +409,16 @@ const Home = () => {
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
+        const localLayout = localStorage.getItem('dummy_layout_config');
+        if (localLayout) {
+          try {
+            const parsed = JSON.parse(localLayout);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLayoutSections(parsed);
+              return;
+            }
+          } catch (e) {}
+        }
         if (Array.isArray(data)) {
           setLayoutSections(data);
         }
@@ -514,9 +524,7 @@ const Home = () => {
     });
 
     // 7. Fetch Weather Forecast from backend for Chennai
-    const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/v1';
-    const pWeather = fetch(`${baseApi}/weather?city=Chennai`)
-      .then(res => res.json())
+    const pWeather = fetchApi('/weather?city=Chennai')
       .then(data => {
         if (data && data.temp) {
           const forecastData = [];
@@ -562,6 +570,35 @@ const Home = () => {
       setLoading(false);
     });
   }, [lang]);
+
+  useEffect(() => {
+    const handleLayoutUpdate = () => {
+      const localLayout = localStorage.getItem('dummy_layout_config');
+      if (localLayout) {
+        try {
+          const parsed = JSON.parse(localLayout);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLayoutSections(parsed);
+            return;
+          }
+        } catch (e) {}
+      }
+      fetchApi('/public/layout/web')
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setLayoutSections(data);
+          }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('layoutUpdated', handleLayoutUpdate);
+    window.addEventListener('storage', handleLayoutUpdate);
+    return () => {
+      window.removeEventListener('layoutUpdated', handleLayoutUpdate);
+      window.removeEventListener('storage', handleLayoutUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -870,10 +907,18 @@ const Home = () => {
     );
   };
 
-  const renderHero = () => {
-    const heroFeatured = featured || MOCK_ARTICLES[0];
+  const renderHero = (config = {}, customLabel = null) => {
+    const filterCatId = config.categoryId ? String(config.categoryId) : null;
+    const heroPool = filterCatId
+      ? displayArticles.filter(a => String(a.categoryId) === filterCatId)
+      : displayArticles;
+    const activeHeroPool = heroPool.length > 0 ? heroPool : displayArticles;
+
+    const heroFeatured = activeHeroPool[0] || featured || MOCK_ARTICLES[0];
     const heroCat = getCategoryDetails(heroFeatured.categoryId);
-    const heroSideItems = sideArticles.length >= 4 ? sideArticles.slice(0, 4) : MOCK_ARTICLES.slice(1, 5);
+    const heroSideItems = activeHeroPool.length >= 5 
+      ? activeHeroPool.slice(1, 5) 
+      : (sideArticles.length >= 4 ? sideArticles.slice(0, 4) : MOCK_ARTICLES.slice(1, 5));
 
     return (
       <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
@@ -1577,11 +1622,11 @@ const Home = () => {
         return (
           <React.Fragment key={section.id || key}>
             {renderCommodityTicker()}
-            {renderNewsTicker()}
+            {renderNewsTicker(config, customLabel)}
           </React.Fragment>
         );
       case 'hero':
-        return <React.Fragment key={section.id || key}>{renderHero(config)}</React.Fragment>;
+        return <React.Fragment key={section.id || key}>{renderHero(config, customLabel)}</React.Fragment>;
       case 'quick_access':
         return <React.Fragment key={section.id || key}>{renderQuickAccess()}</React.Fragment>;
       case 'latest_news':
@@ -1591,6 +1636,7 @@ const Home = () => {
       case 'web_stories':
         return <React.Fragment key={section.id || key}>{renderWebStories(config, customLabel)}</React.Fragment>;
       case 'crowd_reporter':
+      case 'crowd_reporter_highlight':
         return <React.Fragment key={section.id || key}>{renderCrowdReporterHighlight()}</React.Fragment>;
       case 'institution_news':
       case 'business_case':
@@ -1598,9 +1644,9 @@ const Home = () => {
       case 'trending_sidebar':
         return <React.Fragment key={section.id || key}>{renderTrendingSidebar(config, customLabel)}</React.Fragment>;
       case 'weather':
-        return <React.Fragment key={section.id || key}>{renderWeather()}</React.Fragment>;
+        return <React.Fragment key={section.id || key}>{renderWeather(config, customLabel)}</React.Fragment>;
       case 'live_tv':
-        return <React.Fragment key={section.id || key}>{renderLiveTv()}</React.Fragment>;
+        return <React.Fragment key={section.id || key}>{renderLiveTv(config, customLabel)}</React.Fragment>;
       case 'rss_news':
       case 'rss_aggregator':
         return <React.Fragment key={section.id || key}>{renderRssAggregatedNews()}</React.Fragment>;
@@ -1609,7 +1655,7 @@ const Home = () => {
       case 'newsletter':
         return <React.Fragment key={section.id || key}>{renderNewsletterStrip()}</React.Fragment>;
       default:
-        return null;
+        return <React.Fragment key={section.id || key}>{renderLatestNews(config, customLabel)}</React.Fragment>;
     }
   };
 
@@ -1625,7 +1671,7 @@ const Home = () => {
     : [];
 
   const sortedLeftSections = hasDynamicLayout
-    ? layoutSections.filter(s => s.isVisible !== false && leftKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    ? layoutSections.filter(s => s.isVisible !== false && !topKeys.includes(s.sectionKey) && !sidebarKeys.includes(s.sectionKey) && !bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
     : [];
 
   const sortedSidebarSections = hasDynamicLayout

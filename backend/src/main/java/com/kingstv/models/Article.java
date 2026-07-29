@@ -121,6 +121,82 @@ public class Article {
     @Column(name = "featured_category")
     private String featuredCategory;
 
+    // --- Article Locking ---
+    @Column(name = "locked_by_user_id")
+    private Long lockedByUserId;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
+
+    @Column(name = "lock_expires_at")
+    private LocalDateTime lockExpiresAt;
+
+    // --- Scheduling & Embargo ---
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
+    @Column(name = "embargoed_until")
+    private LocalDateTime embargoedUntil;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    // --- Editorial Metadata ---
+    @Column(name = "fact_check_status")
+    private String factCheckStatus = "NOT_CHECKED";
+
+    @Column(name = "fact_check_note", columnDefinition = "TEXT")
+    private String factCheckNote;
+
+    @Column(name = "requires_legal_review")
+    private Boolean requiresLegalReview = false;
+
+    @Column(name = "legal_cleared_at")
+    private LocalDateTime legalClearedAt;
+
+    @Column(name = "content_type")
+    private String contentType = "NEWS";
+
+    @Column(name = "is_breaking")
+    private Boolean isBreaking = false;
+
+    @Column(name = "is_premium")
+    private Boolean isPremium = false;
+
+    @Column(name = "is_sponsored")
+    private Boolean isSponsored = false;
+
+    @Column(name = "sponsor_name")
+    private String sponsorName;
+
+    // --- AI Disclosure ---
+    @Column(name = "is_ai_generated")
+    private Boolean isAiGenerated = false;
+
+    @Column(name = "is_ai_assisted")
+    private Boolean isAiAssisted = false;
+
+    // --- Revision Tracking ---
+    @Column(name = "revision_number")
+    private Integer revisionNumber = 1;
+
+    // --- Correction ---
+    @Column(name = "last_corrected_at")
+    private LocalDateTime lastCorrectedAt;
+
+    @Column(name = "correction_note", columnDefinition = "TEXT")
+    private String correctionNote;
+
+    // --- Social / OG Metadata ---
+    @Column(name = "og_image")
+    private String ogImage;
+
+    @Column(name = "og_title")
+    private String ogTitle;
+
+    @Column(name = "og_description", columnDefinition = "TEXT")
+    private String ogDescription;
+
     @Transient
     private String authorProfileImage;
 
@@ -245,4 +321,65 @@ public class Article {
 
     public String getFeaturedCategory() { return featuredCategory; }
     public void setFeaturedCategory(String featuredCategory) { this.featuredCategory = featuredCategory; }
+
+    // --- Locking ---
+    public Long getLockedByUserId() { return lockedByUserId; }
+    public void setLockedByUserId(Long lockedByUserId) { this.lockedByUserId = lockedByUserId; }
+    public LocalDateTime getLockedAt() { return lockedAt; }
+    public void setLockedAt(LocalDateTime lockedAt) { this.lockedAt = lockedAt; }
+    public LocalDateTime getLockExpiresAt() { return lockExpiresAt; }
+    public void setLockExpiresAt(LocalDateTime lockExpiresAt) { this.lockExpiresAt = lockExpiresAt; }
+
+    // --- Scheduling ---
+    public LocalDateTime getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
+    public LocalDateTime getEmbargoedUntil() { return embargoedUntil; }
+    public void setEmbargoedUntil(LocalDateTime embargoedUntil) { this.embargoedUntil = embargoedUntil; }
+    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
+
+    // --- Editorial ---
+    public String getFactCheckStatus() { return factCheckStatus; }
+    public void setFactCheckStatus(String factCheckStatus) { this.factCheckStatus = factCheckStatus; }
+    public String getFactCheckNote() { return factCheckNote; }
+    public void setFactCheckNote(String factCheckNote) { this.factCheckNote = factCheckNote; }
+    public Boolean getRequiresLegalReview() { return requiresLegalReview != null ? requiresLegalReview : false; }
+    public void setRequiresLegalReview(Boolean requiresLegalReview) { this.requiresLegalReview = requiresLegalReview; }
+    public LocalDateTime getLegalClearedAt() { return legalClearedAt; }
+    public void setLegalClearedAt(LocalDateTime legalClearedAt) { this.legalClearedAt = legalClearedAt; }
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+    public Boolean getIsBreaking() { return isBreaking != null ? isBreaking : false; }
+    public void setIsBreaking(Boolean isBreaking) { this.isBreaking = isBreaking; }
+    public Boolean getIsPremium() { return isPremium != null ? isPremium : false; }
+    public void setIsPremium(Boolean isPremium) { this.isPremium = isPremium; }
+    public Boolean getIsSponsored() { return isSponsored != null ? isSponsored : false; }
+    public void setIsSponsored(Boolean isSponsored) { this.isSponsored = isSponsored; }
+    public String getSponsorName() { return sponsorName; }
+    public void setSponsorName(String sponsorName) { this.sponsorName = sponsorName; }
+
+    // --- AI Disclosure ---
+    public Boolean getIsAiGenerated() { return isAiGenerated != null ? isAiGenerated : false; }
+    public void setIsAiGenerated(Boolean isAiGenerated) { this.isAiGenerated = isAiGenerated; }
+    public Boolean getIsAiAssisted() { return isAiAssisted != null ? isAiAssisted : false; }
+    public void setIsAiAssisted(Boolean isAiAssisted) { this.isAiAssisted = isAiAssisted; }
+
+    // --- Revision ---
+    public Integer getRevisionNumber() { return revisionNumber != null ? revisionNumber : 1; }
+    public void setRevisionNumber(Integer revisionNumber) { this.revisionNumber = revisionNumber; }
+
+    // --- Correction ---
+    public LocalDateTime getLastCorrectedAt() { return lastCorrectedAt; }
+    public void setLastCorrectedAt(LocalDateTime lastCorrectedAt) { this.lastCorrectedAt = lastCorrectedAt; }
+    public String getCorrectionNote() { return correctionNote; }
+    public void setCorrectionNote(String correctionNote) { this.correctionNote = correctionNote; }
+
+    // --- OG / Social ---
+    public String getOgImage() { return ogImage; }
+    public void setOgImage(String ogImage) { this.ogImage = ogImage; }
+    public String getOgTitle() { return ogTitle; }
+    public void setOgTitle(String ogTitle) { this.ogTitle = ogTitle; }
+    public String getOgDescription() { return ogDescription; }
+    public void setOgDescription(String ogDescription) { this.ogDescription = ogDescription; }
 }
+

@@ -1,9 +1,11 @@
 package com.kingstv.controllers;
 
 import com.kingstv.models.Article;
+import com.kingstv.models.ArticleRevision;
 import com.kingstv.models.Comment;
 import com.kingstv.models.User;
 import com.kingstv.repository.ArticleRepository;
+import com.kingstv.repository.ArticleRevisionRepository;
 import com.kingstv.repository.CommentRepository;
 import com.kingstv.repository.UserRepository;
 import com.kingstv.services.SlugService;
@@ -66,6 +68,9 @@ public class ArticleController {
 
     @Autowired
     private com.kingstv.services.SystemConfigService configService;
+
+    @Autowired
+    private ArticleRevisionRepository articleRevisionRepository;
 
     // --- KEEP Existing Front-End Endpoint Map ---
     @GetMapping
@@ -326,6 +331,31 @@ public class ArticleController {
         }
         
         Article article = artOpt.get();
+
+        // ── Save revision snapshot BEFORE applying changes ──
+        try {
+            var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Long editorId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
+            String editorName = authCtx != null ? authCtx.getName() : "Unknown";
+            int nextRev = (article.getRevisionNumber() != null ? article.getRevisionNumber() : 0) + 1;
+            ArticleRevision snapshot = new ArticleRevision();
+            snapshot.setArticleId(article.getId());
+            snapshot.setRevisionNumber(nextRev);
+            snapshot.setTitleTa(article.getTitleTa());
+            snapshot.setTitleEn(article.getTitleEn());
+            snapshot.setContentTa(article.getContentTa());
+            snapshot.setContentEn(article.getContentEn());
+            snapshot.setStatus(article.getStatus());
+            snapshot.setChangedByUserId(editorId);
+            snapshot.setChangedByName(editorName);
+            snapshot.setChangeSummary("Article updated");
+            articleRevisionRepository.save(snapshot);
+            entity.setRevisionNumber(nextRev);
+        } catch (Exception revEx) {
+            // Non-blocking — revision save failure must not block the article save
+            System.err.println("[Revision] Failed to save revision for article #" + entity.getId() + ": " + revEx.getMessage());
+        }
+
         article.setCategoryId(entity.getCategoryId());
         article.setDistrictId(entity.getDistrictId());
         article.setTitleTa(entity.getTitleTa());
@@ -350,6 +380,35 @@ public class ArticleController {
         article.setReadabilityScore(entity.getReadabilityScore());
         article.setSeoScore(entity.getSeoScore());
         article.setSeoStatus(entity.getSeoStatus());
+
+        // Enterprise fields
+        if (entity.getRevisionNumber() != null) article.setRevisionNumber(entity.getRevisionNumber());
+        if (entity.getScheduledAt() != null) article.setScheduledAt(entity.getScheduledAt());
+        if (entity.getEmbargoedUntil() != null) article.setEmbargoedUntil(entity.getEmbargoedUntil());
+        if (entity.getExpiresAt() != null) article.setExpiresAt(entity.getExpiresAt());
+        article.setFactCheckStatus(entity.getFactCheckStatus());
+        article.setFactCheckNote(entity.getFactCheckNote());
+        if (entity.getRequiresLegalReview() != null) article.setRequiresLegalReview(entity.getRequiresLegalReview());
+        article.setContentType(entity.getContentType());
+        if (entity.getIsBreaking() != null) article.setIsBreaking(entity.getIsBreaking());
+        if (entity.getIsPremium() != null) article.setIsPremium(entity.getIsPremium());
+        if (entity.getIsSponsored() != null) article.setIsSponsored(entity.getIsSponsored());
+        article.setSponsorName(entity.getSponsorName());
+        if (entity.getIsAiGenerated() != null) article.setIsAiGenerated(entity.getIsAiGenerated());
+        if (entity.getIsAiAssisted() != null) article.setIsAiAssisted(entity.getIsAiAssisted());
+        article.setOgImage(entity.getOgImage());
+        article.setOgTitle(entity.getOgTitle());
+        article.setOgDescription(entity.getOgDescription());
+        if (entity.getCorrectionNote() != null) article.setCorrectionNote(entity.getCorrectionNote());
+        if (entity.getSubcategoryId() != null) article.setSubcategoryId(entity.getSubcategoryId());
+        if (entity.getConstituency() != null) article.setConstituency(entity.getConstituency());
+        if (entity.getLatitude() != null) article.setLatitude(entity.getLatitude());
+        if (entity.getLongitude() != null) article.setLongitude(entity.getLongitude());
+        if (entity.getVisibilityRadiusKm() != null) article.setVisibilityRadiusKm(entity.getVisibilityRadiusKm());
+        if (entity.getShowRightColumn() != null) article.setShowRightColumn(entity.getShowRightColumn());
+        if (entity.getIsPluggedIn() != null) article.setIsPluggedIn(entity.getIsPluggedIn());
+        if (entity.getFeaturedCategory() != null) article.setFeaturedCategory(entity.getFeaturedCategory());
+        if (entity.getPriorityScore() != null) article.setPriorityScore(entity.getPriorityScore());
         
         populateSeoFields(article, request);
         Article updated = articleRepository.save(article);
@@ -617,4 +676,129 @@ public class ArticleController {
                 "</body>\n" +
                 "</html>";
     }
+
+    // ============================================================
+    // ENTERPRISE: Article Locking
+    // ============================================================
+
+    @PostMapping("/{id}/lock")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
+    public ResponseEntity<?> lockArticle(@PathVariable Long id) {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        Long userId = auth != null && auth.getDetails() instanceof Long ? (Long) auth.getDetails() : null;
+
+        Optional<Article> opt = articleRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Article not found"));
+        Article article = opt.get();
+
+        // Check if locked by someone else with non-expired lock
+        if (article.getLockedByUserId() != null && !article.getLockedByUserId().equals(userId)) {
+            LocalDateTime expiry = article.getLockExpiresAt();
+            if (expiry != null && expiry.isAfter(LocalDateTime.now())) {
+                String lockerName = userRepository.findById(article.getLockedByUserId())
+                    .map(User::getFullName).orElse("Another editor");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "message", "Article is locked by " + lockerName,
+                    "lockedBy", lockerName,
+                    "lockExpiresAt", expiry.toString()
+                ));
+            }
+        }
+
+        article.setLockedByUserId(userId);
+        article.setLockedAt(LocalDateTime.now());
+        article.setLockExpiresAt(LocalDateTime.now().plusMinutes(30));
+        articleRepository.save(article);
+        return ResponseEntity.ok(Map.of(
+            "message", "Lock acquired",
+            "lockedByUserId", userId != null ? userId : 0L,
+            "lockExpiresAt", article.getLockExpiresAt().toString()
+        ));
+    }
+
+    @PostMapping("/{id}/unlock")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
+    public ResponseEntity<?> unlockArticle(@PathVariable Long id) {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        Long userId = auth != null && auth.getDetails() instanceof Long ? (Long) auth.getDetails() : null;
+        String role = auth != null ? auth.getAuthorities().stream()
+            .filter(a -> a.getAuthority().startsWith("ROLE_")).map(a -> a.getAuthority().substring(5))
+            .findFirst().orElse("") : "";
+
+        Optional<Article> opt = articleRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Article not found"));
+        Article article = opt.get();
+
+        boolean isAdmin = "SUPER_ADMIN".equals(role) || "CHIEF_EDITOR".equals(role);
+        boolean isOwner = article.getLockedByUserId() != null && article.getLockedByUserId().equals(userId);
+        if (!isOwner && !isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Only the lock owner or an admin can unlock this article"));
+        }
+
+        article.setLockedByUserId(null);
+        article.setLockedAt(null);
+        article.setLockExpiresAt(null);
+        articleRepository.save(article);
+        return ResponseEntity.ok(Map.of("message", "Article unlocked"));
+    }
+
+    @PostMapping("/{id}/heartbeat")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
+    public ResponseEntity<?> heartbeatLock(@PathVariable Long id) {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        Long userId = auth != null && auth.getDetails() instanceof Long ? (Long) auth.getDetails() : null;
+
+        Optional<Article> opt = articleRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Article not found"));
+        Article article = opt.get();
+
+        if (!java.util.Objects.equals(article.getLockedByUserId(), userId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "You do not hold the lock on this article"));
+        }
+        article.setLockExpiresAt(LocalDateTime.now().plusMinutes(30));
+        articleRepository.save(article);
+        return ResponseEntity.ok(Map.of("message", "Lock extended", "lockExpiresAt", article.getLockExpiresAt().toString()));
+    }
+
+    @GetMapping("/{id}/lock-status")
+    public ResponseEntity<?> getLockStatus(@PathVariable Long id) {
+        Optional<Article> opt = articleRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Article not found"));
+        Article article = opt.get();
+        boolean isLocked = article.getLockedByUserId() != null
+            && article.getLockExpiresAt() != null
+            && article.getLockExpiresAt().isAfter(LocalDateTime.now());
+
+        if (!isLocked) return ResponseEntity.ok(Map.of("locked", false));
+        String lockerName = userRepository.findById(article.getLockedByUserId())
+            .map(User::getFullName).orElse("Unknown editor");
+        return ResponseEntity.ok(Map.of(
+            "locked", true,
+            "lockedBy", lockerName,
+            "lockedByUserId", article.getLockedByUserId(),
+            "lockedAt", article.getLockedAt().toString(),
+            "lockExpiresAt", article.getLockExpiresAt().toString()
+        ));
+    }
+
+    // ============================================================
+    // ENTERPRISE: Revision History
+    // ============================================================
+
+    @GetMapping("/{id}/revisions")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR})
+    public ResponseEntity<?> getRevisions(@PathVariable Long id) {
+        return ResponseEntity.ok(articleRevisionRepository.findByArticleIdOrderByRevisionNumberDesc(id));
+    }
+
+    @GetMapping("/{id}/revisions/{revNum}")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR})
+    public ResponseEntity<?> getRevision(@PathVariable Long id, @PathVariable Integer revNum) {
+        return articleRevisionRepository.findByArticleIdOrderByRevisionNumberDesc(id).stream()
+            .filter(r -> r.getRevisionNumber().equals(revNum))
+            .findFirst()
+            .<ResponseEntity<?>>map(ResponseEntity::ok)
+            .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Revision not found")));
+    }
 }
+
