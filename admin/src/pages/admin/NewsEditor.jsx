@@ -622,6 +622,21 @@ const NewsEditor = () => {
       setReporters(users);
     }).catch(() => {});
     
+    api.get('/user/profile').then(r => {
+      if (r.data && (r.data.fullName || r.data.username)) {
+        const userAuthor = r.data.fullName || r.data.username;
+        setForm(f => ({ ...f, authorName: f.authorName || userAuthor }));
+      }
+    }).catch(() => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (storedUser.fullName || storedUser.username) {
+          const userAuthor = storedUser.fullName || storedUser.username;
+          setForm(f => ({ ...f, authorName: f.authorName || userAuthor }));
+        }
+      } catch (e) {}
+    });
+
     const savedKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('ai.llm_api_key') || '';
     if (savedKey) {
       activeAiConfig.apiKey = savedKey;
@@ -1568,7 +1583,7 @@ const NewsEditor = () => {
                     <div>
                       <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600 }}>Author / Journalist Name *</label>
                       <select 
-                        value={isCustomAuthor ? 'OTHER' : (form.authorName || 'Kings TV News Desk')}
+                        value={isCustomAuthor ? 'OTHER' : (form.authorName || (reporters[0]?.fullName || reporters[0]?.username || ''))}
                         onChange={e => {
                           if (e.target.value === 'OTHER') {
                             setIsCustomAuthor(true);
@@ -1580,18 +1595,19 @@ const NewsEditor = () => {
                         }}
                         style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px' }}
                       >
-                        <option value="Kings TV News Desk">Kings TV News Desk</option>
-                        <option value="Editorial Desk">Editorial Desk</option>
+                        {form.authorName && !reporters.some(r => (r.fullName || r.username) === form.authorName) && (
+                          <option value={form.authorName}>{form.authorName} (Active Profile)</option>
+                        )}
                         {reporters.map(r => (
                           <option key={r.id} value={r.fullName || r.username}>
-                            {r.fullName || r.username} ({r.role ? r.role.replace('_', ' ') : 'Reporter'})
+                            {r.fullName || r.username} ({r.role ? r.role.replace(/^ROLE_/, '').replace('_', ' ') : 'Reporter'})
                           </option>
                         ))}
                         <option value="OTHER">➕ Others / Type Custom Author Name...</option>
                       </select>
 
                       {/* Custom Author Name Input if Others selected */}
-                      {(isCustomAuthor || !['Kings TV News Desk', 'Editorial Desk', ...reporters.map(r => r.fullName || r.username)].includes(form.authorName)) && (
+                      {(isCustomAuthor || (!form.authorName && !reporters.length)) && (
                         <div style={{ marginTop: '10px' }}>
                           <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Custom Author Name</label>
                           <input 
