@@ -120,9 +120,6 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dummy-layout" element={<DummyLayoutPage />} />
-          <Route path="/dummy" element={<DummyLayoutPage />} />
-          <Route path="/dummy-page" element={<DummyLayoutPage />} />
           <Route path="/kingstv" element={<Home />} />
           <Route path="/kingstv/" element={<Home />} />
           <Route path="/king-tv" element={<Home />} />
