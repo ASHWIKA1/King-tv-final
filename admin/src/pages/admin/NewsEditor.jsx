@@ -1894,10 +1894,10 @@ const NewsEditor = () => {
                     background: 'var(--bg-secondary, #fff)'
                   }}
                 >
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Recommended Fast & Multimodal)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Fast & Reliable)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Next Generation)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (High Precision Reasoning)</option>
+                  <option value="gemini-flash-latest">gemini-flash-latest (Recommended Fast & Multimodal)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Next Generation High-Speed)</option>
+                  <option value="gemini-3.6-flash">gemini-3.6-flash (Latest Interactions API Model)</option>
+                  <option value="gemini-2.0-flash-001">gemini-2.0-flash-001 (Stable 2.0 Endpoint)</option>
                 </select>
               </div>
 
