@@ -28,8 +28,8 @@ const callGemini = async (prompt) => {
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
-  if (!activeAiConfig.apiUrl && !apiKey.startsWith('AIzaSy')) {
-    throw new Error('Invalid key format. Google AI Studio keys start with "AIzaSy". Click "🔑 Set API Key" to enter your key from Google AI Studio.');
+  if (apiKey.length < 8) {
+    throw new Error('Please enter a valid Gemini API Key.');
   }
 
   const modelsToTry = [
@@ -275,10 +275,11 @@ const NewsEditor = () => {
 
   const handleSaveApiKey = async () => {
     const key = apiKeyInput.trim();
-    if (!key) return showMsg('Please enter a valid Gemini API Key', true);
-    if (!key.startsWith('AIzaSy')) return showMsg('Invalid key format. Google AI Studio keys start with "AIzaSy".', true);
+    if (!key || key.length < 8) return showMsg('Please enter a valid Gemini API Key', true);
 
+    activeAiConfig.apiKey = key;
     activeAiConfig.model = apiModelInput;
+    localStorage.setItem('ai.llm_api_key', key);
 
     try {
       await api.post('/admin/config', [
