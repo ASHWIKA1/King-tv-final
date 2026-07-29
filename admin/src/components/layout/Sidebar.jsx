@@ -232,7 +232,7 @@ const Sidebar = () => {
 
         {/* ═══ PERSONAL ═══ */}
         <div className="sidebar-divider" />
-        <SidebarNavLink to="/profile" icon={User} label={t('myProfile')} />
+        <SidebarNavLink to="/admin/profile" icon={User} label={t('myProfile')} />
         
         <a href={getNewsSiteUrl()} target="_blank" rel="noopener noreferrer" className="nav-link nav-link--external">
           <Globe size={18} />
