@@ -103,12 +103,12 @@ const Home = () => {
           const formatted = list.map(item => (lang === 'en' ? item.title : item.titleTa) || item.title);
           setTickers(formatted);
         } else {
-          setTickers(initialTickers);
+          setTickers([]);
         }
       })
       .catch(err => {
-        console.warn("Could not load breaking news from API, using fallback", err);
-        setTickers(initialTickers);
+        console.warn("Could not load breaking news from API", err);
+        setTickers([]);
       });
 
     const pWebStories = fetchApi('/web-stories/getAllWeb?size=6')
@@ -759,6 +759,7 @@ const Home = () => {
             
             {/* Main Big Featured News Card (Left) */}
             <div 
+              className="hero-lead-card"
               style={{ 
                 position: 'relative', 
                 borderRadius: '16px', 
@@ -816,16 +817,15 @@ const Home = () => {
                 return (
                   <div 
                     key={art.id || art.article_id || idx}
+                    className="news-side-card"
                     style={{ 
-                      background: '#FFFFFF', 
+                      background: 'var(--white)', 
                       borderRadius: '12px', 
                       padding: '12px 16px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '14px',
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                      border: '1px solid #F1F5F9',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                       cursor: 'pointer'
                     }}
                   >
