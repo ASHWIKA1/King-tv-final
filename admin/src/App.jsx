@@ -40,6 +40,7 @@ import AiConfiguration from './pages/admin/AiConfiguration';
 import CommunityModules from './pages/admin/CommunityModules';
 import LanguageFontSettings from './pages/admin/LanguageFontSettings';
 import EmployersManagement from './pages/admin/EmployersManagement';
+import CandidatesManagement from './pages/admin/CandidatesManagement';
 
 
 class ErrorBoundary extends React.Component {
