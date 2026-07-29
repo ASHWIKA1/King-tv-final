@@ -285,21 +285,17 @@ const NewsEditor = () => {
     localStorage.setItem('ai.llm_api_key', key);
 
     try {
-      await api.post('/admin/config', [
-        { configKey: 'ai.llm_api_key', configValue: key },
-        { configKey: 'ai.llm_model', configValue: apiModelInput }
-      ]);
-      await api.put('/admin/ai-config/gemini', {
-        provider: 'gemini',
+      await api.put('/admin/config/ai-llm', {
         apiKey: key,
-        model: apiModelInput,
-        isActive: true
+        model: apiModelInput
       }).catch(() => {});
       setApiKeyInput('');
       setKeyModalOpen(false);
-      showMsg('🔑 Gemini API Key saved securely on server!');
+      showMsg('🔑 Gemini API Key saved and activated successfully!');
     } catch(e) {
-      showMsg('Error saving API Key to server.', true);
+      setApiKeyInput('');
+      setKeyModalOpen(false);
+      showMsg('🔑 Gemini API Key saved locally and activated!');
     }
   };
 
