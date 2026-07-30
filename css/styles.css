@@ -23,6 +23,38 @@
   --header-text: #1E293B;
 }
 
+/* Article Content Image & Video Auto-Fit Constraints */
+.article-body-text img,
+#articleBody img,
+.article-main img {
+  max-width: 100% !important;
+  max-height: 480px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: 12px;
+  display: block;
+  margin: 20px auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.article-body-text video,
+#articleBody video,
+.article-main video,
+.article-body-text iframe,
+#articleBody iframe,
+.article-main iframe {
+  max-width: 100% !important;
+  max-height: 480px !important;
+  width: 100% !important;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  display: block;
+  margin: 20px auto;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
 [data-theme="dark"] {
   --bg-light: #0B0F19;
   --text-dark: #F8FAFC;

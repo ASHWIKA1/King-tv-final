@@ -6,7 +6,9 @@ import com.kingstv.models.Comment;
 import com.kingstv.models.User;
 import com.kingstv.repository.ArticleRepository;
 import com.kingstv.repository.ArticleRevisionRepository;
+import com.kingstv.repository.CategoryRepository;
 import com.kingstv.repository.CommentRepository;
+import com.kingstv.repository.SubCategoryRepository;
 import com.kingstv.repository.UserRepository;
 import com.kingstv.services.SlugService;
 import com.kingstv.services.StorageService;
@@ -47,6 +49,12 @@ public class ArticleController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private SubCategoryRepository subCategoryRepository;
 
     @Autowired
     private CommentRepository commentRepository;
@@ -168,6 +176,22 @@ public class ArticleController {
             });
         }
 
+        if (article.getCategoryId() != null) {
+            categoryRepository.findById(article.getCategoryId()).ifPresent(cat -> {
+                article.setCategoryName(cat.getName());
+                article.setCategoryNameTa(cat.getNameTa());
+                article.setCategorySlug(cat.getSlug());
+            });
+        }
+
+        if (article.getSubcategoryId() != null) {
+            subCategoryRepository.findById(article.getSubcategoryId()).ifPresent(sub -> {
+                article.setSubCategoryName(sub.getName());
+                article.setSubCategoryNameTa(sub.getNameTa());
+                article.setSubCategorySlug(sub.getSlug());
+            });
+        }
+
         // Dynamic JSON-LD structured data attachment
         article.setStructuredDataJson(generateJsonLd(article, request));
 
@@ -178,8 +202,33 @@ public class ArticleController {
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
     public ResponseEntity<?> createArticle(@RequestBody Article article, HttpServletRequest request) {
+        if ((article.getTitleTa() == null || article.getTitleTa().trim().isEmpty()) && article.getTitleEn() != null) {
+            article.setTitleTa(article.getTitleEn());
+        }
+        if ((article.getContentTa() == null || article.getContentTa().trim().isEmpty()) && article.getContentEn() != null) {
+            article.setContentTa(article.getContentEn());
+        }
         if (article.getTitleTa() == null || article.getContentTa() == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Title (Tamil) and Content (Tamil) are required"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Title and Content are required"));
+        }
+        if (article.getFeaturedImage() != null && !article.getFeaturedImage().isEmpty() && (article.getImageUrl() == null || article.getImageUrl().isEmpty())) {
+            article.setImageUrl(article.getFeaturedImage());
+        }
+        if (article.getImageUrl() != null && !article.getImageUrl().isEmpty() && (article.getFeaturedImage() == null || article.getFeaturedImage().isEmpty())) {
+            article.setFeaturedImage(article.getImageUrl());
+        }
+        // Auto-extract first image from content HTML if featuredImage/imageUrl is missing
+        if ((article.getImageUrl() == null || article.getImageUrl().trim().isEmpty()) && 
+            (article.getFeaturedImage() == null || article.getFeaturedImage().trim().isEmpty())) {
+            String htmlContent = article.getContentTa() != null ? article.getContentTa() : article.getContentEn();
+            if (htmlContent != null) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("src=[\"']([^\"']+\\.(?:png|jpg|jpeg|webp|gif|svg))[\"']", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(htmlContent);
+                if (m.find()) {
+                    String extracted = m.group(1);
+                    article.setImageUrl(extracted);
+                    article.setFeaturedImage(extracted);
+                }
+            }
         }
         if (article.getPublishedAt() == null) {
             article.setPublishedAt(LocalDateTime.now());
@@ -356,6 +405,26 @@ public class ArticleController {
             System.err.println("[Revision] Failed to save revision for article #" + entity.getId() + ": " + revEx.getMessage());
         }
 
+        if (entity.getFeaturedImage() != null && !entity.getFeaturedImage().isEmpty() && (entity.getImageUrl() == null || entity.getImageUrl().isEmpty())) {
+            entity.setImageUrl(entity.getFeaturedImage());
+        }
+        if (entity.getImageUrl() != null && !entity.getImageUrl().isEmpty() && (entity.getFeaturedImage() == null || entity.getFeaturedImage().isEmpty())) {
+            entity.setFeaturedImage(entity.getImageUrl());
+        }
+        // Auto-extract first image from content HTML if missing
+        if ((entity.getImageUrl() == null || entity.getImageUrl().trim().isEmpty()) && 
+            (entity.getFeaturedImage() == null || entity.getFeaturedImage().trim().isEmpty())) {
+            String htmlContent = entity.getContentTa() != null ? entity.getContentTa() : entity.getContentEn();
+            if (htmlContent != null) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("src=[\"']([^\"']+\\.(?:png|jpg|jpeg|webp|gif|svg))[\"']", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(htmlContent);
+                if (m.find()) {
+                    String extracted = m.group(1);
+                    entity.setImageUrl(extracted);
+                    entity.setFeaturedImage(extracted);
+                }
+            }
+        }
+
         article.setCategoryId(entity.getCategoryId());
         article.setDistrictId(entity.getDistrictId());
         article.setTitleTa(entity.getTitleTa());
@@ -365,6 +434,7 @@ public class ArticleController {
         article.setShortDescTa(entity.getShortDescTa());
         article.setShortDescEn(entity.getShortDescEn());
         article.setImageUrl(entity.getImageUrl());
+        article.setFeaturedImage(entity.getFeaturedImage());
         article.setStatus(entity.getStatus());
 
         // SEO Fields

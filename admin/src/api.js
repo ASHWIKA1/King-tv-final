@@ -1,6 +1,9 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8080/api/v1';
+  }
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
   return 'https://kings-tv.onrender.com/api/v1';
 };
@@ -12,13 +15,19 @@ const api = axios.create({
   }
 });
 
-// Interceptor to add auth token
+// Interceptor to add auth token and fix FormData headers
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Auto-detect FormData to fix file uploads globally (removes explicit Content-Type to let Axios set the boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

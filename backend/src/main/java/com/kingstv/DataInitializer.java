@@ -108,32 +108,8 @@ public class DataInitializer {
                 System.out.println("Could not alter table " + table + " charset: " + e.getMessage());
             }
         }
-        // Ensure standard news portal categories exist
-        String[][] standardCategories = {
-            {"Tamil Nadu", "தமிழ்நாடு", "tamilnadu", "7", "fas fa-map-marker-alt"},
-            {"India", "இந்தியா", "india", "8", "fas fa-flag"},
-            {"Lifestyle & Health", "வாழ்க்கை முறை", "lifestyle", "9", "fas fa-heartbeat"},
-            {"Crime & Law", "குற்றம்", "crime", "10", "fas fa-gavel"},
-            {"Education & Jobs", "கல்வி மற்றும் வேலைவாய்ப்பு", "education", "11", "fas fa-graduation-cap"},
-            {"Agriculture", "விவசாயம்", "agriculture", "12", "fas fa-seedling"}
-        };
-        for (String[] catInfo : standardCategories) {
-            try {
-                if (categoryRepository.findBySlug(catInfo[2]).isEmpty()) {
-                    Category cat = new Category();
-                    cat.setName(catInfo[0]);
-                    cat.setNameTa(catInfo[1]);
-                    cat.setSlug(catInfo[2]);
-                    cat.setDisplayOrder(Integer.parseInt(catInfo[3]));
-                    cat.setIcon(catInfo[4]);
-                    cat.setIsNav(true);
-                    cat.setIsActive(true);
-                    categoryRepository.save(cat);
-                }
-            } catch (Exception e) {
-                System.out.println("Could not seed category " + catInfo[0] + ": " + e.getMessage());
-            }
-        }
+        // Synchronize standard web categories & subcategories matching website navigation & header
+        syncStandardWebCategories();
 
         // Ensure all 38 Tamil Nadu districts exist (always runs, even on servers with existing data)
         String[][] allDistricts = {
@@ -1155,5 +1131,94 @@ public class DataInitializer {
         } catch (Exception e) {
             System.err.println("Failed to seed fifty articles per category: " + e.getMessage());
         }
+    }
+
+    private void syncStandardWebCategories() {
+        try {
+            System.out.println("Synchronizing standard web categories & subcategories...");
+            
+            // 1. Politics
+            Category politics = seedOrUpdateCategory("Politics", "அரசியல்", "politics", 1, "fas fa-newspaper");
+            seedOrUpdateSubCategory(politics.getId(), "State", "மாநிலம்", "state", 1);
+            seedOrUpdateSubCategory(politics.getId(), "National", "தேசியம்", "national", 2);
+            seedOrUpdateSubCategory(politics.getId(), "Governance", "அரசு கொள்கைகள்", "governance", 3);
+
+            // 2. Business
+            Category business = seedOrUpdateCategory("Business", "வணிகம்", "business", 2, "fas fa-briefcase");
+            seedOrUpdateSubCategory(business.getId(), "Markets", "சந்தை", "markets", 1);
+            seedOrUpdateSubCategory(business.getId(), "Companies", "நிறுவனங்கள்", "companies", 2);
+            seedOrUpdateSubCategory(business.getId(), "Investment", "முதலீடு", "investment", 3);
+            seedOrUpdateSubCategory(business.getId(), "Startups", "ஸ்டார்ட்அப்", "startups", 4);
+
+            // 3. Sports
+            Category sports = seedOrUpdateCategory("Sports", "விளையாட்டு", "sports", 3, "fas fa-trophy");
+            seedOrUpdateSubCategory(sports.getId(), "Cricket", "கிரிக்கெட்", "cricket", 1);
+            seedOrUpdateSubCategory(sports.getId(), "Football", "கால்பந்து", "football", 2);
+            seedOrUpdateSubCategory(sports.getId(), "Tennis", "டென்னிஸ்", "tennis", 3);
+            seedOrUpdateSubCategory(sports.getId(), "Local Sports", "உள்ளூர்", "local-sports", 4);
+
+            // 4. Cinema
+            Category cinema = seedOrUpdateCategory("Cinema", "சினிமா", "cinema", 4, "fas fa-film");
+            seedOrUpdateSubCategory(cinema.getId(), "Kollywood", "கோலிவுட்", "kollywood", 1);
+            seedOrUpdateSubCategory(cinema.getId(), "Bollywood", "பாலிவுட்", "bollywood", 2);
+            seedOrUpdateSubCategory(cinema.getId(), "Reviews", "விமர்சனங்கள்", "reviews", 3);
+            seedOrUpdateSubCategory(cinema.getId(), "Music", "இசை", "music", 4);
+
+            // 5. Technology
+            Category tech = seedOrUpdateCategory("Technology", "தொழில்நுட்பம்", "tech", 5, "fas fa-laptop");
+            seedOrUpdateSubCategory(tech.getId(), "Smartphones", "ஸ்மார்ட்போன்", "smartphones", 1);
+            seedOrUpdateSubCategory(tech.getId(), "Software", "மென்பொருள்", "software", 2);
+            seedOrUpdateSubCategory(tech.getId(), "AI", "செயற்கை நுண்ணறிவு", "ai", 3);
+            seedOrUpdateSubCategory(tech.getId(), "Space", "விண்வெளி", "space", 4);
+
+            // 6. Regional
+            Category regional = seedOrUpdateCategory("Regional", "மண்டலம்", "regional", 6, "fas fa-map-marked-alt");
+            seedOrUpdateSubCategory(regional.getId(), "Tamil Nadu", "தமிழ்நாடு", "regional-tamilnadu", 1);
+            seedOrUpdateSubCategory(regional.getId(), "Districts", "மாவட்டங்கள்", "districts", 2);
+
+            // 7. International
+            Category international = seedOrUpdateCategory("International", "சர்வதேசம்", "international", 7, "fas fa-globe");
+            seedOrUpdateSubCategory(international.getId(), "World News", "உலக செய்திகள்", "world-news", 1);
+            seedOrUpdateSubCategory(international.getId(), "Neighboring Countries", "அண்டை நாடுகள்", "neighbors", 2);
+
+            // Deactivate legacy categories so only the 7 main web categories remain
+            String[] legacySlugs = {"tamilnadu", "india", "lifestyle", "crime", "education", "agriculture"};
+            for (String legacySlug : legacySlugs) {
+                categoryRepository.findBySlug(legacySlug).ifPresent(c -> {
+                    c.setIsActive(false);
+                    c.setIsNav(false);
+                    categoryRepository.save(c);
+                });
+            }
+
+            System.out.println("Categories & SubCategories synchronized successfully.");
+        } catch (Exception e) {
+            System.err.println("Could not sync categories & subcategories: " + e.getMessage());
+        }
+    }
+
+    private Category seedOrUpdateCategory(String nameEn, String nameTa, String slug, int displayOrder, String icon) {
+        Optional<Category> opt = categoryRepository.findBySlug(slug);
+        Category cat = opt.orElseGet(Category::new);
+        cat.setName(nameEn);
+        cat.setNameTa(nameTa);
+        cat.setSlug(slug);
+        cat.setDisplayOrder(displayOrder);
+        cat.setIcon(icon);
+        cat.setIsNav(true);
+        cat.setIsActive(true);
+        return categoryRepository.save(cat);
+    }
+
+    private SubCategory seedOrUpdateSubCategory(Long categoryId, String nameEn, String nameTa, String slug, int displayOrder) {
+        Optional<SubCategory> opt = subCategoryRepository.findBySlug(slug);
+        SubCategory sub = opt.orElseGet(SubCategory::new);
+        sub.setCategoryId(categoryId);
+        sub.setName(nameEn);
+        sub.setNameTa(nameTa);
+        sub.setSlug(slug);
+        sub.setDisplayOrder(displayOrder);
+        sub.setStatus("active");
+        return subCategoryRepository.save(sub);
     }
 }

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
-import { fetchApi } from '../utils/api';
+import { fetchApi, getImageUrl } from '../utils/api';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -41,6 +41,105 @@ const ArticleDetail = () => {
   const [sidebarWeather, setSidebarWeather] = useState({ temp: '32°C', condition: 'Partly Cloudy', conditionTa: 'மேகமூட்டம்', humidity: '72%', wind: '18 km/h' });
 
   const [isBookmarkedOffline, setIsBookmarkedOffline] = useState(false);
+
+  const getCleanContentHtml = (htmlContent, heroImgUrl, articleObj) => {
+    if (!htmlContent) return '';
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString('<div>' + htmlContent + '</div>', 'text/html');
+      const wrapper = doc.body.firstChild;
+
+      const imgs = wrapper.querySelectorAll('img');
+      if (imgs.length === 0) return htmlContent;
+
+      // Collect ALL possible featured/thumbnail image URLs from the article
+      const featuredUrls = [];
+      if (articleObj) {
+        [articleObj.imageUrl, articleObj.featuredImage, articleObj.ogImage, articleObj.image_url, articleObj.featured_image].forEach(u => {
+          if (u && typeof u === 'string' && u.trim()) featuredUrls.push(u.trim());
+        });
+      }
+      if (heroImgUrl && typeof heroImgUrl === 'string' && heroImgUrl.trim()) {
+        featuredUrls.push(heroImgUrl.trim());
+      }
+
+      // Build a set of basenames and path-segments for robust matching
+      const featuredBasenames = new Set();
+      const featuredPaths = new Set();
+      featuredUrls.forEach(url => {
+        const lowerUrl = url.toLowerCase();
+        featuredPaths.add(lowerUrl);
+        // Extract basename (filename) from URL
+        const basename = lowerUrl.split('/').pop().split('?')[0].split('#')[0].trim();
+        if (basename && basename.length >= 3) featuredBasenames.add(basename);
+        // Also extract the path portion (without domain) for cross-domain matching
+        try {
+          const urlObj = new URL(url, window.location.origin);
+          featuredPaths.add(urlObj.pathname.toLowerCase());
+        } catch(e) {
+          // If URL parsing fails, add the raw path
+          const pathMatch = url.match(/\/uploads\/[^\s?#]+/i);
+          if (pathMatch) featuredPaths.add(pathMatch[0].toLowerCase());
+        }
+      });
+
+      imgs.forEach((img) => {
+        const src = (img.getAttribute('src') || '').trim();
+        
+        let shouldRemove = false;
+
+        // Condition 1: It's an auto-embedded base64 image from a failed TinyMCE upload
+        if (src.startsWith('data:image/')) {
+          shouldRemove = true;
+        }
+        
+        // Condition 2: Match against ANY featured image URL
+        if (!shouldRemove && featuredBasenames.size > 0 && !src.startsWith('data:')) {
+          const srcLower = src.toLowerCase();
+          const srcBasename = srcLower.split('/').pop().split('?')[0].split('#')[0].trim();
+          
+          // 2a: Exact basename match (e.g., same hash filename)
+          if (srcBasename && featuredBasenames.has(srcBasename)) {
+            shouldRemove = true;
+          }
+          
+          // 2b: Full URL or path match
+          if (!shouldRemove) {
+            for (const fp of featuredPaths) {
+              if (srcLower === fp || srcLower.endsWith(fp) || fp.endsWith(srcLower.replace(/^https?:\/\/[^/]+/, ''))) {
+                shouldRemove = true;
+                break;
+              }
+            }
+          }
+
+          // 2c: Path-segment match (handles different domains pointing to same file)
+          if (!shouldRemove) {
+            try {
+              const srcPath = new URL(src, window.location.origin).pathname.toLowerCase();
+              if (featuredPaths.has(srcPath)) {
+                shouldRemove = true;
+              }
+            } catch(e) {}
+          }
+        }
+
+        if (shouldRemove) {
+          const parent = img.parentElement;
+          img.remove();
+          // Cleanup empty parent tags like <p> or <figure>
+          if (parent && parent !== wrapper && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
+            parent.remove();
+          }
+        }
+      });
+
+      return wrapper.innerHTML.trim();
+    } catch (e) {
+      console.warn('Error parsing clean content HTML', e);
+      return htmlContent;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -227,11 +326,19 @@ const ArticleDetail = () => {
       .then(data => {
         if (data && (data.titleTa || data.titleEn)) {
           const currentCategoryId = data.categoryId || 1;
-          const cat = catLookup[currentCategoryId] || { slug: 'politics', name: 'Politics', nameTa: 'அரசியல்' };
+          const cat = catLookup[currentCategoryId] || { slug: 'general', name: 'General', nameTa: 'பொது' };
+          const catNameTa = data.categoryNameTa || cat.nameTa;
+          const catNameEn = data.categoryName || cat.name;
+          const catSlug = data.categorySlug || cat.slug;
+
+          const subNameTa = data.subCategoryNameTa || data.subCategoryName || '';
+          const subNameEn = data.subCategoryName || data.subCategoryNameTa || '';
+          const subSlug = data.subCategorySlug || '';
 
           setArticle({
             id: data.id || data.article_id,
             categoryId: currentCategoryId,
+            subcategoryId: data.subcategoryId,
             titleTa: data.titleTa,
             titleEn: data.titleEn,
             descTa: data.shortDescTa,
@@ -246,13 +353,16 @@ const ArticleDetail = () => {
             updDate: data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
             readTime: `${data.readingTime || 1} நிமிட வாசிப்பு`,
             readTimeEn: `${data.readingTime || 1} Min Read`,
-            categoryName: cat.nameTa,
-            categoryNameEn: cat.name,
-            categorySlug: cat.slug,
+            categoryName: catNameTa,
+            categoryNameEn: catNameEn,
+            categorySlug: catSlug,
+            subCategoryName: subNameTa,
+            subCategoryNameEn: subNameEn,
+            subCategorySlug: subSlug,
             tags: data.metaKeywords 
               ? data.metaKeywords.split(',').map(s => s.trim()).filter(Boolean)
               : ['செய்திகள்'],
-            imageUrl: data.imageUrl,
+            imageUrl: data.imageUrl || data.featuredImage || data.image_url || data.featured_image,
             authorProfileImage: data.authorProfileImage,
             gradient: 'linear-gradient(135deg, #1E3A8A, #3B82F6)'
           });
@@ -268,7 +378,7 @@ const ArticleDetail = () => {
                     descEn: item.shortDescEn,
                     subcatTa: item.districtId ? 'மாநிலம்' : 'தேசியம்',
                     subcatEn: item.districtId ? 'State' : 'National',
-                    imageUrl: item.imageUrl,
+                    imageUrl: item.imageUrl || item.featuredImage || item.image_url || item.featured_image,
                     gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)'
                   }))
                 : [];
@@ -568,18 +678,38 @@ const ArticleDetail = () => {
         
         {/* Main Article Column */}
         <main className="article-main">
+          {/* Category & Subcategory Badges */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <Link to={`/category/${article.categorySlug}`} style={{ background: 'var(--primary, #0284c7)', color: '#ffffff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {lang === 'en' ? article.categoryNameEn : article.categoryName}
+            </Link>
+            {article.subCategoryName && (
+              <span style={{ background: 'rgba(2, 132, 199, 0.12)', color: 'var(--primary, #0284c7)', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, border: '1px solid rgba(2, 132, 199, 0.2)' }}>
+                {lang === 'en' ? article.subCategoryNameEn : article.subCategoryName}
+              </span>
+            )}
+          </div>
+
           {/* Breadcrumbs */}
-          <div className="breadcrumbs" style={{ display: 'flex', alignItems: 'center', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+          <div className="breadcrumbs" style={{ display: 'flex', alignItems: 'center', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', flexWrap: 'wrap' }}>
             <Link to="/" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>{lang === 'en' ? 'Home' : 'முகப்பு'}</Link>
             <i className="fas fa-chevron-right" style={{ fontSize: '8px', margin: '0 8px', opacity: 0.5 }}></i>
             <Link to={`/category/${article.categorySlug}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
               {lang === 'en' ? article.categoryNameEn : article.categoryName}
             </Link>
+            {article.subCategoryName && (
+              <>
+                <i className="fas fa-chevron-right" style={{ fontSize: '8px', margin: '0 8px', opacity: 0.5 }}></i>
+                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                  {lang === 'en' ? article.subCategoryNameEn : article.subCategoryName}
+                </span>
+              </>
+            )}
             <i className="fas fa-chevron-right" style={{ fontSize: '8px', margin: '0 8px', opacity: 0.5 }}></i>
             <span style={{ color: 'var(--text-secondary)' }}>
               {lang === 'en' 
-                ? ((article.titleEn || article.titleTa).length > 40 ? (article.titleEn || article.titleTa).substring(0, 40) + '...' : (article.titleEn || article.titleTa))
-                : (article.titleTa.length > 45 ? article.titleTa.substring(0, 45) + '...' : article.titleTa)
+                ? ((article.titleEn || article.titleTa).length > 35 ? (article.titleEn || article.titleTa).substring(0, 35) + '...' : (article.titleEn || article.titleTa))
+                : (article.titleTa.length > 35 ? article.titleTa.substring(0, 35) + '...' : article.titleTa)
               }
             </span>
           </div>
@@ -591,36 +721,20 @@ const ArticleDetail = () => {
             </h1>
           </div>
 
-          {/* Full Width Hero Image */}
-          <div className="article-hero-img-container" style={{ margin: '24px 0' }}>
-            {article.imageUrl ? (
-              <img 
-                src={article.imageUrl} 
-                alt={lang === 'en' ? (article.titleEn || article.titleTa) : article.titleTa} 
-                style={{ width: '100%', height: '350px', objectFit: 'cover', borderRadius: '12px' }}
-              />
-            ) : (
-              <div style={{ width: '100%', height: '350px', borderRadius: '12px', background: article.gradient || 'linear-gradient(135deg, #1E3A8A, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}>
-                  <i className="fas fa-image fa-3x" style={{ marginBottom: '10px' }}></i>
-                  <span style={{ fontSize: '14px', fontWeight: 700 }}>KINGS 24x7 NEWS MEDIA</span>
-                </div>
-              </div>
-            )}
-            <div className="caption" id="imgCaption" style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', fontStyle: 'italic' }}>
-              {article.categoryId === 1 
-                ? (lang === 'en' ? 'Photo: Secretariat, Chennai. (File Photo)' : 'படம்: தலைமைச் செயலகம், சென்னை. (கோப்புப் படம்)')
-                : (lang === 'en' ? `Photo: ${article.titleEn || 'News'}` : `படம்: ${article.titleTa || 'செய்தி'}`)
-              }
-            </div>
-          </div>
+          {/* Featured Image is used as thumbnail externally only */}
 
           {/* Article Body */}
           <article 
             className="article-body-text" 
             id="articleBody" 
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
-            dangerouslySetInnerHTML={{ __html: lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa }}
+            dangerouslySetInnerHTML={{
+              __html: getCleanContentHtml(
+                lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa,
+                getImageUrl(article),
+                article
+              )
+            }}
           />
 
           {/* MID-ARTICLE FEED AD WIDGET */}

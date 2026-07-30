@@ -2,10 +2,13 @@ package com.kingstv.models;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "articles")
-public class Article {
+public class Article implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "article_id")
@@ -203,6 +206,24 @@ public class Article {
     @Transient
     private String structuredDataJson;
 
+    @Transient
+    private String subCategoryName;
+
+    @Transient
+    private String subCategoryNameTa;
+
+    @Transient
+    private String subCategorySlug;
+
+    @Transient
+    private String categoryName;
+
+    @Transient
+    private String categoryNameTa;
+
+    @Transient
+    private String categorySlug;
+
     @PrePersist
     protected void onCreate() {
         this.publishedAt = LocalDateTime.now();
@@ -381,5 +402,19 @@ public class Article {
     public void setOgTitle(String ogTitle) { this.ogTitle = ogTitle; }
     public String getOgDescription() { return ogDescription; }
     public void setOgDescription(String ogDescription) { this.ogDescription = ogDescription; }
+
+    public String getSubCategoryName() { return subCategoryName; }
+    public void setSubCategoryName(String subCategoryName) { this.subCategoryName = subCategoryName; }
+    public String getSubCategoryNameTa() { return subCategoryNameTa; }
+    public void setSubCategoryNameTa(String subCategoryNameTa) { this.subCategoryNameTa = subCategoryNameTa; }
+    public String getSubCategorySlug() { return subCategorySlug; }
+    public void setSubCategorySlug(String subCategorySlug) { this.subCategorySlug = subCategorySlug; }
+
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+    public String getCategoryNameTa() { return categoryNameTa; }
+    public void setCategoryNameTa(String categoryNameTa) { this.categoryNameTa = categoryNameTa; }
+    public String getCategorySlug() { return categorySlug; }
+    public void setCategorySlug(String categorySlug) { this.categorySlug = categorySlug; }
 }
 

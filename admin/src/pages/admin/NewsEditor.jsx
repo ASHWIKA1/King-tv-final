@@ -1081,6 +1081,8 @@ const NewsEditor = () => {
     try {
       const payload = { 
         ...form, 
+        imageUrl: form.imageUrl || form.featuredImage,
+        featuredImage: form.featuredImage || form.imageUrl,
         slug: finalSlug,
         status: targetStatus,
         contentTa: editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa,
@@ -1826,6 +1828,7 @@ const NewsEditor = () => {
             <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
             <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => {
               set('featuredImage', url);
+              set('imageUrl', url);
               // Auto Image SEO: auto-populate meta fields if blank
               const title = (form.titleEn || form.titleTa || '').trim();
               if (title && !form.metaDescription) {
@@ -1841,7 +1844,7 @@ const NewsEditor = () => {
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category</label>
                 <select value={form.categoryId} onChange={e => set('categoryId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
                   <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameEn || c.name}</option>)}
+                  {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameTa ? `${c.nameTa} (${c.name || c.nameEn})` : (c.name || c.nameEn)}</option>)}
                 </select>
               </div>
               <div>

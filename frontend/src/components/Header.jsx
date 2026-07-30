@@ -185,7 +185,7 @@ const Header = () => {
           }
         }
 
-        const res = await fetchApi('/public/home-layout');
+        const res = await fetchApi('/admin/layout/public/home-layout');
         const sections = res?.data || (Array.isArray(res) ? res : []);
         const navSec = sections.find(s => s.sectionKey === 'website_navigation');
         if (navSec && navSec.configJson) {

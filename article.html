@@ -153,11 +153,9 @@
         </div>
 
         <!-- Full Width Hero Image -->
-        <div class="article-hero-img-container">
-          <div style="width: 100%; height: 350px; border-radius: var(--radius-md); background: linear-gradient(135deg, #1E3A8A, #3B82F6); display: flex; align-items: center; justify-content: center; color: white;" id="heroImgGradient">
-            <i class="fas fa-image fa-3x" style="opacity: 0.5;"></i>
-          </div>
-          <div class="caption" id="imgCaption">படம்: தலைமைச் செயலகம், சென்னை. (கோப்புப் படம்)</div>
+        <div class="article-hero-img-container" style="display: none;">
+          <div style="width: 100%; height: 350px; border-radius: var(--radius-md); background: #0f172a;" id="heroImgGradient"></div>
+          <div class="caption" id="imgCaption"></div>
         </div>
 
         <!-- Article Body -->
@@ -365,6 +363,83 @@
         
         // Resolve relative upload paths inside the HTML content
         contentHtml = contentHtml.replace(/(src|href)="\/uploads\//g, `$1="${API_BASE}/uploads/`);
+
+        // Strip duplicate hero/thumbnail image from body using DOMParser
+        try {
+          // Collect ALL possible featured/thumbnail image URLs
+          const featuredUrls = [];
+          [currentArticle.imageUrl, currentArticle.featuredImage, currentArticle.ogImage].forEach(u => {
+            if (u && typeof u === 'string' && u.trim()) featuredUrls.push(u.trim());
+          });
+
+          const featuredBasenames = new Set();
+          const featuredPaths = new Set();
+          featuredUrls.forEach(url => {
+            const lowerUrl = url.toLowerCase();
+            featuredPaths.add(lowerUrl);
+            const basename = lowerUrl.split('/').pop().split('?')[0].split('#')[0].trim();
+            if (basename && basename.length >= 3) featuredBasenames.add(basename);
+            try {
+              const urlObj = new URL(url, window.location.origin);
+              featuredPaths.add(urlObj.pathname.toLowerCase());
+            } catch(e) {
+              const pathMatch = url.match(/\/uploads\/[^\s?#]+/i);
+              if (pathMatch) featuredPaths.add(pathMatch[0].toLowerCase());
+            }
+          });
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString('<div>' + contentHtml + '</div>', 'text/html');
+          const wrapper = doc.body.firstChild;
+          const imgs = wrapper.querySelectorAll('img');
+
+          imgs.forEach((img) => {
+            const src = (img.getAttribute('src') || '').trim();
+            let shouldRemove = false;
+
+            // Condition 1: base64 image from failed TinyMCE upload
+            if (src.startsWith('data:image/')) {
+              shouldRemove = true;
+            }
+
+            // Condition 2: Match against ANY featured image URL
+            if (!shouldRemove && featuredBasenames.size > 0 && !src.startsWith('data:')) {
+              const srcLower = src.toLowerCase();
+              const srcBasename = srcLower.split('/').pop().split('?')[0].split('#')[0].trim();
+              
+              if (srcBasename && featuredBasenames.has(srcBasename)) {
+                shouldRemove = true;
+              }
+              if (!shouldRemove) {
+                for (const fp of featuredPaths) {
+                  if (srcLower === fp || srcLower.endsWith(fp) || fp.endsWith(srcLower.replace(/^https?:\/\/[^\/]+/, ''))) {
+                    shouldRemove = true;
+                    break;
+                  }
+                }
+              }
+              if (!shouldRemove) {
+                try {
+                  const srcPath = new URL(src, window.location.origin).pathname.toLowerCase();
+                  if (featuredPaths.has(srcPath)) shouldRemove = true;
+                } catch(e) {}
+              }
+            }
+
+            if (shouldRemove) {
+              const parent = img.parentElement;
+              img.remove();
+              if (parent && parent !== wrapper && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
+                parent.remove();
+              }
+            }
+          });
+
+          contentHtml = wrapper.innerHTML.trim();
+        } catch(e) {
+          // fallback: use raw content if DOMParser fails
+        }
+
         bodyContainer.innerHTML = contentHtml;
       }
 
@@ -400,17 +475,9 @@
         const readTimeMins = Math.max(1, Math.ceil(wordCount / 200));
         document.getElementById('readTime').innerHTML = `<i class="far fa-clock"></i> ${readTimeMins} நிமிட வாசிப்பு (${readTimeMins} mins read)`;
 
-        // Hero Image
-        const heroImg = document.getElementById('heroImgGradient');
-        if (currentArticle.imageUrl) {
-          const resolvedImgUrl = currentArticle.imageUrl.startsWith('http') ? currentArticle.imageUrl : `${API_BASE}${currentArticle.imageUrl}`;
-          heroImg.style.background = `#0f172a url('${resolvedImgUrl}') center/contain no-repeat`;
-          heroImg.innerHTML = '';
-        } else {
-          heroImg.style.background = 'linear-gradient(135deg, #1E3A8A, #3B82F6)';
-          heroImg.innerHTML = '<i class="fas fa-image fa-3x" style="opacity: 0.5;"></i>';
-        }
-        document.getElementById('imgCaption').textContent = 'படம்: ' + (currentArticle.titleTa || '') + ' செய்தித் தொகுப்பு.';
+        // Featured Image is used as thumbnail externally only. We hide the internal hero image container.
+        const heroContainer = document.querySelector('.article-hero-img-container');
+        if (heroContainer) heroContainer.style.display = 'none';
 
         // Render main content body
         renderArticleContent();

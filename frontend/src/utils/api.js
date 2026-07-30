@@ -1,11 +1,18 @@
 const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'http://localhost:8080';
 const API_BASE = import.meta.env.VITE_API_BASE || `${SERVER_BASE}/api/v1`;
 
-export const getImageUrl = (path) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
+export const getImageUrl = (itemOrPath) => {
+  if (!itemOrPath) return '';
+  let path = itemOrPath;
+  if (typeof itemOrPath === 'object' && itemOrPath !== null) {
+    path = itemOrPath.imageUrl || itemOrPath.featuredImage || itemOrPath.image_url || itemOrPath.featured_image || itemOrPath.url || '';
+  }
+  if (!path || typeof path !== 'string') return '';
+  if (path.startsWith('blob:')) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
   if (path.startsWith('/uploads')) return `${SERVER_BASE}${path}`;
-  return path;
+  if (path.startsWith('uploads')) return `${SERVER_BASE}/${path}`;
+  return `${SERVER_BASE}/${path.replace(/^\/+/, '')}`;
 };
 
 const translateVideo = (vid, lang) => {

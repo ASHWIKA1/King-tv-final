@@ -174,6 +174,23 @@ public class StorageServiceImpl implements StorageService {
             }
         }
 
+        // Generate file hash (MD5) to prevent duplicate uploads of the same file
+        String fileHash = UUID.randomUUID().toString();
+        try {
+            byte[] fileBytes = file.getBytes();
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(fileBytes);
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            fileHash = sb.toString();
+        } catch (Exception e) {
+            LOGGER.warning("Could not generate MD5 hash for file upload, falling back to UUID: " + e.getMessage());
+        }
+
+        String baseFileName = fileHash;
+
         // Video HLS Transcoding Pipeline
         if (contentType != null && contentType.startsWith("video/")) {
             String uuid = UUID.randomUUID().toString();
@@ -245,7 +262,7 @@ public class StorageServiceImpl implements StorageService {
             }
         }
 
-        String filename = UUID.randomUUID().toString() + extension;
+        String filename = baseFileName + extension;
 
         try {
             if (s3Enabled && s3Client != null) {

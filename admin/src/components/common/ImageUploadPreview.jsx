@@ -61,18 +61,18 @@ const ImageUploadPreview = ({
       const res = await api.post(uploadEndpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       if (res.data && res.data.url) {
         const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
         const fullUrl = res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
         if (finalOnChange) finalOnChange(fullUrl);
       } else {
-        const localUrl = URL.createObjectURL(file);
-        if (finalOnChange) finalOnChange(localUrl);
+        setError('Server returned invalid response format.');
       }
     } catch (err) {
-      console.warn('Server upload fallback to local preview:', err);
-      const localUrl = URL.createObjectURL(file);
-      if (finalOnChange) finalOnChange(localUrl);
+      console.error('Server image upload failed:', err);
+      const errMsg = err.response?.data?.message || err.message || 'Image upload failed. Please ensure backend server is running.';
+      setError(errMsg);
     } finally {
       setUploading(false);
     }

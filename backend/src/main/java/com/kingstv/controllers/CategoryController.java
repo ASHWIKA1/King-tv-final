@@ -101,7 +101,7 @@ public class CategoryController {
     // --- KEEP Existing Front-End Endpoint Map ---
     @GetMapping
     public List<Category> getCategories() {
-        return categoryRepository.findAll();
+        return categoryRepository.findByIsActiveOrderByDisplayOrderAsc(true);
     }
 
     @GetMapping("/{id}")

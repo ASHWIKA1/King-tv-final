@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { fetchApi, getImageUrl } from '../utils/api';
+import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -269,7 +270,7 @@ const Home = () => {
       })
       .catch(() => {});
 
-    const pRss = fetchApi('/rss-aggregator/latest?page=0&size=5')
+    const pRss = fetchApi('/rss-aggregator')
       .then(data => {
         if (data && Array.isArray(data.content)) {
           setAggregatedNews(data.content);
@@ -782,8 +783,8 @@ const Home = () => {
                 display: 'flex', 
                 flexDirection: 'column', 
                 justifyContent: 'flex-end',
-                background: heroFeatured.imageUrl 
-                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured.imageUrl)}) center/cover`
+                background: getImageUrl(heroFeatured) 
+                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured)}) center/cover`
                   : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`,
                 boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                 padding: '30px'
@@ -855,7 +856,7 @@ const Home = () => {
                         height: '70px', 
                         borderRadius: '10px', 
                         flexShrink: 0,
-                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length]
+                        background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length]
                       }}
                     ></div>
 
@@ -944,7 +945,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length] 
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length] 
                   }}
                 >
                   <span className="cat-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
@@ -1199,6 +1200,13 @@ const Home = () => {
   const renderLiveTv = () => {
     if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
     const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
+    let embedUrl = liveStreamUrl;
+    if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
+      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+      if (videoIdMatch && videoIdMatch[1]) {
+        embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+      }
+    }
 
     return (
       <div className="weather-widget" style={{ marginTop: '20px' }}>
@@ -1208,7 +1216,7 @@ const Home = () => {
         </h4>
         <div style={{ width: '100%', height: '210px', background: '#000000', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
           <iframe 
-            src={liveStreamUrl} 
+            src={embedUrl} 
             title="Live Stream" 
             style={{ width: '100%', height: '100%', border: 'none' }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1264,7 +1272,7 @@ const Home = () => {
               <div 
                 className="card-img" 
                 style={{ 
-                  background: report.imageUrl ? `url(${getImageUrl(report.imageUrl)}) center/cover` : gradients[idx % gradients.length]
+                  background: getImageUrl(report) ? `url(${getImageUrl(report)}) center/cover` : gradients[idx % gradients.length]
                 }}
               >
                 <span className="cat-badge" style={{ background: '#F59E0B' }}>
@@ -1307,7 +1315,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 4) % gradients.length]
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[(idx + 4) % gradients.length]
                   }}
                 >
                   <span className="cat-badge" style={{ background: '#1E40AF' }}>

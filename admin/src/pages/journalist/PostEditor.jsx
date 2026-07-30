@@ -18,6 +18,7 @@ const PostEditor = () => {
   });
   
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
   const [active, setActive] = useState(false);
@@ -35,6 +36,16 @@ const PostEditor = () => {
         .catch(() => { showMsg("Failed to load article.", true); setActive(true); });
     } else { setActive(true); }
   }, [id, isEditing]);
+
+  useEffect(() => {
+    if (form.categoryId) {
+      api.get(`/subcategories/getAllWeb?categoryId=${form.categoryId}&size=200`)
+        .then(r => setSubCategories(r.data?.content || r.data || []))
+        .catch(() => setSubCategories([]));
+    } else {
+      setSubCategories([]);
+    }
+  }, [form.categoryId]);
 
   useEffect(() => {
     if (!active) return;
@@ -82,14 +93,20 @@ const PostEditor = () => {
       const fd = new FormData();
       fd.append("file", file);
       const res = await api.post("/articles/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      setForm(f => ({ ...f, featuredImage: res.data.url }));
+      const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1').replace(/\/api(\/v1)?\/?$/, '');
+      const fullUrl = res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
+      setForm(f => ({ ...f, featuredImage: fullUrl, imageUrl: fullUrl }));
       showMsg("Featured image uploaded!");
     } catch { showMsg("Failed to upload image.", true); }
     setLoading(false);
   };
 
   const save = async (submitForReview) => {
-    let payload = { ...form };
+    let payload = { 
+      ...form, 
+      imageUrl: form.imageUrl || form.featuredImage, 
+      featuredImage: form.featuredImage || form.imageUrl 
+    };
     if (!payload.titleTa) { showMsg("Tamil title is required.", true); return; }
     if (!payload.categoryId) { showMsg("Please select a category.", true); return; }
 
@@ -150,11 +167,21 @@ const PostEditor = () => {
             <div><label style={labelStyle}>Tamil Headline *</label><input style={inputStyle} value={form.titleTa} onChange={e => setForm(f => ({ ...f, titleTa: e.target.value }))} /></div>
             <div><label style={labelStyle}>English Headline</label><input style={inputStyle} value={form.titleEn} onChange={e => setForm(f => ({ ...f, titleEn: e.target.value }))} /></div>
           </div>
-          <div><label style={labelStyle}>Category *</label>
-            <select style={inputStyle} value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}>
-              <option value="">— Select Category —</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.nameTa} ({c.name})</option>)}
-            </select>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div>
+              <label style={labelStyle}>Category *</label>
+              <select style={inputStyle} value={form.categoryId || ""} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value, subcategoryId: "" }))}>
+                <option value="">— Select Category —</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.nameTa ? `${c.nameTa} (${c.name || c.nameEn})` : (c.name || c.nameEn)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Subcategory</label>
+              <select style={inputStyle} value={form.subcategoryId || ""} onChange={e => setForm(f => ({ ...f, subcategoryId: e.target.value }))} disabled={!subCategories.length}>
+                <option value="">— Select Subcategory —</option>
+                {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id}>{s.nameTa ? `${s.nameTa} (${s.name})` : s.name}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 

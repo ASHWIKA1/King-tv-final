@@ -452,40 +452,66 @@ const Category = () => {
     setSelectedSubcat('அனைத்தும்');
     setSelectedFilter('all');
 
-    // Fetch dynamic database articles
-    fetchApi('/articles')
-      .then(data => {
-        if (Array.isArray(data)) {
-          const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, international: 7, world: 7 };
-          const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
+    // Fetch dynamic database articles from backend
+    fetchApi('/articles/getAllWeb?size=200')
+      .then(res => {
+        const data = res?.content || (Array.isArray(res) ? res : []);
+        const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, regional: 6, international: 7, world: 7 };
+        const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
 
-          const filtered = data.filter(item => item.categoryId === targetId);
-          const formatted = filtered.map(item => ({
+        const filtered = data.filter(item => {
+          if (item.categoryId) return String(item.categoryId) === String(targetId);
+          if (item.categorySlug) return item.categorySlug.toLowerCase() === catKey.toLowerCase();
+          return false;
+        });
+
+        // Helper to find subcategory names from navCategories
+        const findSubcatInfo = (subId) => {
+          if (!subId || !navCategories.length) return null;
+          for (const cat of navCategories) {
+            if (cat.subcategories) {
+              const found = cat.subcategories.find(s => String(s.id) === String(subId));
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        const dbArticles = filtered.map(item => {
+          const subInfo = findSubcatInfo(item.subcategoryId);
+          const subTa = item.subCategoryNameTa || item.subCategoryName || (subInfo ? (subInfo.nameTa || subInfo.name) : (item.districtId ? 'மாநிலம்' : 'தேசியம்'));
+          const subEn = item.subCategoryName || item.subCategoryNameTa || (subInfo ? (subInfo.name || subInfo.nameTa) : (item.districtId ? 'State' : 'National'));
+
+          return {
             id: item.id || item.article_id,
             titleTa: item.titleTa,
             titleEn: item.titleEn,
-            descTa: item.shortDescTa,
-            descEn: item.shortDescEn,
-            subcatTa: item.districtId ? 'மாநிலம்' : 'தேசியம்',
-            subcatEn: item.districtId ? 'State' : 'National',
+            descTa: item.shortDescTa || (item.contentTa ? item.contentTa.replace(/<[^>]*>/g, '').slice(0, 150) : ''),
+            descEn: item.shortDescEn || (item.contentEn ? item.contentEn.replace(/<[^>]*>/g, '').slice(0, 150) : ''),
+            subcatTa: subTa,
+            subcatEn: subEn,
+            subcategoryId: item.subcategoryId,
             type: item.viewsCount > 100 ? 'featured' : 'recent',
             dateTa: '1 மணி நேரம்',
             dateEn: '1 Hr Ago',
             readTimeTa: `${item.readingTime || 1} நிமிட வாசிப்பு`,
             readTimeEn: `${item.readingTime || 1} Min Read`,
-            imageUrl: item.imageUrl,
+            imageUrl: item.imageUrl || item.featuredImage || item.image_url || item.featured_image,
             gradient: 'linear-gradient(135deg, #1E40AF, #3B82F6)'
-          }));
-          setArticles(formatted);
-        } else {
-          setArticles([]);
-        }
+          };
+        });
+
+        // Combine DB articles on top, then fall back to static articles if DB list has < 4 items
+        const staticList = currentCat.articles || [];
+        const combined = [...dbArticles, ...staticList.filter(s => !dbArticles.some(d => d.id === s.id))];
+
+        setArticles(combined);
       })
       .catch(err => {
-        console.warn("Could not fetch categories from database", err);
-        setArticles([]);
+        console.warn("Could not fetch articles for category", err);
+        setArticles(currentCat.articles || []);
       });
-  }, [catKey]);
+  }, [catKey, matchedDbCat, navCategories]);
 
   useEffect(() => {
     document.title = `${lang === 'en' ? currentCat.titleEn : currentCat.titleTa} - KINGS 24x7`;
@@ -507,8 +533,14 @@ const Category = () => {
     // Subcategory Filter
     if (selectedSubcat !== 'அனைத்தும்' && selectedSubcat !== 'All') {
       temp = temp.filter(art => {
-        const subcatValue = lang === 'en' ? art.subcatEn : art.subcatTa;
-        return subcatValue === selectedSubcat;
+        const subcatTaValue = (art.subcatTa || '').toLowerCase().trim();
+        const subcatEnValue = (art.subcatEn || '').toLowerCase().trim();
+        const targetSelected = (selectedSubcat || '').toLowerCase().trim();
+        
+        return subcatTaValue === targetSelected || 
+               subcatEnValue === targetSelected ||
+               (subcatEnTranslations[art.subcatTa] || '').toLowerCase() === targetSelected ||
+               (subcatEnTranslations[art.subcatEn] || '').toLowerCase() === targetSelected;
       });
     }
 
