@@ -22,6 +22,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const payload = parseJwt(token);
       if (payload) {
+        // Expiration check: if token has expired, log out immediately
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          console.warn("Session token expired. Logging out.");
+          logout();
+          return;
+        }
         const savedOverride = localStorage.getItem('active_role_override');
         setUser({
           email: payload.sub,
@@ -86,6 +92,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('active_role_override');
     setToken(null);
     setUser(null);
   };

@@ -33,14 +33,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor to handle global errors (e.g. 401 Unauthorized)
+// Interceptor to handle global errors (e.g. 401 Unauthorized / 403 Forbidden)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login if unauthorized
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Clear tokens and redirect to login if unauthorized or forbidden
       localStorage.removeItem('token');
+      localStorage.removeItem('admin_token');
       localStorage.removeItem('user');
+      localStorage.removeItem('active_role_override');
       window.location.href = '/admin/login';
     }
     return Promise.reject(error);

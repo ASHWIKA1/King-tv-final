@@ -148,6 +148,7 @@ public class DataInitializer {
         seedSitemapConfigs();
         seedHomeLayoutConfigs();
         updateChiefEditorPermissions();
+        seedNavigationMenus();
         // 12. Seed Roles and Permissions
         System.out.println("Seeding Roles and Permissions...");
         
@@ -208,6 +209,7 @@ public class DataInitializer {
             savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
             savedPerms.get(Permission.ARTICLE_REVIEW), savedPerms.get(Permission.ARTICLE_PUBLISH), savedPerms.get(Permission.CONTENT_REVIEW),
             savedPerms.get(Permission.UGC_REVIEW), savedPerms.get(Permission.PROFANITY_VIEW_REPORTS), savedPerms.get(Permission.HOME_LAYOUT_DELEGATED),
+            savedPerms.get(Permission.HOME_LAYOUT_MANAGE), savedPerms.get(Permission.TAXONOMY_MANAGE),
             savedPerms.get(Permission.ANALYTICS_VIEW), savedPerms.get(Permission.AI_REWRITER_USE), savedPerms.get(Permission.PUSH_NOTIFICATION_SEND)
         ));
         roleRepository.save(chiefEditor);
@@ -592,6 +594,10 @@ public class DataInitializer {
         seedLayoutSection("mobile_hero", "Trending Stories Feed", 1, "MOBILE");
         seedLayoutSection("mobile_live_tv", "Live Broadcast", 2, "MOBILE");
 
+        System.out.println("Database Seeding Check Complete!");
+    }
+
+    private void seedNavigationMenus() {
         if (navigationMenuRepository.count() == 0) {
             System.out.println("Seeding Navigation Menu Links...");
             seedMenu("முகப்பு", "Home", "/", 1, null);
@@ -617,8 +623,6 @@ public class DataInitializer {
 
             seedMenu("வெப் ஸ்டோரிஸ்", "Web Stories", "/web-stories", 10, null);
         }
-
-        System.out.println("Database Seeding Check Complete!");
     }
 
     private void seedUser(String name, String email, String password, String role) {

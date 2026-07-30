@@ -13,6 +13,7 @@ import TaxonomyManager from './pages/admin/TaxonomyManager';
 import RoleManagement from './pages/admin/RoleManagement';
 import PushNotifications from './pages/admin/PushNotifications';
 import HomeLayoutBuilder from './pages/admin/HomeLayoutBuilder';
+import NavbarManager from './pages/admin/NavbarManager';
 import SurveyBuilder from './pages/admin/SurveyBuilder';
 import AuditLogs from './pages/admin/AuditLogs';
 import CommentsModeration from './pages/admin/CommentsModeration';
@@ -193,6 +194,12 @@ function App() {
           <Route path="/admin/layout" element={
             <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
               <HomeLayoutBuilder />
+            </ProtectedLayout>
+          } />
+
+          <Route path="/admin/navbar" element={
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+              <NavbarManager />
             </ProtectedLayout>
           } />
 
