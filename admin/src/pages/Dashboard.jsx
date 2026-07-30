@@ -186,7 +186,13 @@ const Dashboard = () => {
           <p className="text-secondary">Welcome back, <strong>{user?.email?.split("@")[0]}</strong> · <span style={{ color: "var(--primary)", fontWeight: 'bold' }}>{user?.role?.replace(/_/g, " ")}</span></p>
         </div>
         <div style={{ display: "flex", gap: "0.75rem" }}>
-          <NavLink to="/admin/news/create" className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Plus size={16} /> Write Article</NavLink>
+          <NavLink 
+            to={['MOBILE_JOURNALIST', 'INSTITUTION_LOGIN'].includes(user?.role) ? '/journalist/create' : '/admin/news/create'} 
+            className="btn btn-primary" 
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <Plus size={16} /> Write Article
+          </NavLink>
         </div>
       </div>
 

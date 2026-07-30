@@ -44,13 +44,13 @@ const Login = () => {
       <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img 
-            src="assets/logo-banner-light.png" 
+            src="/assets/logo-banner-light.png" 
             alt="KING24X7 Logo" 
             className="logo-light-only" 
             style={{ maxHeight: '55px', width: 'auto', marginBottom: '0.5rem' }} 
           />
           <img 
-            src="assets/logo-banner-dark.png" 
+            src="/assets/logo-banner-dark.png" 
             alt="KING24X7 Logo" 
             className="logo-dark-only" 
             style={{ maxHeight: '55px', width: 'auto', marginBottom: '0.5rem' }} 
