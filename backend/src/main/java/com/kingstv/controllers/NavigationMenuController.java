@@ -140,6 +140,11 @@ public class NavigationMenuController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/public/testMenus")
+    public ResponseEntity<?> testMenus() {
+        return ResponseEntity.ok(menuRepository.findAll());
+    }
+
     @PostMapping("/admin/menus/publish")
     @RequiresPermission(Permission.HOME_LAYOUT_MANAGE)
     public ResponseEntity<?> publishMenus() {
@@ -175,10 +180,7 @@ public class NavigationMenuController {
         }
 
         // 2. Find and update the website_navigation section in home_layout_configs
-        Optional<HomeLayoutConfig> optSec = layoutRepository.findByLayoutTypeOrderByDisplayOrderAsc("WEB")
-                .stream()
-                .filter(s -> "website_navigation".equals(s.getSectionKey()))
-                .findFirst();
+        Optional<HomeLayoutConfig> optSec = layoutRepository.findBySectionKey("website_navigation");
 
         HomeLayoutConfig navSection;
         if (optSec.isPresent()) {

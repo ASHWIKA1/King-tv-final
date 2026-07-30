@@ -133,6 +133,92 @@ const NavbarManager = () => {
     }
   };
 
+  const handleAutoFetchCategories = async () => {
+    if (window.confirm("This will fetch all categories and subcategories, and add them as Menu items. Proceed?")) {
+      setLoading(true);
+      try {
+        // 1. Fetch & Sync Main Categories
+        const catRes = await api.get('/categories');
+        const categories = catRes.data || [];
+        
+        let order = menus.filter(m => !m.parentId).length;
+        
+        for (const cat of categories) {
+          const catName = cat.name || '';
+          const exists = menus.find(m => 
+            m.linkUrl === `/category/${cat.id}` || 
+            (m.titleEn && catName && m.titleEn.toLowerCase() === catName.toLowerCase())
+          );
+          if (!exists) {
+            await api.post('/admin/menus', {
+              titleEn: catName,
+              titleTa: cat.nameTa || '',
+              linkUrl: `/category/${cat.id}`,
+              parentId: null,
+              displayOrder: order++,
+              isActive: true
+            });
+          }
+        }
+        
+        // Refetch menus to get actual database IDs for parents
+        const updatedMenusRes = await api.get('/admin/menus');
+        const updatedMenus = updatedMenusRes.data || [];
+
+        // Map Category IDs to Menu IDs robustly
+        const catIdToMenuId = {};
+        for (const cat of categories) {
+          const catName = cat.name || '';
+          const menu = updatedMenus.find(m => 
+            m.linkUrl === `/category/${cat.id}` || 
+            (m.titleEn && catName && m.titleEn.toLowerCase() === catName.toLowerCase())
+          );
+          if (menu) {
+            catIdToMenuId[cat.id] = menu.id;
+          }
+        }
+
+        // 2. Fetch & Sync SubCategories
+        const subCatRes = await api.get('/subcategories/getAll?size=1000');
+        const subCategories = subCatRes.data?.content || [];
+        
+        for (const sub of subCategories) {
+          const subName = sub.name || '';
+          const parentMenuId = catIdToMenuId[sub.categoryId];
+          
+          if (parentMenuId) {
+            const exists = updatedMenus.find(m => 
+              m.parentId === parentMenuId && 
+              (m.linkUrl === `/category/${sub.categoryId}/sub/${sub.subcategoryId}` || 
+               (m.titleEn && subName && m.titleEn.toLowerCase() === subName.toLowerCase()))
+            );
+            
+            if (!exists) {
+              const subOrder = updatedMenus.filter(m => m.parentId === parentMenuId).length;
+              await api.post('/admin/menus', {
+                titleEn: subName,
+                titleTa: sub.nameTa || '',
+                linkUrl: `/category/${sub.categoryId}/sub/${sub.subcategoryId}`,
+                parentId: parentMenuId,
+                displayOrder: subOrder,
+                isActive: true
+              });
+            }
+          }
+        }
+
+        clearFrontCache();
+        fetchMenus();
+        alert("Categories & Subcategories synced successfully!");
+      } catch (error) {
+        console.error("Failed to sync categories", error);
+        alert("Failed to sync categories");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   // --- Drag and Drop Handlers ---
   const handleDragStart = (e, item, index) => {
     setDraggedItem(item);
@@ -241,6 +327,25 @@ const NavbarManager = () => {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button 
+            className="btn" 
+            onClick={handleAutoFetchCategories}
+            disabled={loading}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <Layers size={16} /> Sync Categories
+          </button>
           <button 
             className="btn" 
             onClick={handlePublish}
