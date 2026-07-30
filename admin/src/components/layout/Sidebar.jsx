@@ -31,7 +31,8 @@ import {
   Sparkles,
   Building2,
   Languages,
-  Briefcase
+  Briefcase,
+  Menu
 } from 'lucide-react';
 
 /**
@@ -165,6 +166,7 @@ const Sidebar = () => {
           <SidebarSection id="engagement" title={t('engagement')} icon={Megaphone} defaultOpen={false}>
             <SidebarNavLink to="/admin/push" icon={BellRing} label={t('push')} />
             <SidebarNavLink to="/admin/layout" icon={Layout} label={t('layout')} />
+            <SidebarNavLink to="/admin/navbar" icon={Menu} label={t('navbar')} />
             <SidebarNavLink to="/admin/community" icon={Building2} label="Community Modules" />
             <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
           </SidebarSection>
