@@ -148,6 +148,97 @@ public class DataInitializer {
         seedSitemapConfigs();
         seedHomeLayoutConfigs();
         updateChiefEditorPermissions();
+        // 12. Seed Roles and Permissions
+        System.out.println("Seeding Roles and Permissions...");
+        
+        // Define all permissions
+        List<Permission> permissionsList = Arrays.asList(
+            new Permission(Permission.USER_CREATE, "Create user accounts", "User Management"),
+            new Permission(Permission.USER_READ, "View user accounts", "User Management"),
+            new Permission(Permission.USER_UPDATE, "Update user accounts", "User Management"),
+            new Permission(Permission.USER_DELETE, "Delete user accounts", "User Management"),
+            new Permission(Permission.USER_SUSPEND, "Suspend user accounts", "User Management"),
+            new Permission(Permission.ARTICLE_CREATE, "Create articles", "Content"),
+            new Permission(Permission.ARTICLE_READ, "Read articles", "Content"),
+            new Permission(Permission.ARTICLE_UPDATE, "Update articles", "Content"),
+            new Permission(Permission.ARTICLE_DELETE, "Delete articles", "Content"),
+            new Permission(Permission.ARTICLE_PUBLISH, "Publish articles", "Content"),
+            new Permission(Permission.ARTICLE_REVIEW, "Review articles", "Content"),
+            new Permission(Permission.AUDIT_VIEW, "View system audit logs", "System"),
+            new Permission(Permission.CONFIG_READ, "Read system settings", "System"),
+            new Permission(Permission.CONFIG_WRITE, "Write system settings", "System"),
+            new Permission(Permission.PROFANITY_MANAGE, "Manage profanity dictionary", "Profanity"),
+            new Permission(Permission.PROFANITY_VIEW_REPORTS, "View profanity reports", "Profanity"),
+            new Permission(Permission.HOME_LAYOUT_MANAGE, "Manage home screen layout", "Layout"),
+            new Permission(Permission.HOME_LAYOUT_DELEGATED, "Manage delegated home screen layout", "Layout"),
+            new Permission(Permission.PUSH_NOTIFICATION_SEND, "Send push notifications", "Marketing"),
+            new Permission(Permission.SEO_CONFIG_MANAGE, "Manage SEO settings", "SEO"),
+            new Permission(Permission.TAXONOMY_MANAGE, "Manage categories and districts", "Taxonomy"),
+            new Permission(Permission.SURVEY_MANAGE, "Manage surveys and polls", "Survey"),
+            new Permission(Permission.WEBSTORE_MANAGE, "Manage webstore products", "Webstore"),
+            new Permission(Permission.FONT_MANAGE, "Manage system typography", "System"),
+            new Permission(Permission.SITEMAP_MANAGE, "Manage sitemaps", "SEO"),
+            new Permission(Permission.MOBILE_APP_LAYOUT_MANAGE, "Manage mobile app layouts", "Layout"),
+            new Permission(Permission.JOURNALIST_CREATE, "Create mobile journalists", "District Admin"),
+            new Permission(Permission.JOURNALIST_UPDATE, "Update mobile journalists", "District Admin"),
+            new Permission(Permission.JOURNALIST_SUSPEND, "Suspend mobile journalists", "District Admin"),
+            new Permission(Permission.CONTENT_REVIEW, "Review editorial content", "Chief Editor"),
+            new Permission(Permission.UGC_REVIEW, "Review user generated content", "Chief Editor"),
+            new Permission(Permission.ANALYTICS_VIEW, "View dashboard reports", "Analytics"),
+            new Permission(Permission.AI_REWRITER_USE, "Use AI assistant rewriter", "Content")
+        );
+        
+        Map<String, Permission> savedPerms = new HashMap<>();
+        for (Permission p : permissionsList) {
+            Optional<Permission> existing = permissionRepository.findByName(p.getName());
+            savedPerms.put(p.getName(), existing.orElseGet(() -> permissionRepository.save(p)));
+        }
+
+        // Create Roles
+        Role superAdmin = roleRepository.findByName(Role.SUPER_ADMIN).orElseGet(() -> roleRepository.save(new Role(Role.SUPER_ADMIN, "Super Administrator with full bypass access")));
+        Role chiefEditor = roleRepository.findByName(Role.CHIEF_EDITOR).orElseGet(() -> roleRepository.save(new Role(Role.CHIEF_EDITOR, "Chief Editor managing content publish flows")));
+        Role districtAdmin = roleRepository.findByName(Role.DISTRICT_ADMIN).orElseGet(() -> roleRepository.save(new Role(Role.DISTRICT_ADMIN, "District Admin managing local journalists")));
+        Role mobileJournalist = roleRepository.findByName(Role.MOBILE_JOURNALIST).orElseGet(() -> roleRepository.save(new Role(Role.MOBILE_JOURNALIST, "Field Mobile Journalist submitting posts")));
+        Role institutionLogin = roleRepository.findByName(Role.INSTITUTION_LOGIN).orElseGet(() -> roleRepository.save(new Role(Role.INSTITUTION_LOGIN, "Institutional publisher account")));
+        Role reader = roleRepository.findByName(Role.READER).orElseGet(() -> roleRepository.save(new Role(Role.READER, "Standard public/reader account")));
+
+        // Assign Permissions to Chief Editor
+        chiefEditor.getPermissions().addAll(Arrays.asList(
+            savedPerms.get(Permission.USER_CREATE), savedPerms.get(Permission.USER_READ), savedPerms.get(Permission.USER_UPDATE),
+            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
+            savedPerms.get(Permission.ARTICLE_REVIEW), savedPerms.get(Permission.ARTICLE_PUBLISH), savedPerms.get(Permission.CONTENT_REVIEW),
+            savedPerms.get(Permission.UGC_REVIEW), savedPerms.get(Permission.PROFANITY_VIEW_REPORTS), savedPerms.get(Permission.HOME_LAYOUT_DELEGATED),
+            savedPerms.get(Permission.ANALYTICS_VIEW), savedPerms.get(Permission.AI_REWRITER_USE), savedPerms.get(Permission.PUSH_NOTIFICATION_SEND)
+        ));
+        roleRepository.save(chiefEditor);
+
+        // Assign Permissions to District Admin
+        districtAdmin.getPermissions().addAll(Arrays.asList(
+            savedPerms.get(Permission.JOURNALIST_CREATE), savedPerms.get(Permission.JOURNALIST_UPDATE), savedPerms.get(Permission.JOURNALIST_SUSPEND),
+            savedPerms.get(Permission.USER_READ), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ANALYTICS_VIEW)
+        ));
+        roleRepository.save(districtAdmin);
+
+        // Assign Permissions to Mobile Journalist
+        mobileJournalist.getPermissions().addAll(Arrays.asList(
+            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
+            savedPerms.get(Permission.AI_REWRITER_USE)
+        ));
+        roleRepository.save(mobileJournalist);
+
+        // Assign Permissions to Institution Login
+        institutionLogin.getPermissions().addAll(Arrays.asList(
+            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
+            savedPerms.get(Permission.AI_REWRITER_USE)
+        ));
+        roleRepository.save(institutionLogin);
+
+        // Assign Permissions to Reader
+        reader.getPermissions().addAll(Arrays.asList(
+            savedPerms.get(Permission.ARTICLE_READ)
+        ));
+        roleRepository.save(reader);
+
         seedBreakingNews();
         seedFiftyArticlesPerCategory();
 
@@ -429,97 +520,6 @@ public class DataInitializer {
                 "{\"titleTa\":\"அனிருத் இசையமைப்பு\",\"titleEn\":\"Musical Scores by Anirudh\",\"descTa\":\"திரைப்படத்தின் பாடல்கள் மற்றும் பின்னணி இசையை ராக்ஸ்டார் அனிருத் வடிவமைக்கிறார்.\",\"descEn\":\"Rockstar Anirudh is scoring the tracks, promising a massive audio treat for fans.\"}" +
                 "]";
         seedWebStory(cinemaCat, "விஜய்யின் கடைசி படம்: என்ன எதிர்பார்ப்பு?", "Vijay final movie: What can we expect?", "cinema", "HOT", "linear-gradient(135deg, #E91E63, #9C27B0)", slidesJson2);
-
-        // 12. Seed Roles and Permissions
-        System.out.println("Seeding Roles and Permissions...");
-        
-        // Define all permissions
-        List<Permission> permissionsList = Arrays.asList(
-            new Permission(Permission.USER_CREATE, "Create user accounts", "User Management"),
-            new Permission(Permission.USER_READ, "View user accounts", "User Management"),
-            new Permission(Permission.USER_UPDATE, "Update user accounts", "User Management"),
-            new Permission(Permission.USER_DELETE, "Delete user accounts", "User Management"),
-            new Permission(Permission.USER_SUSPEND, "Suspend user accounts", "User Management"),
-            new Permission(Permission.ARTICLE_CREATE, "Create articles", "Content"),
-            new Permission(Permission.ARTICLE_READ, "Read articles", "Content"),
-            new Permission(Permission.ARTICLE_UPDATE, "Update articles", "Content"),
-            new Permission(Permission.ARTICLE_DELETE, "Delete articles", "Content"),
-            new Permission(Permission.ARTICLE_PUBLISH, "Publish articles", "Content"),
-            new Permission(Permission.ARTICLE_REVIEW, "Review articles", "Content"),
-            new Permission(Permission.AUDIT_VIEW, "View system audit logs", "System"),
-            new Permission(Permission.CONFIG_READ, "Read system settings", "System"),
-            new Permission(Permission.CONFIG_WRITE, "Write system settings", "System"),
-            new Permission(Permission.PROFANITY_MANAGE, "Manage profanity dictionary", "Profanity"),
-            new Permission(Permission.PROFANITY_VIEW_REPORTS, "View profanity reports", "Profanity"),
-            new Permission(Permission.HOME_LAYOUT_MANAGE, "Manage home screen layout", "Layout"),
-            new Permission(Permission.HOME_LAYOUT_DELEGATED, "Manage delegated home screen layout", "Layout"),
-            new Permission(Permission.PUSH_NOTIFICATION_SEND, "Send push notifications", "Marketing"),
-            new Permission(Permission.SEO_CONFIG_MANAGE, "Manage SEO settings", "SEO"),
-            new Permission(Permission.TAXONOMY_MANAGE, "Manage categories and districts", "Taxonomy"),
-            new Permission(Permission.SURVEY_MANAGE, "Manage surveys and polls", "Survey"),
-            new Permission(Permission.WEBSTORE_MANAGE, "Manage webstore products", "Webstore"),
-            new Permission(Permission.FONT_MANAGE, "Manage system typography", "System"),
-            new Permission(Permission.SITEMAP_MANAGE, "Manage sitemaps", "SEO"),
-            new Permission(Permission.MOBILE_APP_LAYOUT_MANAGE, "Manage mobile app layouts", "Layout"),
-            new Permission(Permission.JOURNALIST_CREATE, "Create mobile journalists", "District Admin"),
-            new Permission(Permission.JOURNALIST_UPDATE, "Update mobile journalists", "District Admin"),
-            new Permission(Permission.JOURNALIST_SUSPEND, "Suspend mobile journalists", "District Admin"),
-            new Permission(Permission.CONTENT_REVIEW, "Review editorial content", "Chief Editor"),
-            new Permission(Permission.UGC_REVIEW, "Review user generated content", "Chief Editor"),
-            new Permission(Permission.ANALYTICS_VIEW, "View dashboard reports", "Analytics"),
-            new Permission(Permission.AI_REWRITER_USE, "Use AI assistant rewriter", "Content")
-        );
-        
-        Map<String, Permission> savedPerms = new HashMap<>();
-        for (Permission p : permissionsList) {
-            Optional<Permission> existing = permissionRepository.findByName(p.getName());
-            savedPerms.put(p.getName(), existing.orElseGet(() -> permissionRepository.save(p)));
-        }
-
-        // Create Roles
-        Role superAdmin = roleRepository.findByName(Role.SUPER_ADMIN).orElseGet(() -> roleRepository.save(new Role(Role.SUPER_ADMIN, "Super Administrator with full bypass access")));
-        Role chiefEditor = roleRepository.findByName(Role.CHIEF_EDITOR).orElseGet(() -> roleRepository.save(new Role(Role.CHIEF_EDITOR, "Chief Editor managing content publish flows")));
-        Role districtAdmin = roleRepository.findByName(Role.DISTRICT_ADMIN).orElseGet(() -> roleRepository.save(new Role(Role.DISTRICT_ADMIN, "District Admin managing local journalists")));
-        Role mobileJournalist = roleRepository.findByName(Role.MOBILE_JOURNALIST).orElseGet(() -> roleRepository.save(new Role(Role.MOBILE_JOURNALIST, "Field Mobile Journalist submitting posts")));
-        Role institutionLogin = roleRepository.findByName(Role.INSTITUTION_LOGIN).orElseGet(() -> roleRepository.save(new Role(Role.INSTITUTION_LOGIN, "Institutional publisher account")));
-        Role reader = roleRepository.findByName(Role.READER).orElseGet(() -> roleRepository.save(new Role(Role.READER, "Standard public/reader account")));
-
-        // Assign Permissions to Chief Editor
-        chiefEditor.getPermissions().addAll(Arrays.asList(
-            savedPerms.get(Permission.USER_CREATE), savedPerms.get(Permission.USER_READ), savedPerms.get(Permission.USER_UPDATE),
-            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
-            savedPerms.get(Permission.ARTICLE_REVIEW), savedPerms.get(Permission.ARTICLE_PUBLISH), savedPerms.get(Permission.CONTENT_REVIEW),
-            savedPerms.get(Permission.UGC_REVIEW), savedPerms.get(Permission.PROFANITY_VIEW_REPORTS), savedPerms.get(Permission.HOME_LAYOUT_DELEGATED),
-            savedPerms.get(Permission.ANALYTICS_VIEW), savedPerms.get(Permission.AI_REWRITER_USE), savedPerms.get(Permission.PUSH_NOTIFICATION_SEND)
-        ));
-        roleRepository.save(chiefEditor);
-
-        // Assign Permissions to District Admin
-        districtAdmin.getPermissions().addAll(Arrays.asList(
-            savedPerms.get(Permission.JOURNALIST_CREATE), savedPerms.get(Permission.JOURNALIST_UPDATE), savedPerms.get(Permission.JOURNALIST_SUSPEND),
-            savedPerms.get(Permission.USER_READ), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ANALYTICS_VIEW)
-        ));
-        roleRepository.save(districtAdmin);
-
-        // Assign Permissions to Mobile Journalist
-        mobileJournalist.getPermissions().addAll(Arrays.asList(
-            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
-            savedPerms.get(Permission.AI_REWRITER_USE)
-        ));
-        roleRepository.save(mobileJournalist);
-
-        // Assign Permissions to Institution Login
-        institutionLogin.getPermissions().addAll(Arrays.asList(
-            savedPerms.get(Permission.ARTICLE_CREATE), savedPerms.get(Permission.ARTICLE_READ), savedPerms.get(Permission.ARTICLE_UPDATE),
-            savedPerms.get(Permission.AI_REWRITER_USE)
-        ));
-        roleRepository.save(institutionLogin);
-
-        // Assign Permissions to Reader
-        reader.getPermissions().addAll(Arrays.asList(
-            savedPerms.get(Permission.ARTICLE_READ)
-        ));
-        roleRepository.save(reader);
 
         // 13. Seed Users with precise role designations
         System.out.println("Seeding User Accounts...");
