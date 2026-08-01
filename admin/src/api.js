@@ -37,8 +37,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Clear tokens and redirect to login if unauthorized or forbidden
+    if (error.response && error.response.status === 401) {
+      // Clear tokens and redirect to login only if unauthorized (expired token)
+      // 403 Forbidden should just be handled by the UI without logging the user out.
       localStorage.removeItem('token');
       localStorage.removeItem('admin_token');
       localStorage.removeItem('user');
