@@ -3494,6 +3494,23 @@ ul {
   font-weight: bold; 
 }
 
+/* Side-by-side Image and Text layouts */
+.layout-grid { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 16px; 
+  margin: 16px 0; 
+}
+.layout-col { 
+  flex: 1; 
+  min-width: 250px; 
+}
+.layout-col img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
 .article-body-text p {
   margin-bottom: 18px;
 }

@@ -1197,7 +1197,7 @@ const PostEditor = () => {
       'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
     ],
     image_advtab: true,
-    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote | undo redo | fullscreen code',
+    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote add_columns | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
     contextmenu: 'link image table',
     skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
@@ -1208,8 +1208,24 @@ const PostEditor = () => {
       .document-card { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; margin: 16px 0; }
       .article-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
       video, audio, img, iframe { max-width: 100%; border-radius: 8px; }
+      .layout-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+      .layout-col { flex: 1; min-width: 250px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; }
     `,
     setup: (editor) => {
+      // Add Two-Column Layout Button
+      editor.ui.registry.addButton('add_columns', {
+        icon: 'table',
+        tooltip: 'Insert Side-by-Side Image & Text Layout',
+        onAction: () => {
+          editor.insertContent(`
+            <div class="layout-grid">
+              <div class="layout-col"><p><em>[Insert Image Here]</em></p></div>
+              <div class="layout-col"><p><strong>Type your text here...</strong></p></div>
+            </div>
+            <p><br></p>
+          `);
+        }
+      });
       // AI Context Toolbar definition
       editor.ui.registry.addButton('ai_fix', { icon: 'format-painter', tooltip: 'Fix Grammar', onAction: () => handleAiInlineAction(editor, 'grammar', lang) });
       editor.ui.registry.addButton('ai_rephrase', { icon: 'change-case', tooltip: 'Rephrase', onAction: () => handleAiInlineAction(editor, 'rephrase', lang) });
