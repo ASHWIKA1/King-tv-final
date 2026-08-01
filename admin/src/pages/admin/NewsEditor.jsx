@@ -1240,15 +1240,24 @@ const NewsEditor = () => {
         });
         doc.addEventListener('mousemove', (e) => {
           if (isDragging && dragEl) {
-            // Scroll adjustments might be needed depending on TinyMCE iframe scroll
             const scrollY = doc.defaultView.scrollY || doc.documentElement.scrollTop;
             const scrollX = doc.defaultView.scrollX || doc.documentElement.scrollLeft;
-            dragEl.style.left = (e.clientX + scrollX - offsetX) + 'px';
-            dragEl.style.top = (e.clientY + scrollY - offsetY) + 'px';
+            
+            let rawLeft = e.clientX + scrollX - offsetX;
+            let rawTop = e.clientY + scrollY - offsetY;
+            
+            // Convert to percentage for responsive frontend
+            let bodyWidth = doc.body.clientWidth || 800;
+            let leftPercent = (rawLeft / bodyWidth) * 100;
+            
+            editor.dom.setStyle(dragEl, 'left', leftPercent + '%');
+            editor.dom.setStyle(dragEl, 'top', rawTop + 'px');
           }
         });
         doc.addEventListener('mouseup', () => {
           if (isDragging) {
+            editor.undoManager.add();
+            editor.nodeChanged();
             editor.setDirty(true);
             editor.fire('change');
           }
