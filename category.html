@@ -239,7 +239,7 @@
         
         let targetCat = null;
         for (let item of navData) {
-          if ((item.slug || '').toLowerCase() === catSlug || (item.name || '').toLowerCase() === catSlug) {
+          if ((item.slug || '').toLowerCase() === catSlug || (item.name || '').toLowerCase() === catSlug || (item.id || '').toString() === catSlug) {
             targetCat = item;
             break;
           }

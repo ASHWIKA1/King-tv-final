@@ -122,6 +122,25 @@ document.addEventListener('DOMContentLoaded', function() {
       var menus = await response.json();
       if (!Array.isArray(menus) || menus.length === 0) return;
 
+      // Helper to convert backend clean URLs to static html params
+      function convertLink(url) {
+        if (!url) return '#';
+        if (url === '/videos') return 'index.html#section-video';
+        if (url === '/web-stories') return 'index.html#section-stories';
+        
+        if (url.startsWith('/category/')) {
+          var parts = url.split('/');
+          if (parts.length === 3) {
+            return 'category.html?cat=' + parts[2];
+          } else if (parts.length >= 5 && parts[3] === 'sub') {
+            return 'category.html?cat=' + parts[2] + '&sub=' + parts[4];
+          }
+        } else if (url.startsWith('/')) {
+          return url.substring(1) + '.html'; // e.g. /jobs -> jobs.html
+        }
+        return url;
+      }
+
       var html = '';
       var currentPath = window.location.pathname;
       var currentQuery = window.location.search;
@@ -130,20 +149,20 @@ document.addEventListener('DOMContentLoaded', function() {
         var displayName = document.documentElement.lang === 'ta' ? (menu.titleTa || menu.titleEn) : (menu.titleEn || menu.titleTa);
         var hasDropdown = menu.subcategories && menu.subcategories.length > 0;
         
-        var isActive = menu.linkUrl && (currentPath + currentQuery).includes(menu.linkUrl) ? 'active' : '';
+        var isActive = menu.linkUrl && (currentPath + currentQuery).includes(convertLink(menu.linkUrl)) ? 'active' : '';
 
         if (hasDropdown) {
           html += '<li class="nav-item has-dropdown ' + isActive + '">' +
-            '<a href="' + (menu.linkUrl || '#') + '" class="nav-link">' + sanitize(displayName) + ' <i class="fas fa-chevron-down" style="font-size:0.7em"></i></a>' +
+            '<a href="' + convertLink(menu.linkUrl) + '" class="nav-link">' + sanitize(displayName) + ' <i class="fas fa-chevron-down" style="font-size:0.7em"></i></a>' +
             '<ul class="mega-menu">';
           menu.subcategories.forEach(function(sub) {
             var subName = document.documentElement.lang === 'ta' ? (sub.titleTa || sub.titleEn) : (sub.titleEn || sub.titleTa);
-            html += '<li><a href="' + (sub.linkUrl || '#') + '" class="nav-link">' + sanitize(subName) + '</a></li>';
+            html += '<li><a href="' + convertLink(sub.linkUrl) + '" class="nav-link">' + sanitize(subName) + '</a></li>';
           });
           html += '</ul></li>';
         } else {
           html += '<li class="nav-item ' + isActive + '">' +
-            '<a href="' + (menu.linkUrl || '#') + '" class="nav-link">' + sanitize(displayName) + '</a></li>';
+            '<a href="' + convertLink(menu.linkUrl) + '" class="nav-link">' + sanitize(displayName) + '</a></li>';
         }
       });
 
