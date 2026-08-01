@@ -10,5 +10,4 @@ public interface NavigationMenuRepository extends JpaRepository<NavigationMenu, 
     List<NavigationMenu> findByIsActiveOrderByDisplayOrderAsc(Boolean isActive);
     List<NavigationMenu> findByParentIdAndIsActiveOrderByDisplayOrderAsc(Long parentId, Boolean isActive);
     List<NavigationMenu> findByOrderByDisplayOrderAsc();
-    List<NavigationMenu> findByLinkUrl(String linkUrl);
 }
