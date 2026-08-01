@@ -1256,9 +1256,15 @@ const NewsEditor = () => {
         });
         doc.addEventListener('mouseup', () => {
           if (isDragging && dragEl) {
-            // Force TinyMCE to parse the raw DOM changes into its internal model
             const rawHtml = editor.getBody().innerHTML;
             editor.setContent(rawHtml);
+            
+            // Directly update the React state to bypass tinymce-react bugs
+            setForm(prev => ({
+              ...prev,
+              [activeTab === 0 ? 'contentTa' : 'contentEn']: rawHtml
+            }));
+            
             editor.setDirty(true);
             editor.fire('change');
           }
