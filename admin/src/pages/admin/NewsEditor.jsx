@@ -1248,6 +1248,10 @@ const NewsEditor = () => {
           }
         });
         doc.addEventListener('mouseup', () => {
+          if (isDragging) {
+            editor.setDirty(true);
+            editor.fire('change');
+          }
           isDragging = false;
           dragEl = null;
         });
