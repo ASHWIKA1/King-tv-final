@@ -1190,12 +1190,14 @@ const NewsEditor = () => {
   const tinyInit = (lang) => ({
     height: 600,
     menubar: false,
-    extended_valid_elements: 'video[src|controls|width|height|style|class|type],audio[src|controls|style|class],source[src|type],iframe[src|width|height|frameborder|allowfullscreen|style|class],div[*],a[*],span[*],img[*]',
+    extended_valid_elements: 'video[src|controls|width|height|style|class|type],audio[src|controls|style|class],source[src|type],iframe[src|width|height|frameborder|allowfullscreen|style|class],div[*],a[*],span[*],img[*],figure[*],figcaption[*]',
     plugins: [
       'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
       'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
       'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
     ],
+    image_advtab: true,
+    image_caption: true,
     toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
     contextmenu: 'link image table',
