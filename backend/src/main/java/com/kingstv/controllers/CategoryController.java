@@ -1,8 +1,10 @@
 package com.kingstv.controllers;
 
 import com.kingstv.models.Category;
+import com.kingstv.models.NavigationMenu;
 import com.kingstv.models.SubCategory;
 import com.kingstv.repository.CategoryRepository;
+import com.kingstv.repository.NavigationMenuRepository;
 import com.kingstv.repository.SubCategoryRepository;
 import com.kingstv.security.RequiresPermission;
 import com.kingstv.models.Permission;
@@ -35,6 +37,9 @@ public class CategoryController {
 
     @Autowired
     private SlugService slugService;
+
+    @Autowired
+    private NavigationMenuRepository navigationMenuRepository;
 
     @GetMapping("/nav")
     public List<Map<String, Object>> getNavMenu() {
@@ -121,6 +126,10 @@ public class CategoryController {
         }
         slugService.generateAndSetSlug(category);
         Category saved = categoryRepository.save(category);
+
+        // Sync: also create a NavigationMenu entry for this category
+        syncCategoryToNavMenu(saved);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -168,12 +177,24 @@ public class CategoryController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Category not found"));
         }
         Category category = catOpt.get();
+        String oldSlug = category.getSlug();
         category.setName(entity.getName());
         category.setNameTa(entity.getNameTa());
         category.setSlug(entity.getSlug());
         
         slugService.generateAndSetSlug(category);
         Category updated = categoryRepository.save(category);
+
+        // Sync: update the corresponding NavigationMenu entry
+        String oldLink = "/category/" + oldSlug;
+        List<NavigationMenu> existingMenus = navigationMenuRepository.findByLinkUrl(oldLink);
+        for (NavigationMenu menu : existingMenus) {
+            menu.setTitleEn(updated.getName());
+            menu.setTitleTa(updated.getNameTa());
+            menu.setLinkUrl("/category/" + updated.getSlug());
+            navigationMenuRepository.save(menu);
+        }
+
         return ResponseEntity.ok(updated);
     }
 
@@ -203,7 +224,41 @@ public class CategoryController {
         if (catOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Category not found"));
         }
-        categoryRepository.delete(catOpt.get());
+        Category category = catOpt.get();
+
+        // Sync: also remove the corresponding NavigationMenu entry
+        String linkUrl = "/category/" + category.getSlug();
+        List<NavigationMenu> menusToRemove = navigationMenuRepository.findByLinkUrl(linkUrl);
+        if (!menusToRemove.isEmpty()) {
+            navigationMenuRepository.deleteAll(menusToRemove);
+        }
+
+        categoryRepository.delete(category);
         return ResponseEntity.ok(Map.of("message", "Category deleted successfully"));
+    }
+
+    // ===== SYNC HELPER =====
+    private void syncCategoryToNavMenu(Category category) {
+        String linkUrl = "/category/" + category.getSlug();
+        // Check if a nav menu entry already exists for this category
+        List<NavigationMenu> existing = navigationMenuRepository.findByLinkUrl(linkUrl);
+        if (!existing.isEmpty()) {
+            // Already exists, update it
+            NavigationMenu menu = existing.get(0);
+            menu.setTitleEn(category.getName());
+            menu.setTitleTa(category.getNameTa());
+            menu.setDisplayOrder(category.getDisplayOrder() != null ? category.getDisplayOrder() : 0);
+            navigationMenuRepository.save(menu);
+        } else {
+            // Create new nav menu entry
+            NavigationMenu menu = new NavigationMenu();
+            menu.setTitleEn(category.getName());
+            menu.setTitleTa(category.getNameTa());
+            menu.setLinkUrl(linkUrl);
+            menu.setDisplayOrder(category.getDisplayOrder() != null ? category.getDisplayOrder() : 0);
+            menu.setParentId(null); // top-level
+            menu.setIsActive(true);
+            navigationMenuRepository.save(menu);
+        }
     }
 }
