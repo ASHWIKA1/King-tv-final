@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hasDropdown) {
           html += '<li class="nav-item has-dropdown">' +
             '<a href="category.html?cat=' + slug + '" class="nav-link">' + sanitize(displayName) + ' <i class="fas fa-chevron-down" style="font-size:0.7em"></i></a>' +
-            '<ul class="dropdown-menu">';
+            '<ul class="mega-menu">';
           cat.subcategories.forEach(function(sub) {
             var subName = sub.nameTa || sub.name;
             var subSlug = sanitize(sub.slug || sub.id);
