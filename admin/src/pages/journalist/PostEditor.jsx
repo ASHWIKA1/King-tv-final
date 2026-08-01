@@ -1210,7 +1210,7 @@ const PostEditor = () => {
       video, audio, img, iframe { max-width: 100%; border-radius: 8px; }
       .layout-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
       .layout-col { flex: 1; min-width: 250px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; }
-      .draggable-box { position: absolute; z-index: 50; padding: 10px; border: 2px dashed #4F46E5; background: rgba(255,255,255,0.85); cursor: move; min-width: 150px; min-height: 50px; font-weight: bold; }
+      .draggable-box { position: absolute; z-index: 50; padding: 10px; border: 2px dashed #4F46E5; background: rgba(255,255,255,0.85); cursor: move; min-width: 150px; min-height: 50px; font-weight: bold; resize: both; overflow: auto; }
     `,
     setup: (editor) => {
       // Draggable Box Tool
@@ -1240,10 +1240,17 @@ const PostEditor = () => {
         
         doc.addEventListener('mousedown', (e) => {
           if (e.target.classList && e.target.classList.contains('draggable-box')) {
+            const rect = e.target.getBoundingClientRect();
+            
+            // If clicking the bottom-right corner (resize handle), do not trigger drag
+            const isResizeHandle = (e.clientX >= rect.right - 20) && (e.clientY >= rect.bottom - 20);
+            if (isResizeHandle) {
+              return; // Let native CSS resize take over
+            }
+            
             isDragging = true;
             hasMoved = false;
             dragEl = e.target;
-            const rect = dragEl.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
           }

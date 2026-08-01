@@ -3492,6 +3492,8 @@ ul {
   padding: 10px; 
   background: rgba(255,255,255,0.85); 
   font-weight: bold; 
+  resize: both;
+  overflow: auto;
 }
 
 /* Side-by-side Image and Text layouts */
