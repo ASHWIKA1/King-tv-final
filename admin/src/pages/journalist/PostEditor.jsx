@@ -1240,9 +1240,9 @@ const PostEditor = () => {
         
         doc.addEventListener('mousedown', (e) => {
           if (e.target.classList && e.target.classList.contains('draggable-box')) {
-            // Clear default text on first click
-            if (e.target.innerText.trim() === 'Drag me and edit text') {
-              e.target.innerText = '';
+            // Clear default text even if they accidentally typed next to it
+            if (e.target.innerText.includes('Drag me and edit text')) {
+              e.target.innerHTML = e.target.innerHTML.replace('Drag me and edit text', '');
             }
             isDragging = true;
             hasMoved = false;
