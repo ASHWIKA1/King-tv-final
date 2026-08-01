@@ -5,7 +5,7 @@ const getBaseUrl = () => {
     return 'http://localhost:8080/api/v1';
   }
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
-  return 'https://kings-tv.onrender.com/api/v1';
+  return 'https://kings-tv-bfvm.onrender.com/api/v1';
 };
 
 const api = axios.create({
