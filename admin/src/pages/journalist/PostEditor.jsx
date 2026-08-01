@@ -176,6 +176,7 @@ const PostEditor = () => {
   const [reporters, setReporters] = useState([]);
   
   const [saving, setSaving] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [msg, setMsg] = useState(null);
   
   const [mediaList, setMediaList] = useState([]);
@@ -1050,6 +1051,76 @@ const PostEditor = () => {
     }
   };
 
+  // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
+  const handleAutoTranslate = async (direction) => {
+    setIsTranslating(true);
+    showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
+    try {
+      const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
+      const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
+      const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+
+      const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
+      if (!baseRaw || baseRaw.length < 5) {
+        showMsg('Please write some content to translate first.', true);
+        setIsTranslating(false);
+        return;
+      }
+
+      const res = await api.post('/articles/ai-assist', {
+        action: 'translate',
+        context: direction,
+        text: baseRaw
+      });
+
+      const translatedText = res.data?.result || '';
+      
+      let newTitle = '';
+      let newExcerpt = '';
+      let newContent = '';
+
+      // Simple parsing based on the prompt structure
+      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
+      const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
+      const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
+
+      if (titleMatch) newTitle = titleMatch[1].trim();
+      if (excerptMatch) newExcerpt = excerptMatch[1].trim();
+      if (contentMatch) newContent = contentMatch[1].trim();
+
+      // If parsing failed to find blocks, dump everything to content
+      if (!newTitle && !newExcerpt && !newContent) {
+        newContent = translatedText.trim();
+      }
+
+      if (direction === 'ta2en') {
+        setForm(f => ({
+          ...f,
+          titleEn: newTitle || f.titleEn,
+          shortDescEn: newExcerpt || f.shortDescEn,
+          contentEn: newContent || f.contentEn
+        }));
+        if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
+      } else {
+        setForm(f => ({
+          ...f,
+          titleTa: newTitle || f.titleTa,
+          shortDescTa: newExcerpt || f.shortDescTa,
+          contentTa: newContent || f.contentTa
+        }));
+        if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
+      }
+      
+      showMsg('✅ Translation completed successfully!');
+    } catch (err) {
+      console.error(err);
+      const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
+      showMsg(`Translation error: ${errDetail}`, true);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleSave = async (statusOverride) => {
     const finalStatus = statusOverride || form.status;
 
@@ -1320,7 +1391,22 @@ const PostEditor = () => {
               {(activeTab === 0 || activeTab === 1) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Add title ({activeTab === 0 ? 'Tamil' : 'English'})</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Add title ({activeTab === 0 ? 'Tamil' : 'English'})</label>
+                    <button 
+                      type="button"
+                      onClick={() => handleAutoTranslate(activeTab === 0 ? 'ta2en' : 'en2ta')}
+                      disabled={isTranslating}
+                      style={{
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: 'none', 
+                        padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: isTranslating ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px', opacity: isTranslating ? 0.7 : 1
+                      }}
+                    >
+                      {isTranslating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+                      {isTranslating ? 'Translating...' : (activeTab === 0 ? 'Auto-Translate to English' : 'Auto-Translate to Tamil')}
+                    </button>
+                  </div>
                     <input 
                       type="text" 
                       value={activeTab === 0 ? form.titleTa : form.titleEn}
