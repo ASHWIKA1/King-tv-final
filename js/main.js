@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dt = document.getElementById('darkToggle');
     if (!dt) return;
     const theme = document.documentElement.getAttribute('data-theme') || 'light';
-    const lang = Storage.get('lang', 'en');
+    const lang = Storage.get('lang', 'ta');
     if (lang === 'en') {
       dt.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i> Light' : '<i class="fas fa-moon"></i> Dark';
     } else {
@@ -1339,6 +1339,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update clock immediately
     updateTamilDateTime();
+
+    // Re-render dynamic nav menu based on new language
+    loadDynamicNavMenu();
   }
 
   function translateTextNodes(node, lang) {
@@ -1431,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (userBlock) userBlock.remove();
 
     const session = Storage.get('session', null);
-    const lang = Storage.get('lang', 'en');
+    const lang = Storage.get('lang', 'ta');
 
     userBlock = document.createElement('div');
     userBlock.id = 'topBarUserBlock';
@@ -1525,7 +1528,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!dateStr) return '';
     try {
       const d = new Date(dateStr);
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
       if (lang === 'ta') {
         const months = ['ஜனவரி', 'பிப்ரவரி', 'மார்ச்', 'ஏப்ரல்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆகஸ்ட்', 'செப்டம்பர்', 'அக்டோபர்', 'நவம்பர்', 'டிசம்பர்'];
         return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
@@ -1546,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const track = document.getElementById('breakTrack');
       if (!track || items.length === 0) return;
 
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
       track.innerHTML = items.map(item => {
         const title = lang === 'ta' ? (item.titleTa || item.title) : (item.title || item.titleTa);
         return `<a href="article.html?id=${item.id}">${sanitize(title)}</a>`;
@@ -1564,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const articles = await response.json();
       if (!articles || articles.length === 0) return;
 
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
 
       // Main featured card (first article)
       const mainArt = articles[0];
@@ -1622,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const grid = document.getElementById('newsGrid');
       if (!grid || articles.length === 0) return;
 
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
       grid.innerHTML = articles.map(art => {
         const title = lang === 'ta' ? (art.titleTa || art.titleEn) : (art.titleEn || art.titleTa);
         const desc = lang === 'ta' ? (art.shortDescTa || art.contentTa) : (art.shortDescEn || art.contentEn);
@@ -1689,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const track = document.querySelector('.stories-track');
       if (!track || stories.length === 0) return;
 
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
       track.innerHTML = stories.map(story => {
         const title = lang === 'ta' ? (story.titleTa || story.titleEn) : (story.titleEn || story.titleTa);
         const bg = story.backgroundGradient || 'linear-gradient(135deg, #667eea, #764ba2)';
@@ -1719,7 +1722,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const container = document.querySelector('.trending-list');
       if (!container || articles.length === 0) return;
 
-      const lang = Storage.get('lang', 'en');
+      const lang = Storage.get('lang', 'ta');
       const headerHTML = `<h4 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="fas fa-fire" style="color:#EF4444"></i> ${lang === 'ta' ? 'ட்ரெண்டிங் செய்திகள்' : 'Trending News'}</h4>`;
       
       const itemsHTML = articles.map((art, index) => {
@@ -1776,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadDynamicNavMenu(); // Populate nav from backend categories (Issue #7)
   
   // Apply default language on load
-  var defaultLang = Storage.get('lang', 'en');
+  var defaultLang = Storage.get('lang', 'ta');
   setLanguage(defaultLang);
   
   // Sync favicon on load
@@ -1785,7 +1788,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Re-run setLanguage on a 0ms timeout to catch and translate dynamically generated DOM items
   setTimeout(function() {
-    setLanguage(Storage.get('lang', 'en'));
+    setLanguage(Storage.get('lang', 'ta'));
     renderUserSession();
   }, 0);
 });
