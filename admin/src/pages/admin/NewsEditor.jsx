@@ -1223,12 +1223,21 @@ const NewsEditor = () => {
       });
       
       let isDragging = false;
+      let hasMoved = false;
       let dragEl = null;
       let offsetX = 0;
       let offsetY = 0;
 
       editor.on('init', () => {
         const doc = editor.getDoc();
+        
+        // Prevent native browser drag-and-drop from cloning the box
+        doc.addEventListener('dragstart', (e) => {
+          if (e.target.classList && e.target.classList.contains('draggable-box')) {
+            e.preventDefault();
+          }
+        });
+        
         doc.addEventListener('mousedown', (e) => {
           if (e.target.classList && e.target.classList.contains('draggable-box')) {
             // Clear default text on first click
@@ -1236,6 +1245,7 @@ const NewsEditor = () => {
               e.target.innerText = '';
             }
             isDragging = true;
+            hasMoved = false;
             dragEl = e.target;
             const rect = dragEl.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
@@ -1244,6 +1254,7 @@ const NewsEditor = () => {
         });
         doc.addEventListener('mousemove', (e) => {
           if (isDragging && dragEl) {
+            hasMoved = true;
             const scrollY = doc.defaultView.scrollY || doc.documentElement.scrollTop;
             const scrollX = doc.defaultView.scrollX || doc.documentElement.scrollLeft;
             
@@ -1259,18 +1270,23 @@ const NewsEditor = () => {
         });
         doc.addEventListener('mouseup', () => {
           if (isDragging && dragEl) {
-            const rawHtml = editor.getBody().innerHTML;
-            editor.setContent(rawHtml);
-            
-            setForm(prev => ({
-              ...prev,
-              [activeTab === 0 ? 'contentTa' : 'contentEn']: rawHtml
-            }));
-            
-            editor.setDirty(true);
-            editor.fire('change');
+            // ONLY save the whole HTML if it was actually dragged.
+            // If they just clicked it to type, DO NOT reset content as it destroys cursor.
+            if (hasMoved) {
+              const rawHtml = editor.getBody().innerHTML;
+              editor.setContent(rawHtml);
+              
+              setForm(prev => ({
+                ...prev,
+                [activeTab === 0 ? 'contentTa' : 'contentEn']: rawHtml
+              }));
+              
+              editor.setDirty(true);
+              editor.fire('change');
+            }
           }
           isDragging = false;
+          hasMoved = false;
           dragEl = null;
         });
       });
