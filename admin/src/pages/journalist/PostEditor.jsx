@@ -1230,7 +1230,11 @@ const PostEditor = () => {
       editor.on('init', () => {
         const doc = editor.getDoc();
         doc.addEventListener('mousedown', (e) => {
-          if (e.target.classList.contains('draggable-box')) {
+          if (e.target.classList && e.target.classList.contains('draggable-box')) {
+            // Clear default text on first click
+            if (e.target.innerText.trim() === 'Drag me and edit text') {
+              e.target.innerText = '';
+            }
             isDragging = true;
             dragEl = e.target;
             const rect = dragEl.getBoundingClientRect();
