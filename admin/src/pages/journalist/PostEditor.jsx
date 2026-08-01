@@ -1197,7 +1197,6 @@ const PostEditor = () => {
       'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
     ],
     image_advtab: true,
-    image_caption: true,
     toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
     contextmenu: 'link image table',
