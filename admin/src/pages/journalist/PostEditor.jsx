@@ -1255,11 +1255,17 @@ const PostEditor = () => {
           }
         });
         doc.addEventListener('mouseup', () => {
-          if (isDragging) {
-            editor.undoManager.add();
-            editor.nodeChanged();
+          if (isDragging && dragEl) {
+            // Force TinyMCE to recognize the style changes by updating its internal attribute
+            dragEl.setAttribute('data-mce-style', dragEl.getAttribute('style'));
+            
+            // Force a deep sync
             editor.setDirty(true);
+            editor.nodeChanged();
             editor.fire('change');
+            
+            // Ultimate fallback to force tinymce-react to see the change
+            editor.setContent(editor.getContent());
           }
           isDragging = false;
           dragEl = null;
