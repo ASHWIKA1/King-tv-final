@@ -1782,19 +1782,7 @@ const PostEditor = () => {
                     <Zap size={16} /> ⚡ Auto-SEO (Instant Rule-Based)
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleAiProofreadAndAutoFill}
-                    disabled={aiProofreading}
-                    style={{
-                      width: '100%', padding: '10px', background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
-                      color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                      opacity: aiProofreading ? 0.7 : 1
-                    }}
-                  >
-                    <Sparkles size={16} /> {aiProofreading ? 'AI Optimizing...' : '✨ AI Enhance (Gemini Proxy)'}
-                  </button>
+
                 </div>
 
                 {/* Checklist items */}
