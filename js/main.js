@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var navMenu = document.getElementById('navMenu');
     if (!navMenu) return;
     try {
-      var response = await fetch(`${API_BASE}/api/public/menus`);
+      var response = await fetch(`${API_BASE}/api/v1/public/menus`);
       if (!response.ok) throw new Error('Failed to fetch menus');
       var menus = await response.json();
       if (!Array.isArray(menus) || menus.length === 0) return;
