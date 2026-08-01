@@ -1211,13 +1211,6 @@ const PostEditor = () => {
       .layout-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
       .layout-col { flex: 1; min-width: 250px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; }
       .draggable-box { position: absolute; z-index: 50; padding: 10px; border: 2px dashed #4F46E5; background: rgba(255,255,255,0.85); cursor: move; min-width: 150px; min-height: 50px; font-weight: bold; }
-      .draggable-box[data-placeholder]:empty::before,
-      .draggable-box[data-placeholder]:has(> br[data-mce-bogus="1"]:only-child)::before {
-        content: attr(data-placeholder);
-        color: #9ca3af;
-        pointer-events: none;
-        display: block;
-      }
     `,
     setup: (editor) => {
       // Draggable Box Tool
@@ -1225,7 +1218,7 @@ const PostEditor = () => {
         icon: 'comment-add',
         tooltip: 'Add Freely Movable Text Box',
         onAction: () => {
-          editor.insertContent('<div class="draggable-box" style="left: 50px; top: 50px;" data-placeholder="Drag me and edit text"><br data-mce-bogus="1"></div><br/>');
+          editor.insertContent('<div class="draggable-box" style="left: 50px; top: 50px;"><br data-mce-bogus="1"></div><br/>');
         }
       });
       
