@@ -1198,7 +1198,7 @@ const PostEditor = () => {
     ],
     image_advtab: true,
     image_caption: true,
-    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote add_draggable_box | undo redo | fullscreen code',
+    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
     contextmenu: 'link image table',
     skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
@@ -1209,70 +1209,8 @@ const PostEditor = () => {
       .document-card { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; margin: 16px 0; }
       .article-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
       video, audio, img, iframe { max-width: 100%; border-radius: 8px; }
-      .draggable-box { position: absolute; z-index: 50; padding: 10px; border: 2px dashed #4F46E5; background: rgba(255,255,255,0.85); cursor: move; min-width: 150px; min-height: 50px; font-weight: bold; }
     `,
     setup: (editor) => {
-      // Draggable Box Tool
-      editor.ui.registry.addButton('add_draggable_box', {
-        icon: 'comment-add',
-        tooltip: 'Add Freely Movable Text Box',
-        onAction: () => {
-          editor.insertContent('<div class="draggable-box" style="left: 50px; top: 50px;">Drag me and edit text</div><br/>');
-        }
-      });
-
-      let isDragging = false;
-      let dragEl = null;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      editor.on('init', () => {
-        const doc = editor.getDoc();
-        doc.addEventListener('mousedown', (e) => {
-          if (e.target.classList.contains('draggable-box')) {
-            isDragging = true;
-            dragEl = e.target;
-            const rect = dragEl.getBoundingClientRect();
-            // TinyMCE body has relative positioning usually, so we must calculate offset
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
-          }
-        });
-        doc.addEventListener('mousemove', (e) => {
-          if (isDragging && dragEl) {
-            const scrollY = doc.defaultView.scrollY || doc.documentElement.scrollTop;
-            const scrollX = doc.defaultView.scrollX || doc.documentElement.scrollLeft;
-            
-            let rawLeft = e.clientX + scrollX - offsetX;
-            let rawTop = e.clientY + scrollY - offsetY;
-            
-            // Convert to percentage for responsive frontend
-            let bodyWidth = doc.body.clientWidth || 800;
-            let leftPercent = (rawLeft / bodyWidth) * 100;
-            
-            editor.dom.setStyle(dragEl, 'left', leftPercent + '%');
-            editor.dom.setStyle(dragEl, 'top', rawTop + 'px');
-          }
-        });
-        doc.addEventListener('mouseup', () => {
-          if (isDragging && dragEl) {
-            const rawHtml = editor.getBody().innerHTML;
-            editor.setContent(rawHtml);
-            
-            // Directly update the React state to bypass tinymce-react bugs
-            setForm(prev => ({
-              ...prev,
-              [activeTab === 0 ? 'contentTa' : 'contentEn']: rawHtml
-            }));
-            
-            editor.setDirty(true);
-            editor.fire('change');
-          }
-          isDragging = false;
-          dragEl = null;
-        });
-      });
-
       // AI Context Toolbar definition
       editor.ui.registry.addButton('ai_fix', { icon: 'format-painter', tooltip: 'Fix Grammar', onAction: () => handleAiInlineAction(editor, 'grammar', lang) });
       editor.ui.registry.addButton('ai_rephrase', { icon: 'change-case', tooltip: 'Rephrase', onAction: () => handleAiInlineAction(editor, 'rephrase', lang) });
