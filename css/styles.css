@@ -3291,6 +3291,9 @@ ul {
   .article-container {
     grid-template-columns: 1fr 300px;
   }
+  .article-container .share-sidebar {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 992px) {
