@@ -3494,6 +3494,14 @@ ul {
   font-weight: bold; 
 }
 
+.draggable-box[data-placeholder]:empty::before,
+.draggable-box[data-placeholder]:has(> br[data-mce-bogus="1"]:only-child)::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+}
+
 /* Side-by-side Image and Text layouts */
 .layout-grid { 
   display: flex; 
