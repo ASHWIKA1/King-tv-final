@@ -1240,9 +1240,9 @@ const NewsEditor = () => {
         
         doc.addEventListener('mousedown', (e) => {
           if (e.target.classList && e.target.classList.contains('draggable-box')) {
-            // Clear default text even if they accidentally typed next to it
+            // Clear default text but leave a bogus BR so the cursor can enter the empty div
             if (e.target.innerText.includes('Drag me and edit text')) {
-              e.target.innerHTML = e.target.innerHTML.replace('Drag me and edit text', '');
+              e.target.innerHTML = e.target.innerHTML.replace('Drag me and edit text', '<br data-mce-bogus="1">');
             }
             isDragging = true;
             hasMoved = false;
