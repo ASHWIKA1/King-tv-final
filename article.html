@@ -475,21 +475,9 @@
         const readTimeMins = Math.max(1, Math.ceil(wordCount / 200));
         document.getElementById('readTime').innerHTML = `<i class="far fa-clock"></i> ${readTimeMins} நிமிட வாசிப்பு (${readTimeMins} mins read)`;
 
-        // Show Featured Image in the Hero Container
+        // Featured Image is used as thumbnail externally only. We hide the internal hero image container.
         const heroContainer = document.querySelector('.article-hero-img-container');
-        const heroGradient = document.getElementById('heroImgGradient');
-        if (currentArticle.imageUrl || currentArticle.featuredImage) {
-          let heroUrl = currentArticle.imageUrl || currentArticle.featuredImage;
-          if (heroUrl && !heroUrl.startsWith('http')) {
-             heroUrl = `${API_BASE}${heroUrl}`;
-          }
-          if (heroContainer && heroGradient) {
-            heroContainer.style.display = 'block';
-            heroGradient.style.background = `url('${heroUrl}') center/cover no-repeat`;
-          }
-        } else {
-          if (heroContainer) heroContainer.style.display = 'none';
-        }
+        if (heroContainer) heroContainer.style.display = 'none';
 
         // Render main content body
         renderArticleContent();
