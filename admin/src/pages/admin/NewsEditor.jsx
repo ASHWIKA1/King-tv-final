@@ -1197,7 +1197,7 @@ const NewsEditor = () => {
       'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
     ],
     image_advtab: true,
-    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote add_columns | undo redo | fullscreen code',
+    toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote add_draggable_box add_columns | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
     contextmenu: 'link image table',
     skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
@@ -1210,8 +1210,67 @@ const NewsEditor = () => {
       video, audio, img, iframe { max-width: 100%; border-radius: 8px; }
       .layout-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
       .layout-col { flex: 1; min-width: 250px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; }
+      .draggable-box { position: absolute; z-index: 50; padding: 10px; border: 2px dashed #4F46E5; background: rgba(255,255,255,0.85); cursor: move; min-width: 150px; min-height: 50px; font-weight: bold; }
     `,
     setup: (editor) => {
+      // Draggable Box Tool
+      editor.ui.registry.addButton('add_draggable_box', {
+        icon: 'comment-add',
+        tooltip: 'Add Freely Movable Text Box',
+        onAction: () => {
+          editor.insertContent('<div class="draggable-box" style="left: 50px; top: 50px;">Drag me and edit text</div><br/>');
+        }
+      });
+      
+      let isDragging = false;
+      let dragEl = null;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      editor.on('init', () => {
+        const doc = editor.getDoc();
+        doc.addEventListener('mousedown', (e) => {
+          if (e.target.classList.contains('draggable-box')) {
+            isDragging = true;
+            dragEl = e.target;
+            const rect = dragEl.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+          }
+        });
+        doc.addEventListener('mousemove', (e) => {
+          if (isDragging && dragEl) {
+            const scrollY = doc.defaultView.scrollY || doc.documentElement.scrollTop;
+            const scrollX = doc.defaultView.scrollX || doc.documentElement.scrollLeft;
+            
+            let rawLeft = e.clientX + scrollX - offsetX;
+            let rawTop = e.clientY + scrollY - offsetY;
+            
+            let bodyWidth = doc.body.clientWidth || 800;
+            let leftPercent = (rawLeft / bodyWidth) * 100;
+            
+            editor.dom.setStyle(dragEl, 'left', leftPercent + '%');
+            editor.dom.setStyle(dragEl, 'top', rawTop + 'px');
+          }
+        });
+        doc.addEventListener('mouseup', () => {
+          if (isDragging && dragEl) {
+            const rawHtml = editor.getBody().innerHTML;
+            editor.setContent(rawHtml);
+            
+            setForm(prev => ({
+              ...prev,
+              [activeTab === 0 ? 'contentTa' : 'contentEn']: rawHtml
+            }));
+            
+            editor.setDirty(true);
+            editor.fire('change');
+          }
+          isDragging = false;
+          dragEl = null;
+        });
+      });
+
       // Add Two-Column Layout Button
       editor.ui.registry.addButton('add_columns', {
         icon: 'table',
