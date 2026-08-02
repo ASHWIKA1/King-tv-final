@@ -206,7 +206,7 @@ const Profile = () => {
           <div className="glass-panel" style={{ padding: "2rem", borderRadius: "14px", textAlign: "center" }}>
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
               {profile?.profileImage ? (
-                <img src={profile.profileImage.startsWith('http') ? profile.profileImage : ('http://localhost:8080' + profile.profileImage)} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }} />
+                <img src={profile.profileImage.startsWith('http') ? profile.profileImage : (((api.defaults.baseURL || 'https://kings-tv.onrender.com/api/v1').replace(/\/api(\/v1)?\/?$/, '')) + profile.profileImage)} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--bg-secondary)', border: '3px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
                   {profile?.fullName?.charAt(0)?.toUpperCase()}

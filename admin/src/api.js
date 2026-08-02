@@ -2,9 +2,11 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:8080/api/v1';
+    return import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
   }
-  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+  if (import.meta.env.VITE_API_BASE && !import.meta.env.VITE_API_BASE.includes('localhost')) {
+    return import.meta.env.VITE_API_BASE;
+  }
   return 'https://kings-tv.onrender.com/api/v1';
 };
 
@@ -37,6 +39,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Exempt /auth/login requests from auto-redirect so login page can display error messages
+    if (error.config && error.config.url && error.config.url.includes('/auth/login')) {
+      return Promise.reject(error);
+    }
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       // Clear tokens and redirect to login if unauthorized or forbidden
       localStorage.removeItem('token');
