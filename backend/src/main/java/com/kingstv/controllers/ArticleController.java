@@ -78,6 +78,9 @@ public class ArticleController {
     private com.kingstv.services.SystemConfigService configService;
 
     @Autowired
+    private com.kingstv.services.ProfanityService profanityService;
+
+    @Autowired
     private ArticleRevisionRepository articleRevisionRepository;
 
     // --- KEEP Existing Front-End Endpoint Map ---
@@ -233,6 +236,24 @@ public class ArticleController {
         if (article.getPublishedAt() == null) {
             article.setPublishedAt(LocalDateTime.now());
         }
+
+        // Profanity Check
+        if ("published".equalsIgnoreCase(article.getStatus()) || "pending".equalsIgnoreCase(article.getStatus())) {
+            var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Long authorId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
+            String authorName = authCtx != null ? authCtx.getName() : "Unknown";
+            com.kingstv.services.ProfanityService.ProfanityCheckResult check = profanityService.checkContent(
+                "ARTICLE", null, article.getTitleEn(), authorId, authorName, 
+                article.getTitleTa(), article.getTitleEn(), article.getContentTa(), article.getContentEn()
+            );
+            if (!check.isClean()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "message", "Content blocked due to profanity filter.",
+                    "matchedTerms", check.getMatchedTerms()
+                ));
+            }
+        }
+
         populateSeoFields(article, request);
         Article saved = articleRepository.save(article);
         if ("published".equals(saved.getStatus()) && !saved.getTelegramSent()) {
@@ -480,6 +501,23 @@ public class ArticleController {
         if (entity.getFeaturedCategory() != null) article.setFeaturedCategory(entity.getFeaturedCategory());
         if (entity.getPriorityScore() != null) article.setPriorityScore(entity.getPriorityScore());
         
+        // Profanity Check
+        if ("published".equalsIgnoreCase(article.getStatus()) || "pending".equalsIgnoreCase(article.getStatus())) {
+            var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Long editorId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
+            String editorName = authCtx != null ? authCtx.getName() : "Unknown";
+            com.kingstv.services.ProfanityService.ProfanityCheckResult check = profanityService.checkContent(
+                "ARTICLE", article.getId(), article.getTitleEn(), editorId, editorName, 
+                article.getTitleTa(), article.getTitleEn(), article.getContentTa(), article.getContentEn()
+            );
+            if (!check.isClean()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "message", "Content blocked due to profanity filter.",
+                    "matchedTerms", check.getMatchedTerms()
+                ));
+            }
+        }
+
         populateSeoFields(article, request);
         Article updated = articleRepository.save(article);
         if ("published".equals(updated.getStatus()) && !updated.getTelegramSent()) {
