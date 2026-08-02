@@ -318,29 +318,13 @@ const Header = () => {
   };
 
   const getDynamicNavItems = () => {
-    const enTranslations = {
-      'home': 'Home',
-      'politics': 'Politics',
-      'business': 'Business',
-      'sports': 'Sports',
-      'cinema': 'Cinema',
-      'tech': 'Technology',
-      'technology': 'Technology',
-      'regional': 'Regional',
-      'international': 'International',
-      'world': 'International',
-      'video': 'Videos',
-      'videos': 'Videos',
-      'web-stories': 'Web Stories'
-    };
-
     let rawItems = [];
     if (menuItems && menuItems.length > 0) {
       rawItems = menuItems.filter(Boolean).map(item => {
         let path = item.linkUrl || item.path;
         if (!path || path === '#' || path === 'undefined' || path === '/category/home') {
           if (item.slug === 'home' || path === '/category/home') path = '/';
-          if (item.slug === 'regional') path = '/directory';
+          else if (item.slug === 'regional') path = '/directory';
           else if (item.slug === 'videos' || item.slug === 'video') path = '/videos';
           else if (item.slug === 'web-stories') path = '/web-stories';
           else if (item.slug) path = `/category/${item.slug}`;
@@ -348,13 +332,8 @@ const Header = () => {
         }
 
         let label = lang === 'en'
-          ? (item.titleEn || enTranslations[(item.slug || '').toLowerCase()] || item.label || item.name || item.titleTa)
+          ? (item.titleEn || item.name || item.label || item.titleTa)
           : (item.titleTa || item.nameTa || item.label || item.titleEn);
-
-        // Safety fallback if the user named it 'முகப்பு' but didn't set English title
-        if (lang === 'en' && typeof label === 'string' && label.includes('முகப்பு')) {
-          label = 'Home';
-        }
 
         return {
           id: item.id || item.slug || path,
@@ -376,6 +355,7 @@ const Header = () => {
         };
       });
     }
+
 
     if (rawItems.length === 0) {
       rawItems = [
