@@ -453,12 +453,13 @@ const Header = () => {
       ];
     }
 
-    const primaryItems = rawItems.slice(0, 6);
-    const moreItems = rawItems.slice(6);
+    const primaryItems = rawItems.slice(0, 7);
+    const moreItems = rawItems.slice(7);
     const allItems = rawItems;
 
     return { primaryItems, moreItems, allItems };
   };
+
 
 
   const [searchQuery, setSearchQuery] = useState('');
