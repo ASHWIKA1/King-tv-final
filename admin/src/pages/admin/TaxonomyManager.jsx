@@ -45,14 +45,94 @@ const TaxonomyManager = () => {
     });
   };
 
+  const syncNavLayout = async (item, type = 'category', action = 'add') => {
+    try {
+      const res = await api.get('/admin/layout/web');
+      let layoutData = res.data;
+      if (!Array.isArray(layoutData)) return;
+      
+      const navIndex = layoutData.findIndex(lay => lay.sectionKey === 'website_navigation');
+      if (navIndex === -1) return;
+      
+      let config = typeof layoutData[navIndex].configJson === 'string' 
+        ? JSON.parse(layoutData[navIndex].configJson || '{}') 
+        : (layoutData[navIndex].configJson || {});
+        
+      if (!config.navItems) config.navItems = [];
+      
+      const slug = item.slug || (item.name ? item.name.toLowerCase().replace(/\\s+/g, '-') : String(Date.now()));
+      const linkUrl = type === 'category' ? `/category/${slug}` : `/category/${item.categoryId}/sub/${slug}`;
+      const itemId = item.id ? String(item.id) : (type === 'category' ? `cat-${Date.now()}` : `sub-${Date.now()}`);
+
+      if (action === 'add') {
+        const newItem = {
+          id: itemId,
+          slug: slug,
+          titleEn: item.name || '',
+          titleTa: item.nameTa || item.name || '',
+          linkUrl: linkUrl,
+          isActive: true
+        };
+        
+        if (type === 'category') {
+          // Check if exists
+          if (!config.navItems.find(i => i.linkUrl === linkUrl || i.slug === slug)) {
+            newItem.type = 'category';
+            newItem.subcategories = [];
+            config.navItems.push(newItem);
+          }
+        } else if (type === 'subcategory') {
+          // Find parent category in navItems
+          const parentCatId = String(item.categoryId);
+          const parent = config.navItems.find(i => 
+            String(i.id) === parentCatId || 
+            (i.linkUrl && i.linkUrl.includes(`/${parentCatId}`)) ||
+            (categories && categories.find(c => String(c.id) === parentCatId && i.slug === c.slug))
+          );
+          if (parent) {
+            if (!parent.subcategories) parent.subcategories = [];
+            if (!parent.subcategories.find(i => i.linkUrl === linkUrl || i.slug === slug)) {
+              parent.subcategories.push(newItem);
+            }
+          }
+        }
+      } else if (action === 'delete') {
+        if (type === 'category') {
+          config.navItems = config.navItems.filter(i => String(i.id) !== itemId && !i.linkUrl.includes(`/${itemId}`));
+        } else if (type === 'subcategory') {
+          config.navItems.forEach(parent => {
+            if (parent.subcategories) {
+              parent.subcategories = parent.subcategories.filter(sub => String(sub.id) !== itemId && !sub.linkUrl.includes(`/${itemId}`));
+            }
+          });
+        }
+      }
+
+      layoutData[navIndex].configJson = JSON.stringify(config);
+      await api.post('/admin/layout/web', layoutData);
+      
+      // Notify frontend
+      localStorage.setItem('dummy_layout_config', JSON.stringify(layoutData));
+      window.dispatchEvent(new Event('layoutUpdated'));
+    } catch (e) {
+      console.warn("Could not auto-sync taxonomy to nav layout", e);
+    }
+  };
+
+
   // --- Category Handlers ---
   const handleCatSubmit = async (e) => {
     e.preventDefault();
     try {
+      let savedItem = catFormData;
       if (catFormData.id) {
-        await api.put(`/admin/taxonomy/categories/${catFormData.id}`, catFormData);
+        const res = await api.put(`/admin/taxonomy/categories/${catFormData.id}`, catFormData);
+        savedItem = res.data || catFormData;
       } else {
-        await api.post('/admin/taxonomy/categories', catFormData);
+        const res = await api.post('/admin/taxonomy/categories', catFormData);
+        savedItem = res.data || catFormData;
+        // Auto-add to nav bar only on create
+        await syncNavLayout(savedItem, 'category', 'add');
       }
       clearApiCache();
       setShowCatModal(false);
@@ -66,6 +146,7 @@ const TaxonomyManager = () => {
   const handleCatDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this category?")) {
       try {
+        await syncNavLayout({ id }, 'category', 'delete');
         await api.delete(`/admin/taxonomy/categories/${id}`);
         clearApiCache();
         fetchTaxonomies();
@@ -80,10 +161,15 @@ const TaxonomyManager = () => {
   const handleSubCatSubmit = async (e) => {
     e.preventDefault();
     try {
+      let savedItem = subCatFormData;
       if (subCatFormData.id) {
-        await api.put(`/admin/taxonomy/subcategories/${subCatFormData.id}`, subCatFormData);
+        const res = await api.put(`/admin/taxonomy/subcategories/${subCatFormData.id}`, subCatFormData);
+        savedItem = res.data || subCatFormData;
       } else {
-        await api.post('/admin/taxonomy/subcategories', subCatFormData);
+        const res = await api.post('/admin/taxonomy/subcategories', subCatFormData);
+        savedItem = res.data || subCatFormData;
+        // Auto-add to nav bar only on create
+        await syncNavLayout(savedItem, 'subcategory', 'add');
       }
       clearApiCache();
       setShowSubCatModal(false);
@@ -97,6 +183,7 @@ const TaxonomyManager = () => {
   const handleSubCatDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this subcategory?")) {
       try {
+        await syncNavLayout({ id }, 'subcategory', 'delete');
         await api.delete(`/admin/taxonomy/subcategories/${id}`);
         clearApiCache();
         fetchTaxonomies();
