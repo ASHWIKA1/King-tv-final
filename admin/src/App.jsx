@@ -1,47 +1,57 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { I18nProvider } from './context/I18nContext';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import UserManagement from './pages/admin/UserManagement';
-import KycManagement from './pages/admin/KycManagement';
-import ProfanityFilter from './pages/admin/ProfanityFilter';
-import SystemSettings from './pages/admin/SystemSettings';
-import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
-import TaxonomyManager from './pages/admin/TaxonomyManager';
-import RoleManagement from './pages/admin/RoleManagement';
-import PushNotifications from './pages/admin/PushNotifications';
-import HomeLayoutBuilder from './pages/admin/HomeLayoutBuilder';
-import NavbarManager from './pages/admin/NavbarManager';
-import SurveyBuilder from './pages/admin/SurveyBuilder';
-import AuditLogs from './pages/admin/AuditLogs';
-import CommentsModeration from './pages/admin/CommentsModeration';
-import MediaLibrary from './pages/admin/MediaLibrary';
-import SeoConsole from './pages/admin/SeoConsole';
-import ContentQueue from './pages/editor/ContentQueue';
-import MyPosts from './pages/journalist/MyPosts';
-import PostEditor from './pages/journalist/PostEditor';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Breadcrumbs from './components/layout/Breadcrumbs';
-import NewsManagement from './pages/admin/NewsManagement';
-import NewsEditor from './pages/admin/NewsEditor';
-import BreakingNewsDashboard from './pages/admin/BreakingNewsDashboard';
-import UgcQueue from './pages/admin/UgcQueue';
-import EditorialCalendar from './pages/admin/EditorialCalendar';
 
-import AdManagement from './pages/admin/AdManagement';
-import RssManager from './pages/admin/RssManager';
-import RewardSystem from './pages/admin/RewardSystem';
-import SubscribersManagement from './pages/admin/SubscribersManagement';
-import NotificationPreferences from './pages/admin/NotificationPreferences';
-import Profile from './pages/admin/Profile';
-import AiConfiguration from './pages/admin/AiConfiguration';
-import CommunityModules from './pages/admin/CommunityModules';
-import LanguageFontSettings from './pages/admin/LanguageFontSettings';
-import EmployersManagement from './pages/admin/EmployersManagement';
-import CandidatesManagement from './pages/admin/CandidatesManagement';
+// Code-split page components for optimal load performance
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const KycManagement = lazy(() => import('./pages/admin/KycManagement'));
+const ProfanityFilter = lazy(() => import('./pages/admin/ProfanityFilter'));
+const SystemSettings = lazy(() => import('./pages/admin/SystemSettings'));
+const AnalyticsDashboard = lazy(() => import('./pages/admin/AnalyticsDashboard'));
+const TaxonomyManager = lazy(() => import('./pages/admin/TaxonomyManager'));
+const RoleManagement = lazy(() => import('./pages/admin/RoleManagement'));
+const PushNotifications = lazy(() => import('./pages/admin/PushNotifications'));
+const HomeLayoutBuilder = lazy(() => import('./pages/admin/HomeLayoutBuilder'));
+const NavbarManager = lazy(() => import('./pages/admin/NavbarManager'));
+const SurveyBuilder = lazy(() => import('./pages/admin/SurveyBuilder'));
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
+const CommentsModeration = lazy(() => import('./pages/admin/CommentsModeration'));
+const MediaLibrary = lazy(() => import('./pages/admin/MediaLibrary'));
+const SeoConsole = lazy(() => import('./pages/admin/SeoConsole'));
+const ContentQueue = lazy(() => import('./pages/editor/ContentQueue'));
+const MyPosts = lazy(() => import('./pages/journalist/MyPosts'));
+const PostEditor = lazy(() => import('./pages/journalist/PostEditor'));
+const NewsManagement = lazy(() => import('./pages/admin/NewsManagement'));
+const NewsEditor = lazy(() => import('./pages/admin/NewsEditor'));
+const BreakingNewsDashboard = lazy(() => import('./pages/admin/BreakingNewsDashboard'));
+const UgcQueue = lazy(() => import('./pages/admin/UgcQueue'));
+const EditorialCalendar = lazy(() => import('./pages/admin/EditorialCalendar'));
+const AdManagement = lazy(() => import('./pages/admin/AdManagement'));
+const RssManager = lazy(() => import('./pages/admin/RssManager'));
+const RewardSystem = lazy(() => import('./pages/admin/RewardSystem'));
+const SubscribersManagement = lazy(() => import('./pages/admin/SubscribersManagement'));
+const NotificationPreferences = lazy(() => import('./pages/admin/NotificationPreferences'));
+const Profile = lazy(() => import('./pages/admin/Profile'));
+const AiConfiguration = lazy(() => import('./pages/admin/AiConfiguration'));
+const CommunityModules = lazy(() => import('./pages/admin/CommunityModules'));
+const LanguageFontSettings = lazy(() => import('./pages/admin/LanguageFontSettings'));
+const EmployersManagement = lazy(() => import('./pages/admin/EmployersManagement'));
+const CandidatesManagement = lazy(() => import('./pages/admin/CandidatesManagement'));
+
+const PageLoader = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: 'var(--text-muted)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem' }}>
+      <div className="spinner" style={{ width: '20px', height: '20px', border: '2px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      Loading page...
+    </div>
+  </div>
+);
 
 
 class ErrorBoundary extends React.Component {
@@ -95,7 +105,9 @@ const ProtectedLayout = ({ children, allowedRoles }) => {
         <Header />
         <main className="main-content">
           <Breadcrumbs />
-          {children}
+          <Suspense fallback={<PageLoader />}>
+            {children}
+          </Suspense>
         </main>
       </div>
     </ErrorBoundary>
@@ -107,7 +119,8 @@ function App() {
     <AuthProvider>
       <I18nProvider>
         <BrowserRouter>
-        <Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
           <Route path="/login" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<Login />} />
           
@@ -338,9 +351,10 @@ function App() {
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
-     </I18nProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </I18nProvider>
     </AuthProvider>
   );
 }

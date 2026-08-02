@@ -3,10 +3,11 @@ import sys
 import time
 import paramiko
 
-HOSTNAME = "193.202.45.164"
-PORT = 65002
-USERNAME = "u841409365"
-PASSWORD = "Eash@2005"
+# Read SFTP credentials securely from environment or fall back to configured parameters
+HOSTNAME = os.getenv("HOSTINGER_SFTP_HOST", "193.202.45.164")
+PORT = int(os.getenv("HOSTINGER_SFTP_PORT", "65002"))
+USERNAME = os.getenv("HOSTINGER_SFTP_USER", "u841409365")
+PASSWORD = os.getenv("HOSTINGER_SFTP_PASS", "Eash@2005")
 
 def connect_ssh():
     print("Connecting to remote Hostinger SSH/SFTP server...")
