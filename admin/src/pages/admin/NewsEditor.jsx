@@ -185,6 +185,13 @@ const NewsEditor = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [msg, setMsg] = useState(null);
   
+  // Content Moderation State
+  const [profanityDict, setProfanityDict] = useState([]);
+  const [detectedWords, setDetectedWords] = useState([]);
+  const [hasShownAlert, setHasShownAlert] = useState(false);
+  const [moderationModalOpen, setModerationModalOpen] = useState(false);
+  const [publishBlockModalOpen, setPublishBlockModalOpen] = useState(false);
+  
   const [mediaList, setMediaList] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadType, setUploadType] = useState('source'); 
@@ -705,6 +712,85 @@ const NewsEditor = () => {
     setMsg({ text, type: isError ? 'error' : 'success' });
     setTimeout(() => setMsg(null), 4000);
   };
+
+  // --- Content Moderation: Dictionary Fetch & Scanning ---
+  useEffect(() => {
+    const fetchDict = async () => {
+      try {
+        const res = await api.get('/admin/profanity/public/dictionary');
+        setProfanityDict(res.data || []);
+      } catch (err) {
+        console.warn('Could not fetch profanity dictionary', err);
+      }
+    };
+    fetchDict();
+  }, []);
+
+  const scanForProfanity = useCallback(() => {
+    if (profanityDict.length === 0) return;
+    const fields = [
+      form.titleEn, form.titleTa, form.contentEn, form.contentTa,
+      form.shortDescEn, form.shortDescTa, form.metaTitle, form.metaDescription,
+      form.focusKeywords, form.slug, form.reporterName, form.authorName
+    ];
+    if (editorRefEn.current) fields.push(editorRefEn.current.getContent({ format: 'text' }));
+    if (editorRefTa.current) fields.push(editorRefTa.current.getContent({ format: 'text' }));
+    
+    const combinedText = fields.filter(Boolean).join(' ').toLowerCase();
+    
+    const found = profanityDict.filter(term => {
+      // Create a basic regex to match words roughly ignoring case and punctuation
+      // We'll just do a simple substring for now, or word boundary if single word
+      return combinedText.includes(term.toLowerCase());
+    });
+    
+    const uniqueFound = [...new Set(found)];
+    const applyProfanityHighlights = (editor, words) => {
+      if (!editor || !words) return;
+      const doc = editor.getDoc();
+      if (!doc) return;
+      const bookmark = editor.selection.getBookmark(2, true);
+      let content = editor.getContent({format: 'raw'});
+      
+      // Strip existing
+      content = content.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1');
+      
+      if (words.length > 0) {
+        words.forEach(word => {
+          // Escape word for regex
+          const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`(${safeWord})`, 'gi');
+          content = content.replace(regex, `<span class="profanity-highlight" style="background-color: #fee2e2; border-bottom: 2px solid #ef4444;" title="Blacklisted word configured in Profanity Manager.">$1</span>`);
+        });
+      }
+      
+      if (editor.getContent({format: 'raw'}) !== content) {
+        editor.setContent(content);
+        try { editor.selection.moveToBookmark(bookmark); } catch(e) {}
+      }
+    };
+
+    if (editorRefEn.current) applyProfanityHighlights(editorRefEn.current, uniqueFound);
+    if (editorRefTa.current) applyProfanityHighlights(editorRefTa.current, uniqueFound);
+    
+    if (uniqueFound.length > 0 && !hasShownAlert) {
+      setModerationModalOpen(true);
+      setHasShownAlert(true);
+      setDetectedWords(uniqueFound);
+    } else if (uniqueFound.length === 0 && hasShownAlert) {
+      // Reset if resolved
+      setHasShownAlert(false);
+    }
+  }, [form, profanityDict, hasShownAlert]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      scanForProfanity();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [form, scanForProfanity]);
+
+  // --- End Content Moderation ---
   
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1149,6 +1235,24 @@ const NewsEditor = () => {
       targetStatus = 'pending_review';
     }
 
+    // --- Content Moderation: Pre-Save Block & Sanitize ---
+    if (detectedWords.length > 0) {
+      if (targetStatus === 'published' || targetStatus === 'pending_review') {
+        setPublishBlockModalOpen(true);
+        // Log the block
+        api.post('/admin/profanity/public/log-event', { action: 'BLOCKED', details: `Blocked publish attempt containing: ${detectedWords.join(', ')}` }).catch(()=>{});
+        return;
+      } else if (targetStatus === 'draft') {
+        showMsg('Draft saved with content moderation warnings.', true);
+        api.post('/admin/profanity/public/log-event', { action: 'IGNORED', details: `Draft saved with warnings: ${detectedWords.join(', ')}` }).catch(()=>{});
+      }
+    }
+
+    // Clean out highlight spans before saving
+    const cleanContent = (html) => html ? html.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1') : html;
+    const finalContentTa = cleanContent(editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa);
+    const finalContentEn = cleanContent(editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+
     // 3. Ensure valid unique slug
     let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
     if (!finalSlug) finalSlug = `article-${Date.now()}`;
@@ -1162,8 +1266,8 @@ const NewsEditor = () => {
         featuredImage: form.featuredImage || form.imageUrl,
         slug: finalSlug,
         status: targetStatus,
-        contentTa: editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa,
-        contentEn: editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn
+        contentTa: finalContentTa,
+        contentEn: finalContentEn
       };
       if (!payload.publishedAt) delete payload.publishedAt;
       
@@ -2016,6 +2120,25 @@ const NewsEditor = () => {
             );
           })()}
 
+          {/* Content Moderation Status */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={18} color={detectedWords.length > 0 ? '#EF4444' : '#10B981'} /> Content Moderation
+            </h3>
+            {detectedWords.length > 0 ? (
+              <div 
+                style={{ background: '#FEE2E2', color: '#B91C1C', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onClick={navigateToFirstHighlight}
+              >
+                🔴 {detectedWords.length} prohibited {detectedWords.length === 1 ? 'word' : 'words'} detected
+              </div>
+            ) : (
+              <div style={{ background: '#D1FAE5', color: '#047857', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🟢 No prohibited words detected
+              </div>
+            )}
+          </div>
+
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
             <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => {
@@ -2510,6 +2633,66 @@ const NewsEditor = () => {
               >
                 <Check size={16} /> Insert Gallery to Article ({galleryItems.length})
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content Moderation Alert Modal */}
+      {moderationModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#ffffff', width: '460px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #ef4444' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#fee2e2', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <AlertCircle color="#ef4444" size={24} />
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#991b1b' }}>Content Moderation Alert</h2>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
+                One or more words in this article match entries configured in the Profanity Manager.
+                <br/><br/>
+                Please review and remove or replace the highlighted words before publishing to ensure compliance with your organization's editorial and content moderation policies.
+              </p>
+              
+              <div style={{ margin: '20px 0' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Detected Words</h4>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {detectedWords.map((word, i) => (
+                    <li key={i} style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid #fca5a5' }}>
+                      • {word}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => { setModerationModalOpen(false); navigateToFirstHighlight(); }} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Review Content</button>
+              <button onClick={() => { setModerationModalOpen(false); handleReplaceAutomatically(); }} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Replace Automatically</button>
+              <button onClick={() => setModerationModalOpen(false)} style={{ padding: '8px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish Block Modal */}
+      {publishBlockModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#ffffff', width: '460px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #ef4444' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#fee2e2', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <AlertCircle color="#ef4444" size={24} />
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#991b1b' }}>Content Moderation Alert</h2>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
+                Publishing cannot continue because this article contains words configured in the Profanity Manager.
+                <br/><br/>
+                Please review and remove or replace the highlighted content before publishing.
+              </p>
+            </div>
+            
+            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => { setPublishBlockModalOpen(false); navigateToFirstHighlight(); setSaving(false); }} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Return to Editor</button>
+              <button onClick={() => { setPublishBlockModalOpen(false); handleReplaceAutomatically(); setSaving(false); }} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Replace Automatically</button>
             </div>
           </div>
         </div>

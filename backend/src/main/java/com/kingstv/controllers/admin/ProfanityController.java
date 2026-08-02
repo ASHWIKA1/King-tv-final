@@ -130,6 +130,25 @@ public class ProfanityController {
         return ResponseEntity.ok(Map.of("pendingViolations", pending, "hasAlert", pending > 0));
     }
 
+    // --- Client-side Integration (No PROFANITY_MANAGE restriction required) ---
+    @GetMapping("/public/dictionary")
+    public ResponseEntity<?> getPublicDictionary() {
+        List<String> terms = profanityWordRepository.findAll().stream()
+            .map(ProfanityWord::getTerm)
+            .toList();
+        return ResponseEntity.ok(terms);
+    }
+
+    @PostMapping("/public/log-event")
+    public ResponseEntity<?> logClientEvent(@RequestBody Map<String, Object> payload) {
+        String action = (String) payload.get("action");
+        String details = (String) payload.get("details");
+        if (action != null && details != null) {
+            logAudit(action.toUpperCase(), "ProfanityClientScan", null, details);
+        }
+        return ResponseEntity.ok(Map.of("message", "Logged successfully"));
+    }
+
     private Long getCallerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getDetails() instanceof Long) return (Long) auth.getDetails();
