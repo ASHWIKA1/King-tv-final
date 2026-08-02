@@ -321,7 +321,6 @@ const Header = () => {
   };
 
   const getDynamicNavItems = () => {
-<<<<<<< HEAD
     const enTranslations = {
       'home': 'Home',
       'politics': 'Politics',
@@ -338,9 +337,7 @@ const Header = () => {
       'web-stories': 'Web Stories'
     };
 
-=======
     let rawItems = [];
->>>>>>> origin/test-1
     if (menuItems && menuItems.length > 0) {
       rawItems = menuItems.filter(Boolean).map(item => {
         let path = item.linkUrl || item.path;
@@ -383,18 +380,9 @@ const Header = () => {
       });
     }
 
-<<<<<<< HEAD
-    let dynamicItems = [];
-    if (navCategories && navCategories.length > 0) {
-      const sortedCategories = [...navCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-
-
-      const regionalSubcategories = [
-=======
     if (rawItems.length === 0) {
       rawItems = [
         { id: 'home', path: '/', label: lang === 'en' ? 'Home' : 'முகப்பு', subcategories: [] },
->>>>>>> origin/test-1
         {
           id: 'regional',
           path: '/directory',
@@ -463,73 +451,15 @@ const Header = () => {
         },
         { id: 'web-stories', path: '/web-stories', label: lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்', subcategories: [] }
       ];
-<<<<<<< HEAD
-
-      dynamicItems.push({
-        id: 'home',
-        path: '/',
-        label: lang === 'en' ? 'Home' : 'முகப்பு',
-        subcategories: []
-      });
-
-      const enTranslations = {
-        'politics': 'Politics',
-        'business': 'Business',
-        'sports': 'Sports',
-        'cinema': 'Cinema',
-        'tech': 'Technology',
-        'technology': 'Technology',
-        'regional': 'Regional',
-        'international': 'International',
-        'world': 'International',
-        'video': 'Videos',
-        'videos': 'Videos',
-        'web-stories': 'Web Stories'
-      };
-
-      sortedCategories.forEach(cat => {
-        const catSlug = cat.slug || '';
-        let path = `/category/${catSlug}`;
-        if (catSlug === 'web-stories') path = '/web-stories';
-        else if (catSlug === 'video' || catSlug === 'videos') path = '/videos';
-        else if (catSlug === 'regional') path = '/directory';
-
-        const labelVal = lang === 'en'
-          ? (enTranslations[catSlug.toLowerCase()] || cat.name)
-          : (cat.nameTa || cat.name);
-
-        let subcats = cat.subcategories || [];
-        if (catSlug === 'regional' && (!subcats || subcats.length === 0)) {
-          subcats = regionalSubcategories;
-        }
-
-        dynamicItems.push({
-          id: cat.id || catSlug,
-          slug: catSlug,
-          path,
-          label: labelVal,
-          subcategories: subcats
-        });
-      });
     }
 
-    return dynamicItems.length > 0 ? dynamicItems : [
-      { path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [{ id: 'fp-1', slug: 'state', name: 'State', nameTa: 'மாநிலம்' }] },
-      { path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [{ id: 'fb-1', slug: 'markets', name: 'Markets', nameTa: 'சந்தை' }] },
-      { path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [{ id: 'fs-1', slug: 'cricket', name: 'Cricket', nameTa: 'கிரிக்கெட்' }] },
-      { path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [{ id: 'fc-1', slug: 'kollywood', name: 'Kollywood', nameTa: 'கோலிவுட்' }] },
-      { path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [{ id: 'ft-1', slug: 'smartphones', name: 'Smartphones', nameTa: 'ஸ்மார்ட் போன்' }] },
-=======
-    }
-
-    // Dynamic menu items ordered strictly by their display order set in Admin
     const primaryItems = rawItems.slice(0, 6);
     const moreItems = rawItems.slice(6);
     const allItems = rawItems;
->>>>>>> origin/test-1
 
     return { primaryItems, moreItems, allItems };
   };
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [allArticles, setAllArticles] = useState([]);
