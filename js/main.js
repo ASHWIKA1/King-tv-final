@@ -145,11 +145,19 @@ document.addEventListener('DOMContentLoaded', function() {
       var currentPath = window.location.pathname;
       var currentQuery = window.location.search;
 
+      var isHomeActive = (currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '') && !currentQuery ? 'active' : '';
+      html += '<li class="nav-item ' + isHomeActive + '" id="nav-home"><a href="index.html" class="nav-link">முகப்பு</a></li>';
+
       menus.forEach(function(menu) {
         var displayName = document.documentElement.lang === 'ta' ? (menu.titleTa || menu.titleEn) : (menu.titleEn || menu.titleTa);
         var hasDropdown = menu.subcategories && menu.subcategories.length > 0;
         
         var isActive = menu.linkUrl && (currentPath + currentQuery).includes(convertLink(menu.linkUrl)) ? 'active' : '';
+
+        // Handle Home special case
+        if (menu.linkUrl === '/') {
+            return;
+        }
 
         if (hasDropdown) {
           html += '<li class="nav-item has-dropdown ' + isActive + '">' +

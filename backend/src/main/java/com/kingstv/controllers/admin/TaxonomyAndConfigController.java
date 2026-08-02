@@ -35,6 +35,7 @@ public class TaxonomyAndConfigController {
     @Autowired private SurveyPollRepository surveyPollRepository;
     @Autowired private WebstoreItemRepository webstoreItemRepository;
     @Autowired private SlugService slugService;
+    @Autowired private NavigationMenuRepository navigationMenuRepository;
 
     // --- Taxonomy: Categories (#18) ---
     @GetMapping("/taxonomy/categories")
@@ -56,7 +57,20 @@ public class TaxonomyAndConfigController {
             cat.setIsActive(req.containsKey("isActive") ? (Boolean) req.get("isActive") : true);
             
             slugService.generateAndSetSlug(cat);
-            return ResponseEntity.status(HttpStatus.CREATED).body(categoryRepository.save(cat));
+            Category savedCat = categoryRepository.save(cat);
+
+            // Sync with Navigation Menu if isNav is true
+            if (savedCat.getIsNav()) {
+                NavigationMenu menu = new NavigationMenu();
+                menu.setTitleTa(savedCat.getNameTa());
+                menu.setTitleEn(savedCat.getName());
+                menu.setLinkUrl("/category/" + savedCat.getSlug());
+                menu.setDisplayOrder(savedCat.getDisplayOrder() != null ? savedCat.getDisplayOrder() : 0);
+                menu.setIsActive(savedCat.getIsActive() != null ? savedCat.getIsActive() : true);
+                navigationMenuRepository.save(menu);
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedCat);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Category with this name or slug already exists."));
         } catch (Exception e) {
@@ -92,9 +106,24 @@ public class TaxonomyAndConfigController {
     @DeleteMapping("/taxonomy/categories/{id}")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN})
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
-        if (!categoryRepository.existsById(id)) return ResponseEntity.notFound().build();
-        categoryRepository.deleteById(id);
-        return ResponseEntity.ok(Map.of("message", "Category deleted"));
+        return categoryRepository.findById(id).map(c -> {
+            String slugUrl = "/category/" + c.getSlug();
+            categoryRepository.delete(c);
+            
+            // Attempt to remove from NavigationMenu
+            try {
+                java.util.List<NavigationMenu> menus = navigationMenuRepository.findAll();
+                for (NavigationMenu m : menus) {
+                    if (slugUrl.equals(m.getLinkUrl())) {
+                        navigationMenuRepository.delete(m);
+                    }
+                }
+            } catch (Exception ex) {
+                // Ignore errors during sync to avoid breaking category deletion
+            }
+            
+            return ResponseEntity.ok((Object) Map.of("message", "Category deleted"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // --- Taxonomy: Subcategories ---

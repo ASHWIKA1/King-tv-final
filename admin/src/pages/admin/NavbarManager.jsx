@@ -146,16 +146,16 @@ const NavbarManager = () => {
         for (const cat of categories) {
           const catName = cat.name || '';
           const exists = menus.find(m => 
-            m.linkUrl === `/category/${cat.id}` || 
+            m.linkUrl === `/category/${cat.slug || cat.id}` || 
             (m.titleEn && catName && m.titleEn.toLowerCase() === catName.toLowerCase())
           );
           if (!exists) {
             await api.post('/admin/menus', {
               titleEn: catName,
               titleTa: cat.nameTa || '',
-              linkUrl: `/category/${cat.id}`,
+              linkUrl: `/category/${cat.slug || cat.id}`,
               parentId: null,
-              displayOrder: order++,
+              displayOrder: ++order,
               isActive: true
             });
           }
