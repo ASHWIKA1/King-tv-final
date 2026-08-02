@@ -1423,6 +1423,50 @@ const NewsEditor = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
 
+          {/* AI Master Control Panel */}
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid #F59E0B', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#F59E0B', color: '#fff', padding: '6px', borderRadius: '6px' }}>
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>AI Content Engine & Auto-Fill</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Proofread grammar/spelling in TinyMCE & auto-fill all title, excerpt, and SEO fields in 1-click.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={handleAiProofreadAndAutoFill} 
+                  disabled={aiProofreading}
+                  style={{ background: '#10B981', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, cursor: aiProofreading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {aiProofreading ? <Loader2 size={16} className="spin" /> : <Zap size={16} />}
+                  {aiProofreading ? 'Proofreading...' : '⚡ AI Proofread & Auto-Fill All Fields'}
+                </button>
+
+                <button 
+                  onClick={handleGenerateDraft} 
+                  disabled={aiGeneratingDraft}
+                  style={{ background: '#F59E0B', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, cursor: aiGeneratingDraft ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {aiGeneratingDraft ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+                  {aiGeneratingDraft ? 'Drafting...' : 'Generate Full Draft'}
+                </button>
+
+                <button
+                  onClick={() => setKeyModalOpen(true)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid #F59E0B', padding: '8px 14px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  title="Configure Gemini API Key"
+                >
+                  🔑 Set API Key
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Editor Tabs */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
