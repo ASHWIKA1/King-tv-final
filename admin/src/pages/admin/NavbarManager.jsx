@@ -64,6 +64,8 @@ const NavbarManager = () => {
         localStorage.removeItem(key);
       }
     });
+    localStorage.setItem('layout_updated_at', Date.now().toString());
+    window.dispatchEvent(new Event('layoutUpdated'));
   };
 
   const handleOpenCreate = () => {

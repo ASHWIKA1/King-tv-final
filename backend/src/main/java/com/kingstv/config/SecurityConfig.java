@@ -72,6 +72,7 @@ public class SecurityConfig {
                     "/api/v1/pages", "/api/v1/pages/**",
                     "/api/v1/comments", "/api/v1/comments/**",
                     "/api/v1/report-news", "/api/v1/report-news/**",
+                    "/api/v1/public/**",
                     "/t/{shortCode}",
                     "/api/v1/deals", "/api/v1/deals/**",
                     "/api/v1/rfq", "/api/v1/rfq/**",

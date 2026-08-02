@@ -202,9 +202,16 @@ const Home = () => {
       }
     })();
 
+    const DEFAULT_LIVE_VIDEO = {
+      title: lang === 'en' ? 'KINGS 24x7 Live TV News Stream' : 'கிங்ஸ் 24x7 நேரலை செய்தி',
+      description: lang === 'en' ? 'Watch continuous Tamil and English live news coverage, debates and special updates.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
+      isLiveTv: 1
+    };
+
     const pLiveVideo = fetchApi('/videos/live')
       .then(data => {
-        if (data && data.youtubeUrl) {
+        if (data && (data.youtubeUrl || data.videoUrl)) {
           let titleVal = data.title;
           let descVal = data.description;
           if (lang === 'en') {
@@ -212,9 +219,14 @@ const Home = () => {
             descVal = 'Watch continuous Tamil and English live news coverage, debates and special updates.';
           }
           setLiveVideo({ ...data, title: titleVal, description: descVal });
+        } else {
+          setLiveVideo(DEFAULT_LIVE_VIDEO);
         }
       })
-      .catch(err => console.warn("Could not load live video from API", err));
+      .catch(err => {
+        console.warn("Could not load live video from API, using default stream", err);
+        setLiveVideo(DEFAULT_LIVE_VIDEO);
+      });
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
@@ -1237,8 +1249,10 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
-    const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
+    const activeVideo = liveVideo || {
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U'
+    };
+    const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
     let embedUrl = liveStreamUrl;
     if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
       const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
@@ -1520,6 +1534,8 @@ const Home = () => {
 
     const renderContent = () => {
       switch (key) {
+        case 'website_navigation':
+          return null;
         case 'news_ticker':
           return (
             <>

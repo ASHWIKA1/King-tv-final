@@ -1225,4 +1225,94 @@ public class DataInitializer {
         sub.setStatus("active");
         return subCategoryRepository.save(sub);
     }
+
+    private void seedNavigationMenus() {
+        try {
+            if (navigationMenuRepository.count() == 0) {
+                // 1. Home
+                createNavMenu("Home", "முகப்பு", "/", 1, null);
+
+                // 2. Regional
+                NavigationMenu regional = createNavMenu("Regional", "நம்ம ஊர்", "/directory", 2, null);
+                createNavMenu("Local Business Directory", "நம்ம ஊர்", "/directory", 1, regional.getId());
+                createNavMenu("Deals", "சலுகைகள்", "/deals", 2, regional.getId());
+                createNavMenu("RFQ", "கோரிக்கைகள்", "/rfq", 3, regional.getId());
+
+                // 3. Wishes
+                createNavMenu("Wishes", "வாழ்த்து", "/wishes", 3, null);
+
+                // 4. Obituaries
+                createNavMenu("Obituaries", "இரங்கல்", "/obituaries", 4, null);
+
+                // 5. Jobs
+                createNavMenu("Jobs", "வேலை", "/jobs", 5, null);
+
+                // 6. Classifieds
+                createNavMenu("Classifieds", "தள்ளுபடி", "/classifieds", 6, null);
+
+                // 7. Politics
+                NavigationMenu politics = createNavMenu("Politics", "அரசியல்", "/category/politics", 7, null);
+                createNavMenu("State", "மாநிலம்", "/category/politics?subcat=State", 1, politics.getId());
+                createNavMenu("National", "தேசியம்", "/category/politics?subcat=National", 2, politics.getId());
+                createNavMenu("International", "சர்வதேசம்", "/category/politics?subcat=International", 3, politics.getId());
+                createNavMenu("Governance", "அரசு கொள்கைகள்", "/category/politics?subcat=Governance", 4, politics.getId());
+
+                // 8. Business
+                NavigationMenu business = createNavMenu("Business", "வணிகம்", "/category/business", 8, null);
+                createNavMenu("Markets", "சந்தை", "/category/business?subcat=Markets", 1, business.getId());
+                createNavMenu("Companies", "நிறுவனங்கள்", "/category/business?subcat=Companies", 2, business.getId());
+                createNavMenu("Investment", "முதலீடு", "/category/business?subcat=Investment", 3, business.getId());
+                createNavMenu("Startups", "ஸ்டார்ட்அப்", "/category/business?subcat=Startups", 4, business.getId());
+
+                // 9. Sports
+                NavigationMenu sports = createNavMenu("Sports", "விளையாட்டு", "/category/sports", 9, null);
+                createNavMenu("Cricket", "கிரிக்கெட்", "/category/sports?subcat=Cricket", 1, sports.getId());
+                createNavMenu("Football", "கால்பந்து", "/category/sports?subcat=Football", 2, sports.getId());
+                createNavMenu("Tennis", "டென்னிஸ்", "/category/sports?subcat=Tennis", 3, sports.getId());
+                createNavMenu("Local Sports", "உள்ளூர்", "/category/sports?subcat=Local+Sports", 4, sports.getId());
+
+                // 10. Cinema
+                NavigationMenu cinema = createNavMenu("Cinema", "பொழுதுபோக்கு", "/category/cinema", 10, null);
+                createNavMenu("Kollywood", "கோலிவுட்", "/category/cinema?subcat=Kollywood", 1, cinema.getId());
+                createNavMenu("Bollywood", "பாலிவுட்", "/category/cinema?subcat=Bollywood", 2, cinema.getId());
+                createNavMenu("Reviews", "விமர்சனங்கள்", "/category/cinema?subcat=Reviews", 3, cinema.getId());
+                createNavMenu("Music", "இசை", "/category/cinema?subcat=Music", 4, cinema.getId());
+
+                // 11. Technology
+                NavigationMenu tech = createNavMenu("Technology", "தொழில்நுட்பம்", "/category/tech", 11, null);
+                createNavMenu("Smartphones", "ஸ்மார்ட் போன்", "/category/tech?subcat=Smartphones", 1, tech.getId());
+                createNavMenu("Software", "மென்பொருள்", "/category/tech?subcat=Software", 2, tech.getId());
+                createNavMenu("AI", "AI", "/category/tech?subcat=AI", 3, tech.getId());
+                createNavMenu("Space", "விண்வெளி", "/category/tech?subcat=Space", 4, tech.getId());
+
+                // 12. International
+                NavigationMenu intl = createNavMenu("International", "சர்வதேசம்", "/category/international", 12, null);
+                createNavMenu("World News", "உலக செய்திகள்", "/category/international?subcat=World+News", 1, intl.getId());
+
+                // 13. Video
+                NavigationMenu video = createNavMenu("Video", "வீடியோ", "/videos", 13, null);
+                createNavMenu("State", "மாநிலம்", "/videos?subcat=State", 1, video.getId());
+                createNavMenu("National", "தேசியம்", "/videos?subcat=National", 2, video.getId());
+                createNavMenu("Cinema", "சினிமா", "/videos?subcat=Cinema", 3, video.getId());
+
+                // 14. Web Stories
+                createNavMenu("Web Stories", "வெப் ஸ்டோரிஸ்", "/web-stories", 14, null);
+
+                System.out.println("Default Navigation Menus seeded successfully.");
+            }
+        } catch (Exception e) {
+            System.err.println("Could not seed navigation menus: " + e.getMessage());
+        }
+    }
+
+    private NavigationMenu createNavMenu(String titleEn, String titleTa, String linkUrl, int displayOrder, Long parentId) {
+        NavigationMenu menu = new NavigationMenu();
+        menu.setTitleEn(titleEn);
+        menu.setTitleTa(titleTa);
+        menu.setLinkUrl(linkUrl);
+        menu.setDisplayOrder(displayOrder);
+        menu.setParentId(parentId);
+        menu.setIsActive(true);
+        return navigationMenuRepository.save(menu);
+    }
 }

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
+import { API_BASE } from '../utils/api';
 
 export const userService = {
   async getProfile(token) {

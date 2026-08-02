@@ -103,7 +103,7 @@ public class NavigationMenuController {
             menu.setIsActive(true);
         }
         NavigationMenu saved = menuRepository.save(menu);
-        doPublishMenus();
+        publishMenusInternal();
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -121,7 +121,7 @@ public class NavigationMenuController {
                         existing.setIsActive(updated.getIsActive());
                     }
                     NavigationMenu saved = menuRepository.save(existing);
-                    doPublishMenus();
+                    publishMenusInternal();
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -139,7 +139,7 @@ public class NavigationMenuController {
                         child.setParentId(null);
                         menuRepository.save(child);
                     }
-                    doPublishMenus();
+                    publishMenusInternal();
                     return ResponseEntity.ok(Map.of("message", "Menu item deleted successfully"));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -150,75 +150,85 @@ public class NavigationMenuController {
         return ResponseEntity.ok(menuRepository.findAll());
     }
 
-    private void doPublishMenus() {
-        List<NavigationMenu> allActive = menuRepository.findByIsActiveOrderByDisplayOrderAsc(true);
-        
-        List<Map<String, Object>> hierarchicalMenus = new ArrayList<>();
-        Map<Long, Map<String, Object>> lookup = new HashMap<>();
-
-        for (NavigationMenu menu : allActive) {
-            Map<String, Object> node = new HashMap<>();
-            node.put("id", menu.getId());
-            node.put("titleTa", menu.getTitleTa());
-            node.put("titleEn", menu.getTitleEn());
-            node.put("linkUrl", menu.getLinkUrl());
-            node.put("displayOrder", menu.getDisplayOrder());
-            node.put("parentId", menu.getParentId());
-            node.put("isActive", menu.getIsActive());
-            node.put("subcategories", new ArrayList<>());
-
-            lookup.put(menu.getId(), node);
+    @PostMapping("/admin/menus/publish")
+    @RequiresPermission(Permission.HOME_LAYOUT_MANAGE)
+    public ResponseEntity<?> publishMenus() {
+        boolean success = publishMenusInternal();
+        if (!success) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to publish navigation menu"));
         }
+        return ResponseEntity.ok(Map.of("message", "Navigation menu published successfully to layout config"));
+    }
 
-        for (NavigationMenu menu : allActive) {
-            Map<String, Object> node = lookup.get(menu.getId());
-            if (menu.getParentId() != null && lookup.containsKey(menu.getParentId())) {
-                Map<String, Object> parentNode = lookup.get(menu.getParentId());
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> subs = (List<Map<String, Object>>) parentNode.get("subcategories");
-                subs.add(node);
-            } else if (menu.getParentId() == null) {
-                hierarchicalMenus.add(node);
-            }
-        }
-
-        Optional<HomeLayoutConfig> optSec = layoutRepository.findBySectionKey("website_navigation");
-
-        HomeLayoutConfig navSection;
-        if (optSec.isPresent()) {
-            navSection = optSec.get();
-        } else {
-            navSection = new HomeLayoutConfig();
-            navSection.setSectionKey("website_navigation");
-            navSection.setSectionLabel("⚡ Website Navigation");
-            navSection.setLayoutType("WEB");
-            navSection.setDisplayOrder(0);
-            navSection.setIsVisible(true);
-        }
-
-        Map<String, Object> config = new HashMap<>();
-        String currentJson = navSection.getConfigJson();
-        if (currentJson != null && !currentJson.trim().isEmpty()) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                config = mapper.readValue(currentJson, Map.class);
-            } catch (Exception e) {}
-        }
-
-        config.put("navItems", hierarchicalMenus);
-
+    public boolean publishMenusInternal() {
         try {
+            List<NavigationMenu> allActive = menuRepository.findByIsActiveOrderByDisplayOrderAsc(true);
+            List<Map<String, Object>> hierarchicalMenus = new ArrayList<>();
+            Map<Long, Map<String, Object>> lookup = new HashMap<>();
+
+            for (NavigationMenu menu : allActive) {
+                Map<String, Object> node = new HashMap<>();
+                node.put("id", menu.getId());
+                node.put("titleTa", menu.getTitleTa());
+                node.put("titleEn", menu.getTitleEn());
+                node.put("linkUrl", menu.getLinkUrl());
+                node.put("displayOrder", menu.getDisplayOrder());
+                node.put("parentId", menu.getParentId());
+                node.put("isActive", menu.getIsActive());
+                node.put("subcategories", new ArrayList<>());
+
+                lookup.put(menu.getId(), node);
+            }
+
+            for (NavigationMenu menu : allActive) {
+                Map<String, Object> node = lookup.get(menu.getId());
+                if (menu.getParentId() != null && lookup.containsKey(menu.getParentId())) {
+                    Map<String, Object> parentNode = lookup.get(menu.getParentId());
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> subs = (List<Map<String, Object>>) parentNode.get("subcategories");
+                    subs.add(node);
+                } else if (menu.getParentId() == null) {
+                    hierarchicalMenus.add(node);
+                }
+            }
+
+            Optional<HomeLayoutConfig> optSec = layoutRepository.findByLayoutTypeOrderByDisplayOrderAsc("WEB")
+                    .stream()
+                    .filter(s -> "website_navigation".equals(s.getSectionKey()))
+                    .findFirst();
+
+            HomeLayoutConfig navSection;
+            if (optSec.isPresent()) {
+                navSection = optSec.get();
+            } else {
+                navSection = new HomeLayoutConfig();
+                navSection.setSectionKey("website_navigation");
+                navSection.setSectionLabel("⚡ Website Navigation");
+                navSection.setLayoutType("WEB");
+                navSection.setDisplayOrder(0);
+                navSection.setIsVisible(true);
+            }
+
+            Map<String, Object> config = new HashMap<>();
+            String currentJson = navSection.getConfigJson();
+            if (currentJson != null && !currentJson.trim().isEmpty()) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    config = mapper.readValue(currentJson, Map.class);
+                } catch (Exception e) { }
+            }
+
+            config.put("navItems", hierarchicalMenus);
+
             ObjectMapper mapper = new ObjectMapper();
             String updatedJson = mapper.writeValueAsString(config);
             navSection.setConfigJson(updatedJson);
             layoutRepository.save(navSection);
-        } catch (Exception e) {}
-    }
-
-    @PostMapping("/admin/menus/publish")
-    @RequiresPermission(Permission.HOME_LAYOUT_MANAGE)
-    public ResponseEntity<?> publishMenus() {
-        doPublishMenus();
-        return ResponseEntity.ok(Map.of("message", "Navigation menu published successfully to layout config"));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
+

@@ -9,28 +9,38 @@ const LiveTv = () => {
   const [liveVideo, setLiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const DEFAULT_LIVE_VIDEO = {
+    title: lang === 'en' ? 'KINGS 24x7 Live Broadcast' : 'கிங்ஸ் 24x7 நேரலை ஒளிபரப்பு',
+    description: lang === 'en' ? 'Watch continuous live news coverage in Tamil and English.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
+    youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
+    isLiveTv: 1
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchApi('/videos/live')
       .then(res => {
-        setLiveVideo(res);
+        if (res && (res.youtubeUrl || res.videoUrl)) {
+          setLiveVideo(res);
+        } else {
+          setLiveVideo(DEFAULT_LIVE_VIDEO);
+        }
         setLoading(false);
       })
       .catch(err => {
-        console.warn("Could not fetch live video", err);
-        setLiveVideo(null);
+        console.warn("Could not fetch live video, using fallback stream", err);
+        setLiveVideo(DEFAULT_LIVE_VIDEO);
         setLoading(false);
       });
-
-  }, []);
+  }, [lang]);
 
   const getYoutubeEmbedUrl = (url) => {
-    if (!url) return '';
+    if (!url) return 'https://www.youtube.com/embed/2g811Eo7K8U';
     if (url.includes('embed/')) return url;
     // Extract video ID
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    const videoId = (match && match[2] && match[2].length === 11) ? match[2] : null;
     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : url;
   };
 

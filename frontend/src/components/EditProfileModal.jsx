@@ -1,12 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { userService } from '../services/userService';
+import { SERVER_BASE } from '../utils/api';
 
 const EditProfileModal = ({ user, token, onClose, onSaveSuccess }) => {
   const [fullName, setFullName] = useState(user.fullName || '');
   const [imageFile, setImageFile] = useState(null);
-  const SERVER_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8080'
-    : window.location.origin;
 
   const [imagePreview, setImagePreview] = useState(
     user.profileImage
