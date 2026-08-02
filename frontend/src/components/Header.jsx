@@ -330,7 +330,8 @@ const Header = () => {
     if (menuItems && menuItems.length > 0) {
       return menuItems.filter(Boolean).map(item => {
         let path = item.linkUrl || item.path;
-        if (!path || path === '#' || path === 'undefined') {
+        if (!path || path === '#' || path === 'undefined' || path === '/category/home') {
+          if (item.slug === 'home' || path === '/category/home') path = '/';
           if (item.slug === 'regional') path = '/directory';
           else if (item.slug === 'videos' || item.slug === 'video') path = '/videos';
           else if (item.slug === 'web-stories') path = '/web-stories';
