@@ -1,5 +1,19 @@
-const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'http://localhost:8080';
-const API_BASE = import.meta.env.VITE_API_BASE || `${SERVER_BASE}/api/v1`;
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8080/api/v1';
+  }
+  return 'https://kings-tv.onrender.com/api/v1';
+};
+
+const getCommonServerBase = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8080';
+  }
+  return 'https://kings-tv.onrender.com';
+};
+
+const SERVER_BASE = getCommonServerBase();
+const API_BASE = getApiBaseUrl();
 
 export const getImageUrl = (itemOrPath) => {
   if (!itemOrPath) return '';
