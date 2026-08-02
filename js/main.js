@@ -1341,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTamilDateTime();
 
     // Re-render dynamic nav menu based on new language
-    loadDynamicNavMenu();
+    // loadDynamicNavMenu();
   }
 
   function translateTextNodes(node, lang) {
@@ -1776,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadVideoNews();
   loadWebStories();
   loadTrendingNews();
-  loadDynamicNavMenu(); // Populate nav from backend categories (Issue #7)
+  // loadDynamicNavMenu(); // Populate nav from backend categories (Issue #7)
   
   // Apply default language on load
   var defaultLang = Storage.get('lang', 'ta');
