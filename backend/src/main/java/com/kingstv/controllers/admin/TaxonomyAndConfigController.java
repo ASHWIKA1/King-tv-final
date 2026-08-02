@@ -36,11 +36,103 @@ public class TaxonomyAndConfigController {
     @Autowired private WebstoreItemRepository webstoreItemRepository;
     @Autowired private SlugService slugService;
     @Autowired private NavigationMenuRepository navigationMenuRepository;
+    @Autowired private HomeLayoutConfigRepository homeLayoutConfigRepository;
+
+    private void syncWebsiteNavigation() {
+        try {
+            List<NavigationMenu> allActive = navigationMenuRepository.findByIsActiveOrderByDisplayOrderAsc(true);
+            List<Map<String, Object>> hierarchicalMenus = new ArrayList<>();
+            Map<Long, Map<String, Object>> lookup = new HashMap<>();
+
+            for (NavigationMenu menu : allActive) {
+                Map<String, Object> node = new HashMap<>();
+                node.put("id", menu.getId());
+                node.put("titleTa", menu.getTitleTa());
+                node.put("titleEn", menu.getTitleEn());
+                node.put("linkUrl", menu.getLinkUrl());
+                node.put("displayOrder", menu.getDisplayOrder());
+                node.put("parentId", menu.getParentId());
+                node.put("isActive", menu.getIsActive());
+                node.put("subcategories", new ArrayList<>());
+
+                lookup.put(menu.getId(), node);
+            }
+
+            for (NavigationMenu menu : allActive) {
+                Map<String, Object> node = lookup.get(menu.getId());
+                if (menu.getParentId() != null && lookup.containsKey(menu.getParentId())) {
+                    Map<String, Object> parentNode = lookup.get(menu.getParentId());
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> subs = (List<Map<String, Object>>) parentNode.get("subcategories");
+                    subs.add(node);
+                } else if (menu.getParentId() == null) {
+                    hierarchicalMenus.add(node);
+                }
+            }
+
+            Optional<HomeLayoutConfig> optSec = homeLayoutConfigRepository.findBySectionKey("website_navigation");
+            HomeLayoutConfig navSection = optSec.orElseGet(() -> {
+                HomeLayoutConfig newSec = new HomeLayoutConfig();
+                newSec.setSectionKey("website_navigation");
+                newSec.setSectionLabel("⚡ Website Navigation");
+                newSec.setLayoutType("WEB");
+                newSec.setDisplayOrder(0);
+                newSec.setIsVisible(true);
+                return newSec;
+            });
+
+            Map<String, Object> config = new HashMap<>();
+            String currentJson = navSection.getConfigJson();
+            if (currentJson != null && !currentJson.trim().isEmpty()) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    config = mapper.readValue(currentJson, Map.class);
+                } catch (Exception e) {}
+            }
+
+            config.put("navItems", hierarchicalMenus);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            navSection.setConfigJson(mapper.writeValueAsString(config));
+            homeLayoutConfigRepository.save(navSection);
+        } catch (Exception e) {
+            // Ignore sync errors to avoid breaking category CRUD
+        }
+    }
 
     // --- Taxonomy: Categories (#18) ---
     @GetMapping("/taxonomy/categories")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
-    public ResponseEntity<?> listCategories() { return ResponseEntity.ok(categoryRepository.findAll()); }
+    public ResponseEntity<?> listCategories() { 
+        return ResponseEntity.ok(categoryRepository.findAllByOrderByDisplayOrderAsc()); 
+    }
+
+    @PutMapping("/taxonomy/categories/reorder")
+    @RequiresPermission(Permission.TAXONOMY_MANAGE)
+    public ResponseEntity<?> reorderCategories(@RequestBody List<Map<String, Object>> items) {
+        try {
+            for (Map<String, Object> item : items) {
+                if (item.containsKey("id") && item.containsKey("displayOrder")) {
+                    Long id = ((Number) item.get("id")).longValue();
+                    Integer order = ((Number) item.get("displayOrder")).intValue();
+                    categoryRepository.findById(id).ifPresent(cat -> {
+                        cat.setDisplayOrder(order);
+                        categoryRepository.save(cat);
+
+                        navigationMenuRepository.findAll().stream()
+                            .filter(m -> ("/category/" + cat.getSlug()).equals(m.getLinkUrl()))
+                            .forEach(m -> {
+                                m.setDisplayOrder(order);
+                                navigationMenuRepository.save(m);
+                            });
+                    });
+                }
+            }
+            syncWebsiteNavigation();
+            return ResponseEntity.ok(Map.of("message", "Category order updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 
     @PostMapping("/taxonomy/categories")
     @RequiresPermission(Permission.TAXONOMY_MANAGE)
@@ -70,6 +162,7 @@ public class TaxonomyAndConfigController {
                 navigationMenuRepository.save(menu);
             }
 
+            syncWebsiteNavigation();
             return ResponseEntity.status(HttpStatus.CREATED).body(savedCat);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Category with this name or slug already exists."));
@@ -85,6 +178,7 @@ public class TaxonomyAndConfigController {
             Optional<Category> catOpt = categoryRepository.findById(id);
             if (catOpt.isEmpty()) return ResponseEntity.notFound().build();
             Category cat = catOpt.get();
+            String oldSlug = cat.getSlug();
             if (req.containsKey("name")) cat.setName((String) req.get("name"));
             if (req.containsKey("nameTa")) cat.setNameTa((String) req.get("nameTa"));
             if (req.containsKey("slug")) cat.setSlug((String) req.get("slug"));
@@ -95,7 +189,37 @@ public class TaxonomyAndConfigController {
             if (req.containsKey("isActive")) cat.setIsActive((Boolean) req.get("isActive"));
             
             slugService.generateAndSetSlug(cat);
-            return ResponseEntity.ok((Object) categoryRepository.save(cat));
+            Category savedCat = categoryRepository.save(cat);
+
+            // Sync updates directly with Navigation Menu
+            try {
+                List<NavigationMenu> menus = navigationMenuRepository.findAll();
+                NavigationMenu existingNav = menus.stream()
+                    .filter(m -> ("/category/" + oldSlug).equals(m.getLinkUrl()) || 
+                                 ("/category/" + savedCat.getSlug()).equals(m.getLinkUrl()) || 
+                                 ("/category/" + id).equals(m.getLinkUrl()))
+                    .findFirst().orElse(null);
+
+                if (Boolean.TRUE.equals(savedCat.getIsNav())) {
+                    if (existingNav == null) {
+                        existingNav = new NavigationMenu();
+                    }
+                    existingNav.setTitleEn(savedCat.getName());
+                    existingNav.setTitleTa(savedCat.getNameTa());
+                    existingNav.setLinkUrl("/category/" + savedCat.getSlug());
+                    existingNav.setDisplayOrder(savedCat.getDisplayOrder() != null ? savedCat.getDisplayOrder() : 0);
+                    existingNav.setIsActive(Boolean.TRUE.equals(savedCat.getIsActive()));
+                    navigationMenuRepository.save(existingNav);
+                } else if (existingNav != null) {
+                    existingNav.setIsActive(false);
+                    navigationMenuRepository.save(existingNav);
+                }
+            } catch (Exception syncEx) {
+                // Ignore sync errors to prevent breaking category updates
+            }
+
+            syncWebsiteNavigation();
+            return ResponseEntity.ok((Object) savedCat);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Category with this name or slug already exists."));
         } catch (Exception e) {
@@ -122,6 +246,7 @@ public class TaxonomyAndConfigController {
                 // Ignore errors during sync to avoid breaking category deletion
             }
             
+            syncWebsiteNavigation();
             return ResponseEntity.ok((Object) Map.of("message", "Category deleted"));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -176,7 +301,25 @@ public class TaxonomyAndConfigController {
             }
             
             slugService.generateAndSetSlug(sub);
-            return ResponseEntity.ok((Object) subCategoryRepository.save(sub));
+            SubCategory savedSub = subCategoryRepository.save(sub);
+
+            // Sync updates with Navigation Menu if present
+            try {
+                List<NavigationMenu> menus = navigationMenuRepository.findAll();
+                NavigationMenu existingSubNav = menus.stream()
+                    .filter(m -> m.getLinkUrl() != null && m.getLinkUrl().contains("/sub/" + savedSub.getSubcategoryId()))
+                    .findFirst().orElse(null);
+                if (existingSubNav != null) {
+                    existingSubNav.setTitleEn(savedSub.getName());
+                    existingSubNav.setTitleTa(savedSub.getNameTa());
+                    existingSubNav.setIsActive("active".equalsIgnoreCase(savedSub.getStatus()));
+                    navigationMenuRepository.save(existingSubNav);
+                }
+            } catch (Exception syncEx) {
+                // Ignore sync errors to prevent breaking subcategory updates
+            }
+
+            return ResponseEntity.ok((Object) savedSub);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Subcategory with this name or slug already exists."));
         } catch (Exception e) {

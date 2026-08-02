@@ -37,14 +37,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear tokens and redirect to login only if unauthorized (expired token)
-      // 403 Forbidden should just be handled by the UI without logging the user out.
+    // Do NOT trigger hard redirect on 401 if request was for /auth/login (invalid password/email)
+    if (error.response && error.response.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('token');
       localStorage.removeItem('admin_token');
       localStorage.removeItem('user');
       localStorage.removeItem('active_role_override');
-      window.location.href = '/admin/login';
+      const isSubpath = window.location.pathname.includes('/king-tv');
+      window.location.href = isSubpath ? '/king-tv/admin/login' : '/admin/login';
     }
     return Promise.reject(error);
   }

@@ -102,7 +102,9 @@ public class NavigationMenuController {
         if (menu.getIsActive() == null) {
             menu.setIsActive(true);
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(menuRepository.save(menu));
+        NavigationMenu saved = menuRepository.save(menu);
+        doPublishMenus();
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/admin/menus/{id}")
@@ -118,7 +120,9 @@ public class NavigationMenuController {
                     if (updated.getIsActive() != null) {
                         existing.setIsActive(updated.getIsActive());
                     }
-                    return ResponseEntity.ok(menuRepository.save(existing));
+                    NavigationMenu saved = menuRepository.save(existing);
+                    doPublishMenus();
+                    return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -135,6 +139,7 @@ public class NavigationMenuController {
                         child.setParentId(null);
                         menuRepository.save(child);
                     }
+                    doPublishMenus();
                     return ResponseEntity.ok(Map.of("message", "Menu item deleted successfully"));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -145,10 +150,7 @@ public class NavigationMenuController {
         return ResponseEntity.ok(menuRepository.findAll());
     }
 
-    @PostMapping("/admin/menus/publish")
-    @RequiresPermission(Permission.HOME_LAYOUT_MANAGE)
-    public ResponseEntity<?> publishMenus() {
-        // 1. Fetch active menus hierarchically (the exact structure returned by getPublicMenus())
+    private void doPublishMenus() {
         List<NavigationMenu> allActive = menuRepository.findByIsActiveOrderByDisplayOrderAsc(true);
         
         List<Map<String, Object>> hierarchicalMenus = new ArrayList<>();
@@ -163,7 +165,7 @@ public class NavigationMenuController {
             node.put("displayOrder", menu.getDisplayOrder());
             node.put("parentId", menu.getParentId());
             node.put("isActive", menu.getIsActive());
-            node.put("subcategories", new ArrayList<>()); // Frontend expect subcategories
+            node.put("subcategories", new ArrayList<>());
 
             lookup.put(menu.getId(), node);
         }
@@ -172,6 +174,7 @@ public class NavigationMenuController {
             Map<String, Object> node = lookup.get(menu.getId());
             if (menu.getParentId() != null && lookup.containsKey(menu.getParentId())) {
                 Map<String, Object> parentNode = lookup.get(menu.getParentId());
+                @SuppressWarnings("unchecked")
                 List<Map<String, Object>> subs = (List<Map<String, Object>>) parentNode.get("subcategories");
                 subs.add(node);
             } else if (menu.getParentId() == null) {
@@ -179,7 +182,6 @@ public class NavigationMenuController {
             }
         }
 
-        // 2. Find and update the website_navigation section in home_layout_configs
         Optional<HomeLayoutConfig> optSec = layoutRepository.findBySectionKey("website_navigation");
 
         HomeLayoutConfig navSection;
@@ -194,16 +196,13 @@ public class NavigationMenuController {
             navSection.setIsVisible(true);
         }
 
-        // Parse existing configJson or create new
         Map<String, Object> config = new HashMap<>();
         String currentJson = navSection.getConfigJson();
         if (currentJson != null && !currentJson.trim().isEmpty()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 config = mapper.readValue(currentJson, Map.class);
-            } catch (Exception e) {
-                // Ignore and use empty map
-            }
+            } catch (Exception e) {}
         }
 
         config.put("navItems", hierarchicalMenus);
@@ -213,11 +212,13 @@ public class NavigationMenuController {
             String updatedJson = mapper.writeValueAsString(config);
             navSection.setConfigJson(updatedJson);
             layoutRepository.save(navSection);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Failed to serialize navigation config: " + e.getMessage()));
-        }
+        } catch (Exception e) {}
+    }
 
+    @PostMapping("/admin/menus/publish")
+    @RequiresPermission(Permission.HOME_LAYOUT_MANAGE)
+    public ResponseEntity<?> publishMenus() {
+        doPublishMenus();
         return ResponseEntity.ok(Map.of("message", "Navigation menu published successfully to layout config"));
     }
 }

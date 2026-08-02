@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
-import { Plus, Folder, MapPin, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Folder, MapPin, Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react';
 
 const TaxonomyManager = () => {
   const [categories, setCategories] = useState([]);
@@ -43,6 +43,35 @@ const TaxonomyManager = () => {
         localStorage.removeItem(key);
       }
     });
+    try {
+      window.dispatchEvent(new Event('layoutUpdated'));
+    } catch (e) {}
+  };
+
+  // --- Category Handlers ---
+  const handleCatMove = async (index, direction) => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    const newCats = [...categories];
+    const temp = newCats[index];
+    newCats[index] = newCats[targetIndex];
+    newCats[targetIndex] = temp;
+
+    const updatedPayload = newCats.map((c, idx) => ({
+      id: c.id,
+      displayOrder: idx + 1
+    }));
+
+    setCategories(newCats.map((c, idx) => ({ ...c, displayOrder: idx + 1 })));
+
+    try {
+      await api.put('/admin/taxonomy/categories/reorder', updatedPayload);
+      clearApiCache();
+    } catch (err) {
+      console.error("Failed to reorder categories", err);
+      fetchTaxonomies();
+    }
   };
 
   const syncNavLayout = async (item, type = 'category', action = 'add') => {
@@ -249,17 +278,31 @@ const TaxonomyManager = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {loading ? <div style={{ color: 'var(--text-muted)' }}>Loading...</div> : categories.length === 0 ? (
               <div style={{ color: 'var(--text-muted)' }}>No categories found.</div>
-            ) : categories.map(c => (
+            ) : categories.map((c, index) => (
               <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: c.color || 'var(--primary)' }}></div>
                     <span style={{ fontWeight: 600, fontSize: '1.05rem' }}>{c.name} ({c.nameTa})</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                     <button 
                       className="btn btn-secondary" 
-                      style={{ padding: '0.2rem', color: 'var(--primary)', fontSize: '0.75rem' }}
+                      style={{ padding: '0.2rem', color: index === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: index === 0 ? 0.4 : 1 }}
+                      onClick={() => handleCatMove(index, 'up')}
+                      disabled={index === 0}
+                      title="Move Up"
+                    ><ArrowUp size={14} /></button>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.2rem', color: index === categories.length - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: index === categories.length - 1 ? 0.4 : 1 }}
+                      onClick={() => handleCatMove(index, 'down')}
+                      disabled={index === categories.length - 1}
+                      title="Move Down"
+                    ><ArrowDown size={14} /></button>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.2rem', color: 'var(--primary)', fontSize: '0.75rem', marginLeft: '0.25rem' }}
                       onClick={() => { setSubCatFormData({ id: null, categoryId: c.id, name: '', nameTa: '', slug: '', displayOrder: 0, status: 'active' }); setShowSubCatModal(true); }}
                       title="Add Subcategory"
                     ><Plus size={14} /></button>

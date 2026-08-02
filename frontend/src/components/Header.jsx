@@ -172,14 +172,18 @@ const Header = () => {
   useEffect(() => {
     const loadDynamicNav = async () => {
       try {
-        const localDummy = localStorage.getItem('dummy_layout_config');
-        if (localDummy) {
-          const parsed = JSON.parse(localDummy);
-          const navSection = Array.isArray(parsed) ? parsed.find(s => s.sectionKey === 'website_navigation') : null;
-          if (navSection && navSection.configJson) {
-            const config = typeof navSection.configJson === 'string' ? JSON.parse(navSection.configJson) : navSection.configJson;
-            if (config && config.navItems && config.navItems.length > 0) {
-              setMenuItems(config.navItems.filter(i => i.isActive !== false));
+        const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
+        if (isPreview) {
+          const localDummy = localStorage.getItem('dummy_layout_config');
+          if (localDummy) {
+            const parsed = JSON.parse(localDummy);
+            const navSection = Array.isArray(parsed) ? parsed.find(s => s.sectionKey === 'website_navigation') : null;
+            if (navSection && navSection.configJson) {
+              const config = typeof navSection.configJson === 'string' ? JSON.parse(navSection.configJson) : navSection.configJson;
+              if (config && config.navItems && config.navItems.length > 0) {
+                setMenuItems(config.navItems.filter(i => i.isActive !== false));
+                return;
+              }
             }
           }
         }
@@ -370,55 +374,9 @@ const Header = () => {
 
     let dynamicItems = [];
     if (navCategories && navCategories.length > 0) {
-      const dbItems = navCategories.map(cat => {
-        const catSlug = cat.slug || '';
-        let path = `/category/${catSlug}`;
-        if (catSlug === 'web-stories') path = '/web-stories';
-        else if (catSlug === 'video') path = '/videos';
-        else if (catSlug === 'regional') path = '/directory';
+      const sortedCategories = [...navCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
-        const labelVal = lang === 'en'
-          ? (enTranslations[catSlug.toLowerCase()] || cat.name)
-          : cat.nameTa;
 
-        if (lang === 'en' && typeof labelVal === 'string' && labelVal.includes('முகப்பு')) {
-           return { id: cat.id, slug: catSlug, path, label: 'Home', subcategories: cat.subcategories || [] };
-        }
-        return {
-          id: cat.id,
-          slug: catSlug,
-          path,
-          label: labelVal,
-          subcategories: cat.subcategories || []
-        };
-      });
-
-      const findDbItem = (slug) => dbItems.find(item => item.slug === slug);
-
-      // Home removed per user request (only items from DB should show)
-
-      // Politics
-      const politics = findDbItem('politics');
-      dynamicItems.push(politics || { id: 'politics', path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [] });
-
-      // Business
-      const business = findDbItem('business');
-      dynamicItems.push(business || { id: 'business', path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [] });
-
-      // Sports
-      const sports = findDbItem('sports');
-      dynamicItems.push(sports || { id: 'sports', path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [] });
-
-      // Cinema
-      const cinema = findDbItem('cinema');
-      dynamicItems.push(cinema || { id: 'cinema', path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [] });
-
-      // Technology
-      const tech = findDbItem('tech') || findDbItem('technology');
-      dynamicItems.push(tech || { id: 'tech', path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [] });
-
-      // Regional Directory (with dropdown chevron containing all items)
-      const regional = findDbItem('regional');
       const regionalSubcategories = [
         {
           id: 'reg-dir',
@@ -436,37 +394,52 @@ const Header = () => {
         { id: 'reg-jobs', slug: 'jobs', path: '/jobs', name: 'Jobs', nameTa: 'வேலை' },
         { id: 'reg-classifieds', slug: 'classifieds', path: '/classifieds', name: 'Classifieds', nameTa: 'தள்ளுபடி' }
       ];
-      dynamicItems.push(regional ? { ...regional, label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்', subcategories: regionalSubcategories } : {
-        id: 'regional',
-        path: '/directory',
-        label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்',
-        subcategories: regionalSubcategories
-      });
 
-      // International
-      const international = findDbItem('international');
-      dynamicItems.push(international || { id: 'international', path: '/category/international', label: lang === 'en' ? 'International' : 'சர்வதேசம்', subcategories: [] });
-
-      // Videos (with dropdown chevron)
-      const videos = findDbItem('video') || findDbItem('videos');
-      dynamicItems.push(videos || {
-        id: 'videos',
-        path: '/videos',
-        label: lang === 'en' ? 'Videos' : 'வீடியோ',
-        subcategories: [
-          { id: 'v-state', slug: 'v-state', name: 'State', nameTa: 'மாநிலம்' },
-          { id: 'v-national', slug: 'v-national', name: 'National', nameTa: 'தேசியம்' },
-          { id: 'v-cinema', slug: 'v-cinema', name: 'Cinema', nameTa: 'சினிமா' }
-        ]
-      });
-
-      // Web Stories (No dropdown chevron)
-      const webStories = findDbItem('web-stories');
-      dynamicItems.push(webStories || {
-        id: 'web-stories',
-        path: '/web-stories',
-        label: lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்',
+      dynamicItems.push({
+        id: 'home',
+        path: '/',
+        label: lang === 'en' ? 'Home' : 'முகப்பு',
         subcategories: []
+      });
+
+      const enTranslations = {
+        'politics': 'Politics',
+        'business': 'Business',
+        'sports': 'Sports',
+        'cinema': 'Cinema',
+        'tech': 'Technology',
+        'technology': 'Technology',
+        'regional': 'Regional',
+        'international': 'International',
+        'world': 'International',
+        'video': 'Videos',
+        'videos': 'Videos',
+        'web-stories': 'Web Stories'
+      };
+
+      sortedCategories.forEach(cat => {
+        const catSlug = cat.slug || '';
+        let path = `/category/${catSlug}`;
+        if (catSlug === 'web-stories') path = '/web-stories';
+        else if (catSlug === 'video' || catSlug === 'videos') path = '/videos';
+        else if (catSlug === 'regional') path = '/directory';
+
+        const labelVal = lang === 'en'
+          ? (enTranslations[catSlug.toLowerCase()] || cat.name)
+          : (cat.nameTa || cat.name);
+
+        let subcats = cat.subcategories || [];
+        if (catSlug === 'regional' && (!subcats || subcats.length === 0)) {
+          subcats = regionalSubcategories;
+        }
+
+        dynamicItems.push({
+          id: cat.id || catSlug,
+          slug: catSlug,
+          path,
+          label: labelVal,
+          subcategories: subcats
+        });
       });
     }
 

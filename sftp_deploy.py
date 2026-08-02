@@ -9,15 +9,25 @@ USERNAME = "u841409365"
 PASSWORD = "Eash@2005"
 
 def connect_ssh():
-    print("Connecting to remote Hostinger SSH/SFTP server...")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=HOSTNAME, port=PORT, username=USERNAME, password=PASSWORD, timeout=30, banner_timeout=60)
-    if ssh.get_transport():
-        ssh.get_transport().set_keepalive(10)
-    sftp = ssh.open_sftp()
-    print("SSH & SFTP connection established!")
-    return ssh, sftp
+    hosts = [HOSTNAME, "test-technoprint.online"]
+    last_err = None
+    for attempt in range(1, 6):
+        for host in hosts:
+            try:
+                print(f"Connecting to Hostinger SSH ({host}:{PORT}), attempt {attempt}...")
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(hostname=host, port=PORT, username=USERNAME, password=PASSWORD, timeout=30, banner_timeout=60)
+                if ssh.get_transport():
+                    ssh.get_transport().set_keepalive(10)
+                sftp = ssh.open_sftp()
+                print("SSH & SFTP connection established!")
+                return ssh, sftp
+            except Exception as e:
+                last_err = e
+                print(f"  [Attempt {attempt} via {host} failed: {e}]")
+                time.sleep(5)
+    raise last_err
 
 def create_remote_dir(sftp, remote_path):
     parts = [p for p in remote_path.split("/") if p]

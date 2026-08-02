@@ -17,26 +17,32 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     
-    const result = await login(email, password);
-    
-    if (result.success) {
-      // Role-based post-login redirect
-      const role = result.role;
-      if (role === 'MOBILE_JOURNALIST' || role === 'INSTITUTION_LOGIN') {
-        navigate('/journalist/posts');
-      } else if (role === 'READER') {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          window.location.href = 'http://localhost:5174/';
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Role-based post-login redirect
+        const role = result.role;
+        if (role === 'MOBILE_JOURNALIST' || role === 'INSTITUTION_LOGIN') {
+          navigate('/journalist/posts');
+        } else if (role === 'READER') {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            window.location.href = 'http://localhost:5174/';
+          } else {
+            window.location.href = '/';
+          }
         } else {
-          window.location.href = '/';
+          navigate('/admin/dashboard');
         }
       } else {
-        navigate('/admin/dashboard');
+        setError(result.message || 'Login failed. Please check your credentials.');
       }
-    } else {
-      setError(result.message || 'Login failed');
+    } catch (err) {
+      console.error("Login submit error", err);
+      setError(err.message || 'An unexpected error occurred during authentication.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
