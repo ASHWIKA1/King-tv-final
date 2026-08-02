@@ -102,11 +102,8 @@ const Header = () => {
 
   useEffect(() => {
     // Fetch live weather for default district (Chennai) on load from backend
-<<<<<<< HEAD
-    const baseApi = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
-=======
     const baseApi = API_BASE;
->>>>>>> origin/test-1
+
     fetch(`${baseApi}/weather?city=Chennai`)
       .then(res => res.json())
       .then(data => {
@@ -176,7 +173,6 @@ const Header = () => {
   useEffect(() => {
     const loadDynamicNav = async () => {
       try {
-<<<<<<< HEAD
         const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
         if (isPreview) {
           const localDummy = localStorage.getItem('dummy_layout_config');
@@ -191,12 +187,12 @@ const Header = () => {
               }
             }
           }
-=======
+        }
+
         const menusRes = await fetchApi('/public/menus');
         if (Array.isArray(menusRes) && menusRes.length > 0) {
           setMenuItems(menusRes);
           return;
->>>>>>> origin/test-1
         }
 
         const res = await fetchApi('/admin/layout/public/home-layout');
@@ -213,6 +209,7 @@ const Header = () => {
         console.warn("Could not load dynamic navigation bar menu:", err);
       }
     };
+
     loadDynamicNav();
 
     const handleNavUpdate = () => loadDynamicNav();
@@ -673,11 +670,8 @@ const Header = () => {
     };
     const engCity = cityMap[selected];
     if (engCity) {
-<<<<<<< HEAD
-      const baseApi = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
-=======
       const baseApi = API_BASE;
->>>>>>> origin/test-1
+
       fetch(`${baseApi}/weather?city=${engCity}`)
         .then(res => res.json())
         .then(data => {
