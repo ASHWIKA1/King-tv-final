@@ -597,34 +597,6 @@ public class DataInitializer {
         System.out.println("Database Seeding Check Complete!");
     }
 
-    private void seedNavigationMenus() {
-        if (navigationMenuRepository.count() == 0) {
-            System.out.println("Seeding Navigation Menu Links...");
-            seedMenu("முகப்பு", "Home", "/", 1, null);
-            seedMenu("அரசியல்", "Politics", "/category/politics", 2, null);
-            seedMenu("வணிகம்", "Business", "/category/business", 3, null);
-            seedMenu("விளையாட்டு", "Sports", "/category/sports", 4, null);
-            seedMenu("பொழுதுபோக்கு", "Cinema", "/category/cinema", 5, null);
-            seedMenu("தொழில்நுட்பம்", "Technology", "/category/tech", 6, null);
-
-            NavigationMenu regional = seedMenu("நம்ம ஊர்", "Regional", "/directory", 7, null);
-            seedMenu("நம்ம ஊர்", "Local Business Directory", "/directory", 1, regional.getId());
-            seedMenu("வாழ்த்து", "Wishes", "/wishes", 2, regional.getId());
-            seedMenu("இரங்கல்", "Obituaries", "/obituaries", 3, regional.getId());
-            seedMenu("வேலை", "Jobs", "/jobs", 5, regional.getId());
-            seedMenu("தள்ளுபடி", "Classifieds", "/classifieds", 6, regional.getId());
-
-            seedMenu("சர்வதேசம்", "International", "/category/international", 8, null);
-
-            NavigationMenu videos = seedMenu("வீடியோ", "Videos", "/videos", 9, null);
-            seedMenu("மாநிலம்", "State", "/videos", 1, videos.getId());
-            seedMenu("தேசியம்", "National", "/videos", 2, videos.getId());
-            seedMenu("சினிமா", "Cinema", "/videos", 3, videos.getId());
-
-            seedMenu("வெப் ஸ்டோரிஸ்", "Web Stories", "/web-stories", 10, null);
-        }
-    }
-
     private void seedUser(String name, String email, String password, String role) {
         String cleanEmail = email.toLowerCase().trim();
         Optional<User> existing = userRepository.findByEmail(cleanEmail);
