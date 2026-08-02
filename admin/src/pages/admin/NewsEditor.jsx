@@ -23,7 +23,13 @@ export const getGeminiUrl = (modelOverride) => {
 };
 
 const callGemini = async (prompt) => {
-  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY;
+  const apiKey = activeAiConfig.apiKey 
+    || localStorage.getItem('gemini_api_key') 
+    || localStorage.getItem('ai.llm_api_key') 
+    || localStorage.getItem('ai_llm_api_key') 
+    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
+    || (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY)
+    || DEFAULT_GEMINI_KEY;
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
