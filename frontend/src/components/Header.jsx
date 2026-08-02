@@ -312,6 +312,22 @@ const Header = () => {
   };
 
   const getDynamicNavItems = () => {
+    const enTranslations = {
+      'home': 'Home',
+      'politics': 'Politics',
+      'business': 'Business',
+      'sports': 'Sports',
+      'cinema': 'Cinema',
+      'tech': 'Technology',
+      'technology': 'Technology',
+      'regional': 'Regional',
+      'international': 'International',
+      'world': 'International',
+      'video': 'Videos',
+      'videos': 'Videos',
+      'web-stories': 'Web Stories'
+    };
+
     if (menuItems && menuItems.length > 0) {
       return menuItems.filter(Boolean).map(item => {
         let path = item.linkUrl || item.path;
@@ -323,9 +339,14 @@ const Header = () => {
           else path = '/';
         }
 
-        const label = lang === 'en'
-          ? (item.titleEn || item.label || item.name || item.titleTa)
+        let label = lang === 'en'
+          ? (item.titleEn || enTranslations[(item.slug || '').toLowerCase()] || item.label || item.name || item.titleTa)
           : (item.titleTa || item.nameTa || item.label || item.titleEn);
+
+        // Safety fallback if the user named it 'முகப்பு' but didn't set English title
+        if (lang === 'en' && typeof label === 'string' && label.trim() === 'முகப்பு') {
+          label = 'Home';
+        }
 
         return {
           id: item.id || item.slug,
@@ -356,25 +377,13 @@ const Header = () => {
         else if (catSlug === 'video') path = '/videos';
         else if (catSlug === 'regional') path = '/directory';
 
-        const enTranslations = {
-          'politics': 'Politics',
-          'business': 'Business',
-          'sports': 'Sports',
-          'cinema': 'Cinema',
-          'tech': 'Technology',
-          'technology': 'Technology',
-          'regional': 'Regional',
-          'international': 'International',
-          'world': 'International',
-          'video': 'Videos',
-          'videos': 'Videos',
-          'web-stories': 'Web Stories'
-        };
-
         const labelVal = lang === 'en'
           ? (enTranslations[catSlug.toLowerCase()] || cat.name)
           : cat.nameTa;
 
+        if (lang === 'en' && typeof labelVal === 'string' && labelVal.trim() === 'முகப்பு') {
+           return { id: cat.id, slug: catSlug, path, label: 'Home', subcategories: cat.subcategories || [] };
+        }
         return {
           id: cat.id,
           slug: catSlug,
