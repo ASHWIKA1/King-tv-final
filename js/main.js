@@ -127,7 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!url) return '#';
         if (url === '/videos') return 'index.html#section-video';
         if (url === '/web-stories') return 'index.html#section-stories';
-        
+        if (url === '/') return 'index.html';
+        if (url === '/category/home') return 'index.html';
         if (url.startsWith('/category/')) {
           var parts = url.split('/');
           if (parts.length === 3) {
