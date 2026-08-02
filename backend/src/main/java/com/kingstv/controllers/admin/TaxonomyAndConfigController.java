@@ -36,7 +36,6 @@ public class TaxonomyAndConfigController {
     @Autowired private WebstoreItemRepository webstoreItemRepository;
     @Autowired private SlugService slugService;
     @Autowired private NavigationMenuRepository navigationMenuRepository;
-    @Autowired private com.kingstv.controllers.NavigationMenuController navigationMenuController;
 
     // --- Taxonomy: Categories (#18) ---
     @GetMapping("/taxonomy/categories")
@@ -69,11 +68,6 @@ public class TaxonomyAndConfigController {
                 menu.setDisplayOrder(savedCat.getDisplayOrder() != null ? savedCat.getDisplayOrder() : 0);
                 menu.setIsActive(savedCat.getIsActive() != null ? savedCat.getIsActive() : true);
                 navigationMenuRepository.save(menu);
-                
-                // Publish menus to cache instantly so frontend updates
-                try {
-                    navigationMenuController.publishMenus();
-                } catch (Exception e) {}
             }
 
             return ResponseEntity.status(HttpStatus.CREATED).body(savedCat);
@@ -118,16 +112,11 @@ public class TaxonomyAndConfigController {
             
             // Attempt to remove from NavigationMenu
             try {
-                boolean menuChanged = false;
                 java.util.List<NavigationMenu> menus = navigationMenuRepository.findAll();
                 for (NavigationMenu m : menus) {
                     if (slugUrl.equals(m.getLinkUrl())) {
                         navigationMenuRepository.delete(m);
-                        menuChanged = true;
                     }
-                }
-                if (menuChanged) {
-                    navigationMenuController.publishMenus();
                 }
             } catch (Exception ex) {
                 // Ignore errors during sync to avoid breaking category deletion
