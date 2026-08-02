@@ -344,7 +344,7 @@ const Header = () => {
           : (item.titleTa || item.nameTa || item.label || item.titleEn);
 
         // Safety fallback if the user named it 'முகப்பு' but didn't set English title
-        if (lang === 'en' && typeof label === 'string' && label.trim() === 'முகப்பு') {
+        if (lang === 'en' && typeof label === 'string' && label.includes('முகப்பு')) {
           label = 'Home';
         }
 
@@ -381,7 +381,7 @@ const Header = () => {
           ? (enTranslations[catSlug.toLowerCase()] || cat.name)
           : cat.nameTa;
 
-        if (lang === 'en' && typeof labelVal === 'string' && labelVal.trim() === 'முகப்பு') {
+        if (lang === 'en' && typeof labelVal === 'string' && labelVal.includes('முகப்பு')) {
            return { id: cat.id, slug: catSlug, path, label: 'Home', subcategories: cat.subcategories || [] };
         }
         return {
