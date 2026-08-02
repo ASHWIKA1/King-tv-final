@@ -9,7 +9,7 @@ import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = '';
+const DEFAULT_GEMINI_KEY = 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
 
 export let activeAiConfig = { 
   apiKey: '', 
@@ -1010,11 +1010,18 @@ const PostEditor = () => {
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
 
     try {
-      const res = await api.post('/admin/ai-config/proofread-autofill', {
-        baseContent: baseRaw,
-        categoryList: catNames
-      });
-      const raw = res.data?.resultText || '';
+      let raw = '';
+      try {
+        const res = await api.post('/admin/ai-config/proofread-autofill', {
+          baseContent: baseRaw,
+          categoryList: catNames
+        });
+        raw = res.data?.resultText || '';
+      } catch (proxyErr) {
+        console.warn('Backend proxy AI call failed, falling back to browser Gemini call...', proxyErr);
+        const prompt = `You are a professional Tamil & English news editor. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitle, metaDescription, focusKeywords, metaKeywords, slug, categoryId, suggestedSource, suggestedLocation.`;
+        raw = await callGemini(prompt);
+      }
       let parsed = {};
       try {
         const cleanText = raw.replace(/```json/gi, '').replace(/```/g, '').trim();

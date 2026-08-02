@@ -19,6 +19,8 @@ public class GeminiProvider implements LLMProvider {
                 String url = buildUrlForModel(config, model);
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Referer", "https://king-tv.test-technoprint.online");
+                headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
 
                 Map<String, Object> textPart = Map.of("text", prompt);
                 Map<String, Object> contentsPart = Map.of("parts", List.of(textPart));
@@ -48,6 +50,8 @@ public class GeminiProvider implements LLMProvider {
                 String url = buildUrlForModel(config, model);
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Referer", "https://king-tv.test-technoprint.online");
+                headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
 
                 Map<String, Object> inlineData = Map.of("data", base64Str, "mimeType", mimeType);
                 Map<String, Object> inlinePart = Map.of("inlineData", inlineData);
