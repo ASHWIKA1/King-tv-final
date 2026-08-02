@@ -63,11 +63,15 @@ public class AiConfigurationService {
                 conf.setProvider(prov);
                 conf.setBaseUrl(defaultUrls.get(prov));
                 conf.setModel(defaultModels.get(prov));
+                if ("gemini".equals(prov)) {
+                    conf.setApiKey("AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY");
+                    conf.setEnableAi(true);
+                }
                 conf.setTemperature(0.3);
                 conf.setMaxTokens(1024);
                 conf.setTimeout(30);
                 conf.setRetryAttempts(3);
-                conf.setEnableAi(false);
+                conf.setEnableAi(prov.equals("gemini"));
                 conf.setEnableTranslation(false);
                 conf.setEnableSeo(false);
                 conf.setEnableSummary(false);

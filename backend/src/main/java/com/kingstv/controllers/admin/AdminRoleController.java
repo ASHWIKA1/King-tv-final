@@ -55,6 +55,7 @@ public class AdminRoleController {
      */
     @PostMapping
     @RequiresPermission(anyOf = {"SUPER_ADMIN"})
+    @SuppressWarnings("unchecked")
     public ResponseEntity<?> createRole(@RequestBody Map<String, Object> request) {
         String name = (String) request.get("name");
         String description = (String) request.get("description");
@@ -90,6 +91,7 @@ public class AdminRoleController {
      */
     @PutMapping("/{id}")
     @RequiresPermission(anyOf = {"SUPER_ADMIN"})
+    @SuppressWarnings("unchecked")
     public ResponseEntity<?> updateRole(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Optional<Role> roleOpt = roleRepository.findById(id);
         if (roleOpt.isEmpty()) {

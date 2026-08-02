@@ -280,7 +280,7 @@ const ArticleDetail = () => {
   };
 
   useEffect(() => {
-    const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/v1';
+    const baseApi = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
     fetch(`${baseApi}/weather?city=Chennai`)
       .then(res => res.json())
       .then(data => {

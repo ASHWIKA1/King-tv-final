@@ -1656,7 +1656,7 @@ const HomeLayoutBuilder = () => {
                 } catch (e) {
                   console.warn('Could not save to localStorage', e);
                 }
-                window.open('http://localhost:5173/', '_blank');
+                window.open(`${window.location.origin}/`, '_blank');
               }}
               title="Save current layout as preview and open it on the actual homepage"
               style={{

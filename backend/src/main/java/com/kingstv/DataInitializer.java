@@ -545,7 +545,7 @@ public class DataInitializer {
         seedSystemConfig(SystemConfig.TELEGRAM_BOT_TOKEN, "", "telegram", "Telegram Bot API Auth Token");
         seedSystemConfig(SystemConfig.TELEGRAM_CHAT_ID, "", "telegram", "Telegram Channel/Chat Target ID");
         seedSystemConfig(SystemConfig.TELEGRAM_ENABLED, "false", "telegram", "Enable or disable automatic Telegram pushes (true/false)");
-        seedSystemConfig(SystemConfig.AI_LLM_API_KEY, "", "ai", "AI LLM API Key");
+        seedSystemConfig(SystemConfig.AI_LLM_API_KEY, "AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY", "ai", "AI LLM API Key");
         seedSystemConfig(SystemConfig.AI_LLM_MODEL, "gemini-2.0-flash", "ai", "AI Model Name");
         seedSystemConfig(SystemConfig.SMS_GATEWAY_API_KEY, "", "sms", "SMS Gateway API Key");
         seedSystemConfig(SystemConfig.AI_PROMPT_GENERATE_DRAFT, 

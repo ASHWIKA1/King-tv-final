@@ -546,7 +546,7 @@ const NfcCardDashboard = () => {
           <h3 className="nfc-card-title-muted">{t.quickActions}</h3>
           
           <div className="nfc-quick-actions-list">
-            <button className="nfc-quick-action-btn-row" onClick={() => alert(`Redirect link: http://localhost:5173/t/${card.shortCode}`)}>
+            <button className="nfc-quick-action-btn-row" onClick={() => alert(`Redirect link: ${window.location.origin}/t/${card.shortCode}`)}>
               <div className="nfc-quick-action-btn-left">
                 <i className="far fa-eye"></i>
                 <span>{t.viewPreview}</span>

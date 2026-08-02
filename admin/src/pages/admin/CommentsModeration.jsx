@@ -166,7 +166,7 @@ const CommentsModeration = () => {
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <a 
-                        href={`http://localhost:3000/article/${c.articleId}`} 
+                        href={`${window.location.origin}/article/${c.articleId}`} 
                         target="_blank" 
                         rel="noreferrer"
                         className="btn btn-secondary" 

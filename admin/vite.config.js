@@ -10,7 +10,15 @@ export default defineConfig({
       output: {
         entryFileNames: `assets/[name].${Date.now()}.js`,
         chunkFileNames: `assets/[name].${Date.now()}.js`,
-        assetFileNames: `assets/[name].${Date.now()}[extname]`
+        assetFileNames: `assets/[name].${Date.now()}[extname]`,
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('tinymce')) return 'vendor-tinymce';
+            if (id.includes('recharts') || id.includes('chart.js')) return 'vendor-charts';
+            return 'vendor-libs';
+          }
+        }
       }
     }
   },
