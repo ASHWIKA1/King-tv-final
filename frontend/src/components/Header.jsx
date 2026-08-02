@@ -180,7 +180,6 @@ const Header = () => {
             const config = typeof navSection.configJson === 'string' ? JSON.parse(navSection.configJson) : navSection.configJson;
             if (config && config.navItems && config.navItems.length > 0) {
               setMenuItems(config.navItems.filter(i => i.isActive !== false));
-              return;
             }
           }
         }
@@ -395,13 +394,7 @@ const Header = () => {
 
       const findDbItem = (slug) => dbItems.find(item => item.slug === slug);
 
-      // Home
-      dynamicItems.push({
-        id: 'home',
-        path: '/',
-        label: lang === 'en' ? 'Home' : 'முகப்பு',
-        subcategories: []
-      });
+      // Home removed per user request (only items from DB should show)
 
       // Politics
       const politics = findDbItem('politics');
@@ -477,7 +470,6 @@ const Header = () => {
     }
 
     return dynamicItems.length > 0 ? dynamicItems : [
-      { path: '/', label: lang === 'en' ? 'Home' : 'முகப்பு', subcategories: [] },
       { path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [{ id: 'fp-1', slug: 'state', name: 'State', nameTa: 'மாநிலம்' }] },
       { path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [{ id: 'fb-1', slug: 'markets', name: 'Markets', nameTa: 'சந்தை' }] },
       { path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [{ id: 'fs-1', slug: 'cricket', name: 'Cricket', nameTa: 'கிரிக்கெட்' }] },
