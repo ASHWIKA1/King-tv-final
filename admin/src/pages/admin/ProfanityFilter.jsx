@@ -31,8 +31,9 @@ const ProfanityFilter = () => {
       await api.post('/admin/profanity/dictionary', { term: newWord.trim() });
       setNewWord('');
       fetchWords();
-    } catch (e) {
-      alert("Failed to add word");
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to add word';
+      alert(msg);
     }
   };
 

@@ -55,12 +55,11 @@ const callGemini = async (prompt) => {
   }
 
   const modelsToTry = [
-    activeAiConfig.model || 'gemini-flash-latest',
+    activeAiConfig.model || 'gemini-2.0-flash',
     'gemini-flash-latest',
+    'gemini-1.5-flash',
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-3.6-flash',
-    'gemini-2.0-flash-001'
+    'gemini-1.5-pro'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
@@ -1036,6 +1035,7 @@ const PostEditor = () => {
     showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
 
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
+    const firstCategoryId = categories.length > 0 ? String(categories[0].id) : '';
 
     try {
       let raw = '';
@@ -1061,23 +1061,59 @@ const PostEditor = () => {
         throw new Error('AI returned non-JSON text. Please try again.');
       }
 
-      setForm(f => ({
-        ...f,
-        titleTa: parsed.titleTa || f.titleTa,
-        titleEn: parsed.titleEn || f.titleEn,
-        contentTa: parsed.contentTa || f.contentTa,
-        contentEn: parsed.contentEn || f.contentEn,
-        shortDescTa: parsed.shortDescTa || f.shortDescTa,
-        shortDescEn: parsed.shortDescEn || f.shortDescEn,
-        metaTitle: parsed.metaTitle || f.metaTitle,
-        metaDescription: parsed.metaDescription || f.metaDescription,
-        focusKeywords: parsed.focusKeywords || f.focusKeywords,
-        metaKeywords: parsed.metaKeywords || f.metaKeywords,
-        slug: parsed.slug || f.slug,
-        categoryId: parsed.categoryId || f.categoryId,
-        reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
-        constituency: f.constituency || parsed.suggestedLocation || ''
-      }));
+      setForm(f => {
+        // ── 1. Smart Category Resolver ──────────────────────────────────────
+        let matchedCatId = f.categoryId;
+        if (parsed.categoryId && categories.length > 0) {
+          const catStr = String(parsed.categoryId).trim().toLowerCase();
+          const found = categories.find(c =>
+            String(c.id) === catStr ||
+            catStr.startsWith(String(c.id) + ':') ||
+            (c.slug && c.slug.toLowerCase() === catStr) ||
+            (c.name && c.name.toLowerCase() === catStr) ||
+            (c.nameEn && c.nameEn.toLowerCase() === catStr) ||
+            (c.nameTa && c.nameTa.toLowerCase() === catStr) ||
+            (c.nameEn && catStr.includes(c.nameEn.toLowerCase())) ||
+            (c.name && catStr.includes(c.name.toLowerCase()))
+          );
+          if (found) matchedCatId = String(found.id);
+        }
+        if (!matchedCatId && firstCategoryId) matchedCatId = firstCategoryId;
+
+        // ── 2. Featured Image ──────────────────────────────────────────────
+        const firstImg = (mediaList || []).find(m => m.url)?.url || '';
+        const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
+        const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
+
+        // ── 3. Meta Description - always ensure 90-160 char value ──────────
+        let metaDesc = parsed.metaDescription || f.metaDescription || '';
+        const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
+        const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
+        if (!metaDesc || metaDesc.length < 90) {
+          const base = metaDesc || contentSnippet || titleStr;
+          metaDesc = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        }
+
+        return {
+          ...f,
+          titleTa: parsed.titleTa || f.titleTa,
+          titleEn: parsed.titleEn || f.titleEn,
+          contentTa: parsed.contentTa || f.contentTa,
+          contentEn: parsed.contentEn || f.contentEn,
+          shortDescTa: parsed.shortDescTa || f.shortDescTa,
+          shortDescEn: parsed.shortDescEn || f.shortDescEn,
+          metaTitle: parsed.metaTitle || f.metaTitle,
+          metaDescription: metaDesc,
+          focusKeywords: parsed.focusKeywords || f.focusKeywords,
+          metaKeywords: parsed.metaKeywords || f.metaKeywords,
+          slug: parsed.slug || f.slug,
+          categoryId: matchedCatId,
+          featuredImage: updatedImg,
+          imageUrl: updatedImg,
+          reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
+          constituency: f.constituency || parsed.suggestedLocation || ''
+        };
+      });
 
       if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
       if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
@@ -1166,7 +1202,7 @@ const PostEditor = () => {
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
       }
       
-      showMsg('✅ Translation completed successfully!');
+      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
@@ -1587,39 +1623,12 @@ const PostEditor = () => {
                       {isTranslating ? 'Translating...' : (activeTab === 0 ? 'Auto-Translate to English' : 'Auto-Translate to Tamil')}
                     </button>
                   </div>
-                    <textarea 
+                    <input 
+                      type="text" 
                       value={activeTab === 0 ? form.titleTa : form.titleEn}
-                      onChange={e => {
-                        set(activeTab === 0 ? 'titleTa' : 'titleEn', e.target.value);
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
-                      onFocus={e => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
-                      ref={el => {
-                        if (el) {
-                          el.style.height = 'auto';
-                          el.style.height = `${Math.max(52, el.scrollHeight)}px`;
-                        }
-                      }}
-                      rows={1}
-                      style={{ 
-                        width: '100%', 
-                        padding: '12px 16px', 
-                        borderRadius: '6px', 
-                        border: '1px solid var(--border-color)', 
-                        fontSize: '18px', 
-                        fontWeight: '700', 
-                        background: 'var(--bg-secondary)', 
-                        color: 'var(--text-primary)',
-                        resize: 'none',
-                        overflow: 'hidden',
-                        lineHeight: '1.4',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder={`Add title (${activeTab === 0 ? 'Tamil' : 'English'})`}
+                      onChange={e => set(activeTab === 0 ? 'titleTa' : 'titleEn', e.target.value)}
+                      style={{ width: '100%', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '18px', fontWeight: '600', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      placeholder="Add title"
                     />
                   </div>
 
@@ -1724,6 +1733,7 @@ const PostEditor = () => {
                   
                   <div style={{ marginTop: 0 }}>
                     <Editor
+                      key={activeTab === 0 ? 'editor-ta' : 'editor-en'}
                       onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
                       value={activeTab === 0 ? form.contentTa : form.contentEn}
                       onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}
