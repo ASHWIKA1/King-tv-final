@@ -19,7 +19,18 @@ export const getImageUrl = (itemOrPath) => {
   if (!itemOrPath) return '';
   let path = itemOrPath;
   if (typeof itemOrPath === 'object' && itemOrPath !== null) {
-    path = itemOrPath.imageUrl || itemOrPath.featuredImage || itemOrPath.image_url || itemOrPath.featured_image || itemOrPath.url || '';
+    if (itemOrPath.imageUrl) {
+      path = itemOrPath.imageUrl;
+    } else if (itemOrPath.featuredImage) {
+      if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+        console.warn('[Deprecation Warning] Article image accessed via legacy "featuredImage" property. Backend DTO has been standardized to emit "imageUrl".', itemOrPath);
+      }
+      path = itemOrPath.featuredImage;
+    } else if (itemOrPath.url) {
+      path = itemOrPath.url;
+    } else {
+      path = '';
+    }
   }
   if (!path || typeof path !== 'string') return '';
   if (path.startsWith('blob:')) return '';

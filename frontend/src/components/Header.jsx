@@ -6,55 +6,14 @@ import { AuthContext } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
-
-const subcatEnTranslations = {
-  'மாநிலம்': 'State',
-  'தேசியம்': 'National',
-  'சர்வதேசம்': 'International',
-  'அரசு கொள்கைகள்': 'Governance',
-  'சந்தை': 'Markets',
-  'நிறுவனங்கள்': 'Companies',
-  'முதலீடு': 'Investment',
-  'ஸ்டார்ட்அப்': 'Startups',
-  'கிரிக்கெட்': 'Cricket',
-  'கால்பந்து': 'Football',
-  'டென்னிஸ்': 'Tennis',
-  'உள்ளூர்': 'Local Sports',
-  'கோலிவுட்': 'Kollywood',
-  'பாலிவுட்': 'Bollywood',
-  'விமர்சனங்கள்': 'Reviews',
-  'இசை': 'Music',
-  'ஸ்மார்ட்போன்': 'Smartphones',
-  'மென்பொருள்': 'Software',
-  'AI': 'AI',
-  'விண்வெளி': 'Space',
-  'உலக செய்திகள்': 'World News',
-  'state': 'State',
-  'national': 'National',
-  'international': 'International',
-  'governance': 'Governance',
-  'markets': 'Markets',
-  'companies': 'Companies',
-  'investment': 'Investment',
-  'startups': 'Startups',
-  'cricket': 'Cricket',
-  'football': 'Football',
-  'tennis': 'Tennis',
-  'local sports': 'Local Sports',
-  'kollywood': 'Kollywood',
-  'bollywood': 'Bollywood',
-  'reviews': 'Reviews',
-  'music': 'Music',
-  'smartphones': 'Smartphones',
-  'software': 'Software',
-  'space': 'Space',
-  'world news': 'World News'
-};
+import { FALLBACK_SUBCATS, SUBCAT_EN_TRANSLATIONS } from '../constants/fallbackSubcategories';
+import { useCategoriesNav } from '../hooks/useCategoriesNav';
 
 const Header = () => {
   const { t, lang, setLang } = useContext(LanguageContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
   const { session, logout, user, isAuthenticated } = useContext(AuthContext);
+  const { categories: navCategories, isFallback: isCategoryFallback } = useCategoriesNav();
   const location = useLocation();
   const navigate = useNavigate();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -72,7 +31,7 @@ const Header = () => {
     if (!s) return '';
     const nameStr = s.name || '';
     const nameTaStr = s.nameTa || '';
-    return subcatEnTranslations[nameStr] || subcatEnTranslations[nameTaStr] || subcatEnTranslations[nameStr.toLowerCase()] || nameStr;
+    return SUBCAT_EN_TRANSLATIONS[nameStr] || SUBCAT_EN_TRANSLATIONS[nameTaStr] || SUBCAT_EN_TRANSLATIONS[nameStr.toLowerCase()] || nameStr;
   };
 
   const handleLogout = async () => {
@@ -165,7 +124,6 @@ const Header = () => {
     'site.logo_url': 'assets/images/logo-banner-light.png',
     'site.logo_dark_url': 'assets/images/logo-banner-dark.png'
   });
-  const [navCategories, setNavCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showHeaderSubcatDropdown, setShowHeaderSubcatDropdown] = useState(false);
 
@@ -255,37 +213,6 @@ const Header = () => {
     return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  const fallbackSubcats = {
-    politics: {
-      ta: ['அனைத்தும்', 'மாநிலம்', 'தேசியம்', 'சர்வதேசம்', 'அரசு கொள்கைகள்'],
-      en: ['All', 'State', 'National', 'International', 'Governance']
-    },
-    business: {
-      ta: ['அனைத்தும்', 'சந்தை', 'நிறுவனங்கள்', 'முதலீடு', 'ஸ்டார்ட்அப்'],
-      en: ['All', 'Markets', 'Companies', 'Investment', 'Startups']
-    },
-    sports: {
-      ta: ['அனைத்தும்', 'கிரிக்கெட்', 'கால்பந்து', 'டென்னிஸ்', 'உள்ளூர்'],
-      en: ['All', 'Cricket', 'Football', 'Tennis', 'Local Sports']
-    },
-    cinema: {
-      ta: ['அனைத்தும்', 'கோலிவுட்', 'பாலிவுட்', 'விமர்சனங்கள்', 'இசை'],
-      en: ['All', 'Kollywood', 'Bollywood', 'Reviews', 'Music']
-    },
-    tech: {
-      ta: ['அனைத்தும்', 'ஸ்மார்ட்போன்', 'மென்பொருள்', 'AI', 'விண்வெளி'],
-      en: ['All', 'Smartphones', 'Software', 'AI', 'Space']
-    },
-    international: {
-      ta: ['அனைத்தும்', 'தேசியம்', 'சர்வதேசம்', 'உலக செய்திகள்'],
-      en: ['All', 'National', 'International', 'World News']
-    },
-    world: {
-      ta: ['அனைத்தும்', 'தேசியம்', 'சர்வதேசம்', 'உலக செய்திகள்'],
-      en: ['All', 'National', 'International', 'World News']
-    }
-  };
-
   const matches = location.pathname.match(/\/category\/([^/]+)/);
   const activeCategorySlug = matches ? matches[1] : null;
   const isCategoryPage = !!activeCategorySlug;
@@ -295,8 +222,8 @@ const Header = () => {
     ? (lang === 'en'
       ? ['All', ...(activeCat.subcategories || []).map(s => getSubcatEn(s))]
       : ['அனைத்தும்', ...(activeCat.subcategories || []).map(s => s ? s.nameTa : '')])
-    : (fallbackSubcats[activeCategorySlug]
-      ? (lang === 'en' ? fallbackSubcats[activeCategorySlug].en : fallbackSubcats[activeCategorySlug].ta)
+    : (FALLBACK_SUBCATS[activeCategorySlug]
+      ? (lang === 'en' ? FALLBACK_SUBCATS[activeCategorySlug].en : FALLBACK_SUBCATS[activeCategorySlug].ta)
       : []);
 
   const searchParams = new URLSearchParams(location.search);

@@ -274,30 +274,35 @@ public class Article implements Serializable {
     public void setShortDescTa(String shortDescTa) { this.shortDescTa = shortDescTa; }
     public String getShortDescEn() { return shortDescEn; }
     public void setShortDescEn(String shortDescEn) { this.shortDescEn = shortDescEn; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public Integer getViewsCount() { return viewsCount; }
-    public void setViewsCount(Integer viewsCount) { this.viewsCount = viewsCount; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public LocalDateTime getPublishedAt() { return publishedAt; }
-    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
+    @com.fasterxml.jackson.annotation.JsonProperty("imageUrl")
+    public String getImageUrl() {
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            return imageUrl;
+        }
+        return featuredImage;
+    }
 
-    // SEO Getters/Setters
-    public String getMetaTitle() { return metaTitle; }
-    public void setMetaTitle(String metaTitle) { this.metaTitle = metaTitle; }
-    public String getMetaDescription() { return metaDescription; }
-    public void setMetaDescription(String metaDescription) { this.metaDescription = metaDescription; }
-    public String getMetaKeywords() { return metaKeywords; }
-    public void setMetaKeywords(String metaKeywords) { this.metaKeywords = metaKeywords; }
-    public String getFocusKeywords() { return focusKeywords; }
-    public void setFocusKeywords(String focusKeywords) { this.focusKeywords = focusKeywords; }
-    public String getSlug() { return slug; }
-    public void setSlug(String slug) { this.slug = slug; }
-    public String getCanonicalUrl() { return canonicalUrl; }
-    public void setCanonicalUrl(String canonicalUrl) { this.canonicalUrl = canonicalUrl; }
-    public String getFeaturedImage() { return featuredImage; }
-    public void setFeaturedImage(String featuredImage) { this.featuredImage = featuredImage; }
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+        if (this.featuredImage == null || this.featuredImage.trim().isEmpty()) {
+            this.featuredImage = imageUrl;
+        }
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getFeaturedImage() {
+        if (featuredImage != null && !featuredImage.trim().isEmpty()) {
+            return featuredImage;
+        }
+        return imageUrl;
+    }
+
+    public void setFeaturedImage(String featuredImage) {
+        this.featuredImage = featuredImage;
+        if (this.imageUrl == null || this.imageUrl.trim().isEmpty()) {
+            this.imageUrl = featuredImage;
+        }
+    }
 
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }

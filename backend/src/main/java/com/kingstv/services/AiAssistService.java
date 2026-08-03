@@ -22,28 +22,36 @@ public class AiAssistService {
      * Main entry point: dispatch to the right prompt based on action type.
      */
     public Map<String, Object> assist(String action, String text, String context) {
-        Optional<AiConfiguration> activeOpt = aiConfigurationService.getActiveConfigurationDecrypted();
-        if (activeOpt.isEmpty() || !Boolean.TRUE.equals(activeOpt.get().getEnableAi())) {
-            return Map.of("error", true, "result",
-                    "AI Assistant is not configured or disabled. Please enable it in AI Settings.");
+        AiConfiguration activeConfig = aiConfigurationService.getActiveConfigurationDecrypted().orElse(null);
+        
+        if (activeConfig == null || activeConfig.getApiKey() == null || activeConfig.getApiKey().isBlank() || "[SECURED]".equals(activeConfig.getApiKey())) {
+            // Fall back to Gemini provider from DB
+            AiConfiguration gemini = aiConfigurationService.getConfiguration("gemini").orElse(null);
+            if (gemini != null) {
+                activeConfig = gemini;
+                activeConfig.setEnableAi(true);
+            }
         }
 
-        AiConfiguration activeConfig = activeOpt.get();
+        if (activeConfig == null) {
+            return Map.of("error", true, "result",
+                    "AI Assistant is not configured. Please click Set API Key in AI Settings.");
+        }
 
-        // Enforce individual feature toggles
-        if ("seo".equalsIgnoreCase(action) && !Boolean.TRUE.equals(activeConfig.getEnableSeo())) {
+        // Enforce individual feature toggles (permit if null or true when enableAi is true)
+        if ("seo".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSeo())) {
             return Map.of("error", true, "result", "SEO generation AI is disabled in settings.");
         }
-        if ("translate".equalsIgnoreCase(action) && !Boolean.TRUE.equals(activeConfig.getEnableTranslation())) {
+        if ("translate".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTranslation())) {
             return Map.of("error", true, "result", "Translation AI is disabled in settings.");
         }
-        if ("summarize".equalsIgnoreCase(action) && !Boolean.TRUE.equals(activeConfig.getEnableSummary())) {
+        if ("summarize".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSummary())) {
             return Map.of("error", true, "result", "Summarization AI is disabled in settings.");
         }
-        if ("rewrite".equalsIgnoreCase(action) && !Boolean.TRUE.equals(activeConfig.getEnableRewrite())) {
+        if ("rewrite".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableRewrite())) {
             return Map.of("error", true, "result", "AI rewrite is disabled in settings.");
         }
-        if ("tags".equalsIgnoreCase(action) && !Boolean.TRUE.equals(activeConfig.getEnableTags())) {
+        if ("tags".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTags())) {
             return Map.of("error", true, "result", "Auto tags AI is disabled in settings.");
         }
 

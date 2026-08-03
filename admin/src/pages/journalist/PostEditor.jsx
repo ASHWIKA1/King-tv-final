@@ -17,9 +17,16 @@ export let activeAiConfig = {
   model: 'gemini-2.0-flash' 
 };
 
-export const getGeminiUrl = (modelOverride) => {
+export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
   const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const key = apiKeyOverride 
+    || activeAiConfig.apiKey 
+    || localStorage.getItem('gemini_api_key') 
+    || localStorage.getItem('ai.llm_api_key') 
+    || localStorage.getItem('ai_llm_api_key') 
+    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
+    || DEFAULT_GEMINI_KEY;
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 };
 
 const callGemini = async (prompt) => {
@@ -33,8 +40,18 @@ const callGemini = async (prompt) => {
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
-  if (apiKey.length < 8) {
-    throw new Error('Please enter a valid Gemini API Key.');
+
+  // 1. Try backend server-to-server proxy first to bypass HTTP Referrer restrictions
+  try {
+    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
+      baseContent: prompt,
+      categoryList: ''
+    });
+    if (proxyRes.data?.resultText) {
+      return proxyRes.data.resultText;
+    }
+  } catch (proxyErr) {
+    console.warn('Backend proxy call unavailable, attempting direct browser call...', proxyErr);
   }
 
   const modelsToTry = [
@@ -50,7 +67,7 @@ const callGemini = async (prompt) => {
 
   for (const model of uniqueModels) {
     try {
-      const url = getGeminiUrl(model);
+      const url = getGeminiUrl(model, apiKey);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 
@@ -1080,13 +1097,23 @@ const PostEditor = () => {
         return;
       }
 
-      const res = await api.post('/articles/ai-assist', {
-        action: 'translate',
-        context: direction,
-        text: baseRaw
-      });
-
-      const translatedText = res.data?.result || '';
+      let translatedText = '';
+      try {
+        const res = await api.post('/articles/ai-assist', {
+          action: 'translate',
+          context: direction,
+          text: baseRaw
+        });
+        if (res.data && !res.data.error && res.data.result) {
+          translatedText = res.data.result;
+        } else {
+          throw new Error(res.data?.result || 'Backend translate returned error');
+        }
+      } catch (backendErr) {
+        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
+        translatedText = await callGemini(prompt);
+      }
       
       let newTitle = '';
       let newExcerpt = '';

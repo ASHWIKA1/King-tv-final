@@ -17,9 +17,16 @@ export let activeAiConfig = {
   model: 'gemini-2.0-flash' 
 };
 
-export const getGeminiUrl = (modelOverride) => {
+export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
   const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const key = apiKeyOverride 
+    || activeAiConfig.apiKey 
+    || localStorage.getItem('gemini_api_key') 
+    || localStorage.getItem('ai.llm_api_key') 
+    || localStorage.getItem('ai_llm_api_key') 
+    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
+    || DEFAULT_GEMINI_KEY;
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 };
 
 const callGemini = async (prompt) => {
@@ -33,8 +40,18 @@ const callGemini = async (prompt) => {
   if (!apiKey) {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
-  if (apiKey.length < 8) {
-    throw new Error('Please enter a valid Gemini API Key.');
+
+  // 1. Try backend server-to-server proxy first to bypass HTTP Referrer restrictions
+  try {
+    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
+      baseContent: prompt,
+      categoryList: ''
+    });
+    if (proxyRes.data?.resultText) {
+      return proxyRes.data.resultText;
+    }
+  } catch (proxyErr) {
+    console.warn('Backend proxy call unavailable, attempting direct browser call...', proxyErr);
   }
 
   const modelsToTry = [
@@ -50,7 +67,7 @@ const callGemini = async (prompt) => {
 
   for (const model of uniqueModels) {
     try {
-      const url = getGeminiUrl(model);
+      const url = getGeminiUrl(model, apiKey);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 
@@ -356,7 +373,13 @@ const NewsEditor = () => {
         apiKey: key,
         model: apiModelInput,
         enableAi: true,
-        enableSeo: true
+        enableTranslation: true,
+        enableSeo: true,
+        enableSummary: true,
+        enableRewrite: true,
+        enableTags: true,
+        enableKeywords: true,
+        isActive: true
       }).catch(() => {});
       await api.post('/admin/ai-config/gemini/activate').catch(() => {});
       
@@ -1166,13 +1189,23 @@ const NewsEditor = () => {
         return;
       }
 
-      const res = await api.post('/articles/ai-assist', {
-        action: 'translate',
-        context: direction,
-        text: baseRaw
-      });
-
-      const translatedText = res.data?.result || '';
+      let translatedText = '';
+      try {
+        const res = await api.post('/articles/ai-assist', {
+          action: 'translate',
+          context: direction,
+          text: baseRaw
+        });
+        if (res.data && !res.data.error && res.data.result) {
+          translatedText = res.data.result;
+        } else {
+          throw new Error(res.data?.result || 'Backend translate returned error');
+        }
+      } catch (backendErr) {
+        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
+        translatedText = await callGemini(prompt);
+      }
       
       let newTitle = '';
       let newExcerpt = '';
@@ -2700,6 +2733,56 @@ const NewsEditor = () => {
             <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button onClick={() => { setPublishBlockModalOpen(false); navigateToFirstHighlight(); setSaving(false); }} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Return to Editor</button>
               <button onClick={() => { setPublishBlockModalOpen(false); handleReplaceAutomatically(); setSaving(false); }} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Replace Automatically</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Configure Gemini API Key Modal */}
+      {keyModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#ffffff', width: '480px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🔑 Configure Google Gemini API Key
+              </h3>
+              <button onClick={() => setKeyModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: 1.5 }}>
+                Enter your free Google Gemini API Key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Google AI Studio</a>.
+                This enables 1-click AI Proofreading, Auto-Translation, SEO Generation, and Full Draft Creation.
+              </p>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>Gemini API Key</label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="AIzaSy..."
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>AI Model</label>
+                <select
+                  value={apiModelInput}
+                  onChange={(e) => setApiModelInput(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                >
+                  <option value="gemini-2.0-flash">gemini-2.0-flash (Fast & Recommended)</option>
+                  <option value="gemini-flash-latest">gemini-flash-latest</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ padding: '16px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setKeyModalOpen(false)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button onClick={handleSaveApiKey} style={{ padding: '8px 18px', background: '#10B981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Save & Activate Key</button>
             </div>
           </div>
         </div>

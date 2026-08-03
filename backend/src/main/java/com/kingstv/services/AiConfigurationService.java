@@ -72,12 +72,12 @@ public class AiConfigurationService {
                 conf.setTimeout(30);
                 conf.setRetryAttempts(3);
                 conf.setEnableAi(prov.equals("gemini"));
-                conf.setEnableTranslation(false);
-                conf.setEnableSeo(false);
-                conf.setEnableSummary(false);
-                conf.setEnableRewrite(false);
-                conf.setEnableTags(false);
-                conf.setEnableKeywords(false);
+                conf.setEnableTranslation(true);
+                conf.setEnableSeo(true);
+                conf.setEnableSummary(true);
+                conf.setEnableRewrite(true);
+                conf.setEnableTags(true);
+                conf.setEnableKeywords(true);
                 conf.setEnableLogging(false);
                 conf.setEnableCache(false);
                 conf.setIsActive(prov.equals("gemini")); // Make gemini active by default
