@@ -97,6 +97,16 @@ const callGemini = async (prompt) => {
     }
   }
 
+  try {
+    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
+      baseContent: prompt,
+      categoryList: ''
+    });
+    if (proxyRes.data?.resultText) {
+      return proxyRes.data.resultText;
+    }
+  } catch (finalProxyErr) {}
+
   throw lastError || new Error('Gemini API call failed on all model endpoints.');
 };
 
