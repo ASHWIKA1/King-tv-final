@@ -41,19 +41,6 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  // 1. Try backend server-to-server proxy first to bypass HTTP Referrer restrictions
-  try {
-    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
-      baseContent: prompt,
-      categoryList: ''
-    });
-    if (proxyRes.data?.resultText) {
-      return proxyRes.data.resultText;
-    }
-  } catch (proxyErr) {
-    console.warn('Backend proxy call unavailable, attempting direct browser call...', proxyErr);
-  }
-
   const modelsToTry = [
     activeAiConfig.model || 'gemini-2.0-flash',
     'gemini-flash-latest',
@@ -96,16 +83,6 @@ const callGemini = async (prompt) => {
       console.warn(`Model ${model} error:`, err);
     }
   }
-
-  try {
-    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
-      baseContent: prompt,
-      categoryList: ''
-    });
-    if (proxyRes.data?.resultText) {
-      return proxyRes.data.resultText;
-    }
-  } catch (finalProxyErr) {}
 
   throw lastError || new Error('Gemini API call failed on all model endpoints.');
 };
@@ -1032,24 +1009,34 @@ const PostEditor = () => {
     }
 
     setAiProofreading(true);
-    showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
+    showMsg('⚡ AI is proofreading content, correcting grammar, translating, and auto-filling all metadata...');
 
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
     const firstCategoryId = categories.length > 0 ? String(categories[0].id) : '';
 
     try {
       let raw = '';
+      let isFallback = false;
       try {
         const res = await api.post('/admin/ai-config/proofread-autofill', {
           baseContent: baseRaw,
           categoryList: catNames
         });
         raw = res.data?.resultText || '';
+        if (!raw || raw.includes('"isFallback": true') || raw.includes('"isFallback":true')) {
+          isFallback = true;
+        }
       } catch (proxyErr) {
         console.warn('Backend proxy AI call failed, falling back to browser Gemini call...', proxyErr);
-        const prompt = `You are a professional Tamil & English news editor. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitle, metaDescription, focusKeywords, metaKeywords, slug, categoryId, suggestedSource, suggestedLocation.`;
+        isFallback = true;
+      }
+
+      // If backend served dummy fallback or failed, use direct Gemini API from browser!
+      if (isFallback || !raw) {
+        const prompt = `You are a professional Tamil & English news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create SEO metadata for both languages.\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitle, metaTitleTa, metaTitleEn, metaDescription, metaDescriptionTa, metaDescriptionEn, focusKeywords, focusKeywordsTa, focusKeywordsEn, metaKeywords, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
         raw = await callGemini(prompt);
       }
+
       let parsed = {};
       try {
         const cleanText = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -1086,12 +1073,18 @@ const PostEditor = () => {
         const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
 
         // ── 3. Meta Description - always ensure 90-160 char value ──────────
-        let metaDesc = parsed.metaDescription || f.metaDescription || '';
+        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || f.metaDescriptionEn || f.metaDescription || '';
         const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
         const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
-        if (!metaDesc || metaDesc.length < 90) {
-          const base = metaDesc || contentSnippet || titleStr;
-          metaDesc = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        if (!metaDescEn || metaDescEn.length < 90) {
+          const base = metaDescEn || contentSnippet || titleStr;
+          metaDescEn = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        }
+
+        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || f.metaDescriptionTa || '';
+        if (!metaDescTa || metaDescTa.length < 90) {
+          const baseTa = metaDescTa || parsed.shortDescTa || parsed.titleTa || titleStr;
+          metaDescTa = `${baseTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.substring(0, 160);
         }
 
         return {
@@ -1102,10 +1095,18 @@ const PostEditor = () => {
           contentEn: parsed.contentEn || f.contentEn,
           shortDescTa: parsed.shortDescTa || f.shortDescTa,
           shortDescEn: parsed.shortDescEn || f.shortDescEn,
-          metaTitle: parsed.metaTitle || f.metaTitle,
-          metaDescription: metaDesc,
+          metaTitle: parsed.metaTitle || parsed.titleEn || f.metaTitle,
+          metaTitleTa: parsed.metaTitleTa || parsed.titleTa || f.metaTitleTa || f.titleTa,
+          metaTitleEn: parsed.metaTitleEn || parsed.titleEn || f.metaTitleEn || f.titleEn,
+          metaDescription: metaDescEn,
+          metaDescriptionTa: metaDescTa,
+          metaDescriptionEn: metaDescEn,
           focusKeywords: parsed.focusKeywords || f.focusKeywords,
+          focusKeywordsTa: parsed.focusKeywordsTa || parsed.focusKeywords || f.focusKeywordsTa || 'செய்திகள், தமிழ்நாடு',
+          focusKeywordsEn: parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || 'news, breaking news',
           metaKeywords: parsed.metaKeywords || f.metaKeywords,
+          metaKeywordsTa: parsed.metaKeywordsTa || parsed.metaKeywords || f.metaKeywordsTa || 'செய்திகள், தமிழ், சென்னை',
+          metaKeywordsEn: parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || 'news, breaking, tamil nadu',
           slug: parsed.slug || f.slug,
           categoryId: matchedCatId,
           featuredImage: updatedImg,
@@ -1118,7 +1119,7 @@ const PostEditor = () => {
       if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
       if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
 
-      showMsg('⚡ AI Grammar Check & Auto-Fill completed! All fields verified and filled.');
+      showMsg('⚡ AI Grammar Check, Translation & Auto-Fill completed! All fields verified and filled.');
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.message || 'Please check Gemini API Key in settings.';
@@ -1145,23 +1146,31 @@ const PostEditor = () => {
       }
 
       let translatedText = '';
+      let isFallback = false;
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
           context: direction,
           text: baseRaw
         });
-        if (res.data && !res.data.error && res.data.result) {
+        if (res.data && !res.data.error && res.data.result && !res.data.isFallback) {
           const resStr = res.data.result;
-          if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
-            throw new Error('Backend returned untranslated text');
+          if (direction === 'en2ta' && !/[\u0B80-\u0BFF]/.test(resStr)) {
+            isFallback = true;
+          } else if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            isFallback = true;
+          } else {
+            translatedText = resStr;
           }
-          translatedText = resStr;
         } else {
-          throw new Error(res.data?.result || 'Backend translate returned error');
+          isFallback = true;
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed or returned untranslated text, attempting direct Gemini AI fallback...', backendErr);
+        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        isFallback = true;
+      }
+
+      if (isFallback || !translatedText) {
         const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
@@ -1170,7 +1179,6 @@ const PostEditor = () => {
       let newExcerpt = '';
       let newContent = '';
 
-      // Simple parsing based on the prompt structure
       const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
       const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
       const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
@@ -1179,7 +1187,6 @@ const PostEditor = () => {
       if (excerptMatch) newExcerpt = excerptMatch[1].trim();
       if (contentMatch) newContent = contentMatch[1].trim();
 
-      // If parsing failed to find blocks, dump everything to content
       if (!newTitle && !newExcerpt && !newContent) {
         newContent = translatedText.trim();
       }
@@ -1189,7 +1196,9 @@ const PostEditor = () => {
           ...f,
           titleEn: newTitle || f.titleEn,
           shortDescEn: newExcerpt || f.shortDescEn,
-          contentEn: newContent || f.contentEn
+          contentEn: newContent || f.contentEn,
+          metaTitleEn: newTitle || f.metaTitleEn,
+          metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
         if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
       } else {
@@ -1197,7 +1206,9 @@ const PostEditor = () => {
           ...f,
           titleTa: newTitle || f.titleTa,
           shortDescTa: newExcerpt || f.shortDescTa,
-          contentTa: newContent || f.contentTa
+          contentTa: newContent || f.contentTa,
+          metaTitleTa: newTitle || f.metaTitleTa,
+          metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
       }
@@ -1734,7 +1745,15 @@ const PostEditor = () => {
                   <div style={{ marginTop: 0 }}>
                     <Editor
                       key={activeTab === 0 ? 'editor-ta' : 'editor-en'}
-                      onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
+                      onInit={(evt, editor) => { 
+                        if (activeTab === 0) {
+                          editorRefTa.current = editor;
+                          if (form.contentTa) editor.setContent(form.contentTa);
+                        } else {
+                          editorRefEn.current = editor;
+                          if (form.contentEn) editor.setContent(form.contentEn);
+                        }
+                      }}
                       value={activeTab === 0 ? form.contentTa : form.contentEn}
                       onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}
                       init={tinyInit(activeTab === 0 ? 'ta' : 'en')}
