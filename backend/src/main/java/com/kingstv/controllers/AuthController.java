@@ -78,11 +78,29 @@ public class AuthController {
     }
 
     private List<String> getUserPermissions(User user) {
+        if (user == null || user.getRole() == null) return Collections.emptyList();
         return roleRepository.findByName(user.getRole())
-                .map(role -> role.getPermissions().stream()
+                .map(role -> role.getPermissions() != null ? role.getPermissions().stream()
+                        .filter(Objects::nonNull)
                         .map(com.kingstv.models.Permission::getName)
-                        .collect(java.util.stream.Collectors.toList()))
+                        .filter(Objects::nonNull)
+                        .collect(java.util.stream.Collectors.toList()) : Collections.<String>emptyList())
                 .orElse(Collections.emptyList());
+    }
+
+    private Map<String, Object> buildUserMap(User user) {
+        Map<String, Object> userMap = new HashMap<>();
+        if (user != null) {
+            userMap.put("id", user.getId());
+            userMap.put("fullName", user.getFullName() != null ? user.getFullName() : "");
+            userMap.put("email", user.getEmail() != null ? user.getEmail() : "");
+            userMap.put("provider", user.getProvider() != null ? user.getProvider() : "LOCAL");
+            userMap.put("role", user.getRole() != null ? user.getRole() : "READER");
+            userMap.put("profileImage", user.getProfileImage() != null ? user.getProfileImage() : "");
+            userMap.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : LocalDateTime.now().toString());
+            userMap.put("lastLogin", user.getLastLogin() != null ? user.getLastLogin().toString() : LocalDateTime.now().toString());
+        }
+        return userMap;
     }
 
     @PostMapping("/register")
@@ -136,16 +154,7 @@ public class AuthController {
         response.put("message", "Registration successful");
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
-        response.put("user", Map.of(
-            "id", savedUser.getId(),
-            "fullName", savedUser.getFullName(),
-            "email", savedUser.getEmail(),
-            "provider", savedUser.getProvider(),
-            "role", savedUser.getRole(),
-            "profileImage", savedUser.getProfileImage() != null ? savedUser.getProfileImage() : "",
-            "createdAt", savedUser.getCreatedAt() != null ? savedUser.getCreatedAt().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10),
-            "lastLogin", savedUser.getLastLogin() != null ? savedUser.getLastLogin().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10)
-        ));
+        response.put("user", buildUserMap(savedUser));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -159,28 +168,33 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Email and Password are required"));
         }
 
-        email = email.trim();
+        email = email.trim().toLowerCase();
         String ipAddress = httpRequest != null ? httpRequest.getRemoteAddr() : "127.0.0.1";
 
-        if (loginAttemptService.isBlocked(email) || loginAttemptService.isBlocked(ipAddress)) {
+        if (loginAttemptService.isBlocked(email)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", "Account or IP address locked out due to multiple failed login attempts. Try again in 15 minutes."));
+                    .body(Map.of("message", "Account locked out due to multiple failed login attempts. Please try again in 15 minutes."));
         }
 
-        Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase());
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            loginAttemptService.loginFailed(ipAddress);
+            loginAttemptService.loginFailed(email);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
 
         User user = userOpt.get();
+
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Your account has been deactivated. Please contact administrator."));
+        }
+
         if (!user.getProvider().equals("LOCAL")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Please log in using your " + user.getProvider() + " account"));
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             loginAttemptService.loginFailed(email);
-            loginAttemptService.loginFailed(ipAddress);
             int remaining = loginAttemptService.getRemainingAttempts(email);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Invalid email or password. Remaining attempts: " + remaining));
@@ -225,16 +239,7 @@ public class AuthController {
         response.put("message", "Login successful");
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
-        response.put("user", Map.of(
-            "id", savedUser.getId(),
-            "fullName", savedUser.getFullName(),
-            "email", savedUser.getEmail(),
-            "provider", savedUser.getProvider(),
-            "role", savedUser.getRole(),
-            "profileImage", savedUser.getProfileImage() != null ? savedUser.getProfileImage() : "",
-            "createdAt", savedUser.getCreatedAt() != null ? savedUser.getCreatedAt().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10),
-            "lastLogin", savedUser.getLastLogin() != null ? savedUser.getLastLogin().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10)
-        ));
+        response.put("user", buildUserMap(savedUser));
 
         return ResponseEntity.ok(response);
     }
@@ -305,16 +310,7 @@ public class AuthController {
         response.put("message", "Social login successful");
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
-        response.put("user", Map.of(
-            "id", user.getId(),
-            "fullName", user.getFullName(),
-            "email", user.getEmail(),
-            "provider", user.getProvider(),
-            "role", user.getRole(),
-            "profileImage", user.getProfileImage() != null ? user.getProfileImage() : "",
-            "createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10),
-            "lastLogin", user.getLastLogin() != null ? user.getLastLogin().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10)
-        ));
+        response.put("user", buildUserMap(user));
 
         return ResponseEntity.ok(response);
     }
@@ -669,16 +665,7 @@ public class AuthController {
             response.put("message", "Login successful");
             response.put("accessToken", accessToken);
             response.put("refreshToken", refreshToken);
-            response.put("user", Map.of(
-                "id", savedUser.getId(),
-                "fullName", savedUser.getFullName(),
-                "email", savedUser.getEmail(),
-                "provider", savedUser.getProvider(),
-                "role", savedUser.getRole(),
-                "profileImage", savedUser.getProfileImage() != null ? savedUser.getProfileImage() : "",
-                "createdAt", savedUser.getCreatedAt() != null ? savedUser.getCreatedAt().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10),
-                "lastLogin", savedUser.getLastLogin() != null ? savedUser.getLastLogin().toString().substring(0, 10) : LocalDateTime.now().toString().substring(0, 10)
-            ));
+            response.put("user", buildUserMap(savedUser));
 
             return ResponseEntity.ok(response);
 

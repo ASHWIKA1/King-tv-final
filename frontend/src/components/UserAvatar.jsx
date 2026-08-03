@@ -1,4 +1,5 @@
 import React from 'react';
+import { SERVER_BASE } from '../utils/api';
 
 const UserAvatar = ({ user, size = 36, onClick }) => {
   if (!user) return null;
@@ -9,9 +10,6 @@ const UserAvatar = ({ user, size = 36, onClick }) => {
   };
 
   const hasImage = user.profileImage && user.profileImage.trim() !== '';
-  const SERVER_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8080'
-    : window.location.origin;
 
   const imageUrl = hasImage 
     ? (user.profileImage.startsWith('http') ? user.profileImage : `${SERVER_BASE}${user.profileImage}`)

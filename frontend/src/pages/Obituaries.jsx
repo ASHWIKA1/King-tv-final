@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
-import { fetchApi } from '../utils/api';
+import { fetchApi, API_BASE } from '../utils/api';
 import './Obituaries.css';
 
 const Obituaries = () => {
@@ -270,7 +270,7 @@ const Obituaries = () => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const uploadUrl = `${import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1'}/obituaries/upload`;
+    const uploadUrl = `${API_BASE}/obituaries/upload`;
     const session = JSON.parse(localStorage.getItem('king24x7_session') || 'null');
     const headers = {};
     if (session && session.token) {

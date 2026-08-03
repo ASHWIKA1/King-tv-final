@@ -63,6 +63,37 @@ public class PublicNewsController {
         return ResponseEntity.ok(layoutRepository.findByLayoutTypeOrderByDisplayOrderAsc("WEB"));
     }
 
+    @GetMapping("/layout/reset-default")
+    public ResponseEntity<?> resetDefaultLayout() {
+        try {
+            layoutRepository.deleteAll();
+        } catch (Exception e) {
+            System.err.println("Note on layout deletion: " + e.getMessage());
+        }
+        String[][] webSections = {
+            {"hero", "Top News Slider (Hero Grid)", "1"},
+            {"quick_access", "Quick Access Bar", "2"},
+            {"latest_news", "Latest News", "3"},
+            {"web_stories", "Web Stories Deck", "4"},
+            {"video_news", "Video News Player", "5"},
+            {"live_tv", "Live TV Widget", "6"},
+            {"crowd_reporter_highlight", "Crowd Reporter Highlights", "7"},
+            {"institution_news", "Institution News", "8"}
+        };
+        java.util.List<com.kingstv.models.HomeLayoutConfig> created = new java.util.ArrayList<>();
+        for (String[] sec : webSections) {
+            com.kingstv.models.HomeLayoutConfig c = new com.kingstv.models.HomeLayoutConfig();
+            c.setLayoutType("WEB");
+            c.setSectionKey(sec[0]);
+            c.setSectionLabel(sec[1]);
+            c.setDisplayOrder(Integer.parseInt(sec[2]));
+            c.setIsVisible(true);
+            c.setConfigJson("{}");
+            created.add(layoutRepository.save(c));
+        }
+        return ResponseEntity.ok(created);
+    }
+
     @GetMapping("/maintenance-status")
     public ResponseEntity<?> getMaintenanceStatus() {
         boolean maintenance = false;

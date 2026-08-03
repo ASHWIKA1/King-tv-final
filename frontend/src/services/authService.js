@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://kings-tv-bfvm.onrender.com/api/v1';
+import { API_BASE } from '../utils/api';
 
 export const authService = {
   async register(fullName, email, password, location = '', interests = '') {
@@ -15,16 +15,24 @@ export const authService = {
   },
 
   async login(email, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Login failed');
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!res.ok) {
+        let err;
+        try { err = await res.json(); } catch (e) {}
+        throw new Error(err?.message || `Login failed (${res.status})`);
+      }
+      return res.json();
+    } catch (error) {
+      if (error.message && (error.message.includes('Failed to fetch') || error.name === 'TypeError')) {
+        throw new Error('Server is starting up or connection failed. Please retry in a few seconds.');
+      }
+      throw error;
     }
-    return res.json();
   },
 
   async logout(refreshToken) {

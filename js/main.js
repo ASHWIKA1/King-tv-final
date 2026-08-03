@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8080'
-    : 'https://kings-tv-bfvm.onrender.com';
+    : 'https://kings-tv.onrender.com';
 
   function getMediaUrl(url) {
     if (!url) return '';
@@ -127,7 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!url) return '#';
         if (url === '/videos') return 'index.html#section-video';
         if (url === '/web-stories') return 'index.html#section-stories';
-        
+        if (url === '/') return 'index.html';
+        if (url === '/category/home') return 'index.html';
         if (url.startsWith('/category/')) {
           var parts = url.split('/');
           if (parts.length === 3) {
@@ -145,8 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var currentPath = window.location.pathname;
       var currentQuery = window.location.search;
 
-      var isHomeActive = (currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '') && !currentQuery ? 'active' : '';
-      html += '<li class="nav-item ' + isHomeActive + '" id="nav-home"><a href="index.html" class="nav-link">முகப்பு</a></li>';
+      // Home element removed per user request
 
       menus.forEach(function(menu) {
         var displayName = document.documentElement.lang === 'ta' ? (menu.titleTa || menu.titleEn) : (menu.titleEn || menu.titleTa);
@@ -154,10 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         var isActive = menu.linkUrl && (currentPath + currentQuery).includes(convertLink(menu.linkUrl)) ? 'active' : '';
 
-        // Handle Home special case
-        if (menu.linkUrl === '/') {
-            return;
-        }
 
         if (hasDropdown) {
           html += '<li class="nav-item has-dropdown ' + isActive + '">' +

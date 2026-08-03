@@ -1,17 +1,26 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://kings-tv-bfvm.onrender.com/api/v1';
+import { API_BASE } from '../utils/api';
 
 export const userService = {
   async getProfile(token) {
-    const res = await fetch(`${API_BASE}/user/profile`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(`${API_BASE}/user/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        throw new Error('Failed to fetch profile');
       }
-    });
-    if (!res.ok) {
-      throw new Error('Failed to fetch profile');
+      return res.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
     }
-    return res.json();
   },
 
   async updateProfile(token, fullName) {

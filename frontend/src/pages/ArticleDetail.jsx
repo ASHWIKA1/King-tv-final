@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
-import { fetchApi, getImageUrl } from '../utils/api';
+import { fetchApi, getImageUrl, API_BASE } from '../utils/api';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -159,7 +159,7 @@ const ArticleDetail = () => {
         linkEl.setAttribute('rel', 'amphtml');
         document.head.appendChild(linkEl);
       }
-      const baseApi = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
+      const baseApi = API_BASE;
       linkEl.setAttribute('href', `${baseApi}/articles/public/news/${article.id}/amp`);
 
       return () => {

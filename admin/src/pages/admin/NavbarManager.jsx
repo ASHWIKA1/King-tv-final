@@ -64,6 +64,8 @@ const NavbarManager = () => {
         localStorage.removeItem(key);
       }
     });
+    localStorage.setItem('layout_updated_at', Date.now().toString());
+    window.dispatchEvent(new Event('layoutUpdated'));
   };
 
   const handleOpenCreate = () => {
@@ -140,12 +142,32 @@ const NavbarManager = () => {
         // 1. Fetch & Sync Main Categories
         const catRes = await api.get('/categories');
         const categories = catRes.data || [];
+
+        // Remove orphan categories (deleted in Taxonomy but still in Nav)
+        const orphanMenus = menus.filter(m => {
+          if (!m.parentId && m.linkUrl && m.linkUrl.startsWith('/category/')) {
+            const stillExists = categories.find(cat => 
+              m.linkUrl === `/category/${cat.slug || cat.id}` || 
+              (m.titleEn && cat.name && m.titleEn.toLowerCase() === cat.name.toLowerCase())
+            );
+            return !stillExists;
+          }
+          return false;
+        });
         
-        let order = menus.filter(m => !m.parentId).length;
+        for (const orphan of orphanMenus) {
+           await api.delete(`/admin/menus/${orphan.id}`);
+        }
+        
+        // Refetch to get current state after deletions
+        const postDelMenusRes = await api.get('/admin/menus');
+        let currentMenus = postDelMenusRes.data || [];
+        
+        let order = currentMenus.filter(m => !m.parentId).length;
         
         for (const cat of categories) {
           const catName = cat.name || '';
-          const exists = menus.find(m => 
+          const exists = currentMenus.find(m => 
             m.linkUrl === `/category/${cat.slug || cat.id}` || 
             (m.titleEn && catName && m.titleEn.toLowerCase() === catName.toLowerCase())
           );
@@ -182,6 +204,26 @@ const NavbarManager = () => {
         const subCatRes = await api.get('/subcategories/getAll?size=1000');
         const subCategories = subCatRes.data?.content || [];
         
+        // Remove orphan subcategories
+        const orphanSubMenus = updatedMenus.filter(m => {
+          if (m.parentId && m.linkUrl && m.linkUrl.includes('/sub/')) {
+            const stillExists = subCategories.find(sub => 
+              m.linkUrl === `/category/${sub.categoryId}/sub/${sub.subcategoryId}` || 
+              (m.titleEn && sub.name && m.titleEn.toLowerCase() === sub.name.toLowerCase())
+            );
+            return !stillExists;
+          }
+          return false;
+        });
+
+        for (const orphan of orphanSubMenus) {
+           await api.delete(`/admin/menus/${orphan.id}`);
+        }
+        
+        // Refetch menus after subcategory deletions
+        const finalMenusRes = await api.get('/admin/menus');
+        updatedMenus.splice(0, updatedMenus.length, ...(finalMenusRes.data || []));
+
         for (const sub of subCategories) {
           const subName = sub.name || '';
           const parentMenuId = catIdToMenuId[sub.categoryId];

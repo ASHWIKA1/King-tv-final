@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
           const compatSession = {
             token: activeToken,
             username: profile.fullName || profile.email.split('@')[0],
-            role: profile.role.toLowerCase(),
+            role: profile.role ? profile.role.toLowerCase() : 'user',
             displayName: profile.fullName,
             isLoggedIn: true,
             loggedInAt: new Date().toISOString()
@@ -38,12 +38,14 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           console.error("Failed to initialize session profile", err);
           logoutUser();
+        } finally {
+          setLoading(false);
         }
       } else {
         setIsAuthenticated(false);
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();

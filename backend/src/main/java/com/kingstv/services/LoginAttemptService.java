@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class LoginAttemptService {
 
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 10;
     private static final int LOCKOUT_MINUTES = 15;
 
     // Tracks failed login attempts per key (email or IP)

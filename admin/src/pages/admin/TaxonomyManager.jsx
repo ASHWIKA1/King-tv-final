@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
-import { Plus, Folder, MapPin, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Folder, MapPin, Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react';
 
 const TaxonomyManager = () => {
   const [categories, setCategories] = useState([]);
@@ -43,16 +43,125 @@ const TaxonomyManager = () => {
         localStorage.removeItem(key);
       }
     });
+    try {
+      window.dispatchEvent(new Event('layoutUpdated'));
+    } catch (e) {}
   };
+
+  // --- Category Handlers ---
+  const handleCatMove = async (index, direction) => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    const newCats = [...categories];
+    const temp = newCats[index];
+    newCats[index] = newCats[targetIndex];
+    newCats[targetIndex] = temp;
+
+    const updatedPayload = newCats.map((c, idx) => ({
+      id: c.id,
+      displayOrder: idx + 1
+    }));
+
+    setCategories(newCats.map((c, idx) => ({ ...c, displayOrder: idx + 1 })));
+
+    try {
+      await api.put('/admin/taxonomy/categories/reorder', updatedPayload);
+      clearApiCache();
+    } catch (err) {
+      console.error("Failed to reorder categories", err);
+      fetchTaxonomies();
+    }
+  };
+
+  const syncNavLayout = async (item, type = 'category', action = 'add') => {
+    try {
+      const res = await api.get('/admin/layout/web');
+      let layoutData = res.data;
+      if (!Array.isArray(layoutData)) return;
+      
+      const navIndex = layoutData.findIndex(lay => lay.sectionKey === 'website_navigation');
+      if (navIndex === -1) return;
+      
+      let config = typeof layoutData[navIndex].configJson === 'string' 
+        ? JSON.parse(layoutData[navIndex].configJson || '{}') 
+        : (layoutData[navIndex].configJson || {});
+        
+      if (!config.navItems) config.navItems = [];
+      
+      const slug = item.slug || (item.name ? item.name.toLowerCase().replace(/\\s+/g, '-') : String(Date.now()));
+      const linkUrl = type === 'category' ? `/category/${slug}` : `/category/${item.categoryId}/sub/${slug}`;
+      const itemId = item.id ? String(item.id) : (type === 'category' ? `cat-${Date.now()}` : `sub-${Date.now()}`);
+
+      if (action === 'add') {
+        const newItem = {
+          id: itemId,
+          slug: slug,
+          titleEn: item.name || '',
+          titleTa: item.nameTa || item.name || '',
+          linkUrl: linkUrl,
+          isActive: true
+        };
+        
+        if (type === 'category') {
+          // Check if exists
+          if (!config.navItems.find(i => i.linkUrl === linkUrl || i.slug === slug)) {
+            newItem.type = 'category';
+            newItem.subcategories = [];
+            config.navItems.push(newItem);
+          }
+        } else if (type === 'subcategory') {
+          // Find parent category in navItems
+          const parentCatId = String(item.categoryId);
+          const parent = config.navItems.find(i => 
+            String(i.id) === parentCatId || 
+            (i.linkUrl && i.linkUrl.includes(`/${parentCatId}`)) ||
+            (categories && categories.find(c => String(c.id) === parentCatId && i.slug === c.slug))
+          );
+          if (parent) {
+            if (!parent.subcategories) parent.subcategories = [];
+            if (!parent.subcategories.find(i => i.linkUrl === linkUrl || i.slug === slug)) {
+              parent.subcategories.push(newItem);
+            }
+          }
+        }
+      } else if (action === 'delete') {
+        if (type === 'category') {
+          config.navItems = config.navItems.filter(i => String(i.id) !== itemId && !i.linkUrl.includes(`/${itemId}`));
+        } else if (type === 'subcategory') {
+          config.navItems.forEach(parent => {
+            if (parent.subcategories) {
+              parent.subcategories = parent.subcategories.filter(sub => String(sub.id) !== itemId && !sub.linkUrl.includes(`/${itemId}`));
+            }
+          });
+        }
+      }
+
+      layoutData[navIndex].configJson = JSON.stringify(config);
+      await api.post('/admin/layout/web', layoutData);
+      
+      // Notify frontend
+      localStorage.setItem('dummy_layout_config', JSON.stringify(layoutData));
+      window.dispatchEvent(new Event('layoutUpdated'));
+    } catch (e) {
+      console.warn("Could not auto-sync taxonomy to nav layout", e);
+    }
+  };
+
 
   // --- Category Handlers ---
   const handleCatSubmit = async (e) => {
     e.preventDefault();
     try {
+      let savedItem = catFormData;
       if (catFormData.id) {
-        await api.put(`/admin/taxonomy/categories/${catFormData.id}`, catFormData);
+        const res = await api.put(`/admin/taxonomy/categories/${catFormData.id}`, catFormData);
+        savedItem = res.data || catFormData;
       } else {
-        await api.post('/admin/taxonomy/categories', catFormData);
+        const res = await api.post('/admin/taxonomy/categories', catFormData);
+        savedItem = res.data || catFormData;
+        // Auto-add to nav bar only on create
+        await syncNavLayout(savedItem, 'category', 'add');
       }
       clearApiCache();
       setShowCatModal(false);
@@ -66,6 +175,7 @@ const TaxonomyManager = () => {
   const handleCatDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this category?")) {
       try {
+        await syncNavLayout({ id }, 'category', 'delete');
         await api.delete(`/admin/taxonomy/categories/${id}`);
         clearApiCache();
         fetchTaxonomies();
@@ -80,10 +190,15 @@ const TaxonomyManager = () => {
   const handleSubCatSubmit = async (e) => {
     e.preventDefault();
     try {
+      let savedItem = subCatFormData;
       if (subCatFormData.id) {
-        await api.put(`/admin/taxonomy/subcategories/${subCatFormData.id}`, subCatFormData);
+        const res = await api.put(`/admin/taxonomy/subcategories/${subCatFormData.id}`, subCatFormData);
+        savedItem = res.data || subCatFormData;
       } else {
-        await api.post('/admin/taxonomy/subcategories', subCatFormData);
+        const res = await api.post('/admin/taxonomy/subcategories', subCatFormData);
+        savedItem = res.data || subCatFormData;
+        // Auto-add to nav bar only on create
+        await syncNavLayout(savedItem, 'subcategory', 'add');
       }
       clearApiCache();
       setShowSubCatModal(false);
@@ -97,6 +212,7 @@ const TaxonomyManager = () => {
   const handleSubCatDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this subcategory?")) {
       try {
+        await syncNavLayout({ id }, 'subcategory', 'delete');
         await api.delete(`/admin/taxonomy/subcategories/${id}`);
         clearApiCache();
         fetchTaxonomies();
@@ -162,17 +278,31 @@ const TaxonomyManager = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {loading ? <div style={{ color: 'var(--text-muted)' }}>Loading...</div> : categories.length === 0 ? (
               <div style={{ color: 'var(--text-muted)' }}>No categories found.</div>
-            ) : categories.map(c => (
+            ) : categories.map((c, index) => (
               <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: c.color || 'var(--primary)' }}></div>
                     <span style={{ fontWeight: 600, fontSize: '1.05rem' }}>{c.name} ({c.nameTa})</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                     <button 
                       className="btn btn-secondary" 
-                      style={{ padding: '0.2rem', color: 'var(--primary)', fontSize: '0.75rem' }}
+                      style={{ padding: '0.2rem', color: index === 0 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: index === 0 ? 0.4 : 1 }}
+                      onClick={() => handleCatMove(index, 'up')}
+                      disabled={index === 0}
+                      title="Move Up"
+                    ><ArrowUp size={14} /></button>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.2rem', color: index === categories.length - 1 ? 'var(--text-muted)' : 'var(--text-primary)', opacity: index === categories.length - 1 ? 0.4 : 1 }}
+                      onClick={() => handleCatMove(index, 'down')}
+                      disabled={index === categories.length - 1}
+                      title="Move Down"
+                    ><ArrowDown size={14} /></button>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.2rem', color: 'var(--primary)', fontSize: '0.75rem', marginLeft: '0.25rem' }}
                       onClick={() => { setSubCatFormData({ id: null, categoryId: c.id, name: '', nameTa: '', slug: '', displayOrder: 0, status: 'active' }); setShowSubCatModal(true); }}
                       title="Add Subcategory"
                     ><Plus size={14} /></button>

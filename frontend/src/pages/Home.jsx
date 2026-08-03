@@ -21,6 +21,7 @@ const Home = () => {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [topSliderIndex, setTopSliderIndex] = useState(0);
   const [categoriesMap, setCategoriesMap] = useState({});
+  const [quickAccessMenus, setQuickAccessMenus] = useState([]);
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
   const [institutionNews, setInstitutionNews] = useState([]);
@@ -71,6 +72,14 @@ const Home = () => {
 
   useEffect(() => {
     // Primary fetches wrapped in promises for loading state coordination
+    fetchApi('/public/menus')
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuickAccessMenus(data.filter(i => (i.slug || i.linkUrl) !== 'home' && i.linkUrl !== '/'));
+        }
+      })
+      .catch(() => {});
+
     const pCategories = fetchApi('/categories')
       .then(data => {
         if (Array.isArray(data)) {
@@ -193,9 +202,16 @@ const Home = () => {
       }
     })();
 
+    const DEFAULT_LIVE_VIDEO = {
+      title: lang === 'en' ? 'KINGS 24x7 Live TV News Stream' : 'கிங்ஸ் 24x7 நேரலை செய்தி',
+      description: lang === 'en' ? 'Watch continuous Tamil and English live news coverage, debates and special updates.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
+      isLiveTv: 1
+    };
+
     const pLiveVideo = fetchApi('/videos/live')
       .then(data => {
-        if (data && data.youtubeUrl) {
+        if (data && (data.youtubeUrl || data.videoUrl)) {
           let titleVal = data.title;
           let descVal = data.description;
           if (lang === 'en') {
@@ -203,9 +219,14 @@ const Home = () => {
             descVal = 'Watch continuous Tamil and English live news coverage, debates and special updates.';
           }
           setLiveVideo({ ...data, title: titleVal, description: descVal });
+        } else {
+          setLiveVideo(DEFAULT_LIVE_VIDEO);
         }
       })
-      .catch(err => console.warn("Could not load live video from API", err));
+      .catch(err => {
+        console.warn("Could not load live video from API, using default stream", err);
+        setLiveVideo(DEFAULT_LIVE_VIDEO);
+      });
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
@@ -884,39 +905,69 @@ const Home = () => {
     );
   };
 
+  const categoryIconMap = {
+    politics: 'fas fa-landmark',
+    business: 'fas fa-chart-line',
+    sports: 'fas fa-trophy',
+    cinema: 'fas fa-film',
+    tech: 'fas fa-microchip',
+    technology: 'fas fa-microchip',
+    regional: 'fas fa-map-marker-alt',
+    directory: 'fas fa-map-marker-alt',
+    international: 'fas fa-globe',
+    world: 'fas fa-globe',
+    videos: 'fas fa-video',
+    video: 'fas fa-video',
+    'web-stories': 'fas fa-sticky-note',
+    news: 'fas fa-newspaper',
+    wishes: 'fas fa-heart',
+    obituaries: 'fas fa-ribbon',
+    jobs: 'fas fa-briefcase',
+    classifieds: 'fas fa-tags',
+    'buy-sell': 'fas fa-shopping-cart'
+  };
+
   const renderQuickAccess = () => {
+    let items = quickAccessMenus;
+    if (!items || items.length === 0) {
+      items = [
+        { slug: 'regional', linkUrl: '/directory', titleEn: 'Regional', titleTa: 'நம்ம ஊர்', name: 'Regional', nameTa: 'நம்ம ஊர்' },
+        { slug: 'business', linkUrl: '/category/business', titleEn: 'Business', titleTa: 'வணிகம்', name: 'Business', nameTa: 'வணிகம்' },
+        { slug: 'politics', linkUrl: '/category/politics', titleEn: 'Politics', titleTa: 'அரசியல்', name: 'Politics', nameTa: 'அரசியல்' },
+        { slug: 'tech', linkUrl: '/category/tech', titleEn: 'Technology', titleTa: 'தொழில்நுட்பம்', name: 'Technology', nameTa: 'தொழில்நுட்பம்' },
+        { slug: 'sports', linkUrl: '/category/sports', titleEn: 'Sports', titleTa: 'விளையாட்டு', name: 'Sports', nameTa: 'விளையாட்டு' },
+        { slug: 'cinema', linkUrl: '/category/cinema', titleEn: 'Cinema', titleTa: 'பொழுதுபோக்கு', name: 'Cinema', nameTa: 'பொழுதுபோக்கு' },
+        { slug: 'international', linkUrl: '/category/international', titleEn: 'International', titleTa: 'சர்வதேசம்', name: 'International', nameTa: 'சர்வதேசம்' }
+      ];
+    }
+
     return (
       <section className="quick-access">
         <div className="container">
           <div className="quick-grid">
-            <Link to="/category/politics" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-politics"><i className="fas fa-landmark"></i></div>
-              <span>{lang === 'en' ? 'Politics' : 'அரசியல்'}</span>
-            </Link>
-            <Link to="/category/business" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-business"><i className="fas fa-chart-line"></i></div>
-              <span>{lang === 'en' ? 'Business' : 'வணிகம்'}</span>
-            </Link>
-            <Link to="/category/sports" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-sports"><i className="fas fa-trophy"></i></div>
-              <span>{lang === 'en' ? 'Sports' : 'விளையாட்டு'}</span>
-            </Link>
-            <Link to="/category/cinema" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-cinema"><i className="fas fa-film"></i></div>
-              <span>{lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு'}</span>
-            </Link>
-            <Link to="/category/tech" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-technology"><i className="fas fa-microchip"></i></div>
-              <span>{lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்'}</span>
-            </Link>
-            <Link to="/directory" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-education"><i className="fas fa-map-marker-alt"></i></div>
-              <span>{lang === 'en' ? 'Regional' : 'நம்ம ஊர்'}</span>
-            </Link>
-            <Link to="/category/international" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="icon cat-weather"><i className="fas fa-globe"></i></div>
-              <span>{lang === 'en' ? 'International' : 'சர்வதேசம்'}</span>
-            </Link>
+            {items.map((item, idx) => {
+              let slug = item.slug || (item.linkUrl ? item.linkUrl.replace('/category/', '').replace('/', '') : '');
+              if (!slug) slug = 'news';
+              let path = item.linkUrl || item.path;
+              if (!path || path === '#') {
+                if (slug === 'regional') path = '/directory';
+                else if (slug === 'videos' || slug === 'video') path = '/videos';
+                else if (slug === 'web-stories') path = '/web-stories';
+                else path = `/category/${slug}`;
+              }
+
+              const iconClass = categoryIconMap[slug.toLowerCase()] || 'fas fa-folder';
+              const label = lang === 'en'
+                ? (item.titleEn || item.name || item.label || item.titleTa)
+                : (item.titleTa || item.nameTa || item.label || item.titleEn);
+
+              return (
+                <Link key={item.id || idx} to={path} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className={`icon cat-${slug}`}><i className={iconClass}></i></div>
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1198,8 +1249,10 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
-    const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
+    const activeVideo = liveVideo || {
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U'
+    };
+    const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
     let embedUrl = liveStreamUrl;
     if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
       const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
@@ -1481,6 +1534,8 @@ const Home = () => {
 
     const renderContent = () => {
       switch (key) {
+        case 'website_navigation':
+          return null;
         case 'news_ticker':
           return (
             <>

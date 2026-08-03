@@ -33,10 +33,26 @@ public class VideoController {
     @GetMapping("/live")
     public ResponseEntity<?> getLiveTv() {
         List<VideoContent> liveList = videoContentRepository.findByIsLiveTvOrderByPublishedAtDesc(1);
-        if (liveList.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Live TV not configured"));
+        if (!liveList.isEmpty()) {
+            return ResponseEntity.ok(liveList.get(0));
         }
-        return ResponseEntity.ok(liveList.get(0));
+
+        // Fallback: Create and save a default working Live TV video entry in DB if none exists
+        VideoContent fallbackLive = new VideoContent();
+        fallbackLive.setTitle("KINGS 24x7 Live Broadcast | கிங்ஸ் 24x7 நேரலை");
+        fallbackLive.setYoutubeUrl("https://www.youtube.com/embed/2g811Eo7K8U");
+        fallbackLive.setThumbnailUrl("https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800");
+        fallbackLive.setDescription("Watch continuous live news coverage in Tamil & English.");
+        fallbackLive.setIsLiveTv(1);
+        fallbackLive.setPublishedAt(LocalDateTime.now());
+        fallbackLive.setStatus("published");
+
+        try {
+            VideoContent saved = videoContentRepository.save(fallbackLive);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.ok(fallbackLive);
+        }
     }
 
     @GetMapping("/{id}")
@@ -104,14 +120,14 @@ public class VideoController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Video not found"));
         }
         VideoContent video = vidOpt.get();
-        video.setCategoryId(entity.getCategoryId());
-        video.setTitle(entity.getTitle());
-        video.setYoutubeUrl(entity.getYoutubeUrl());
-        video.setDescription(entity.getDescription());
-        video.setIsLiveTv(entity.getIsLiveTv());
-        video.setViewsCount(entity.getViewsCount());
-        video.setThumbnailUrl(entity.getThumbnailUrl());
-        video.setDurationSeconds(entity.getDurationSeconds());
+        if (entity.getCategoryId() != null) video.setCategoryId(entity.getCategoryId());
+        if (entity.getTitle() != null) video.setTitle(entity.getTitle());
+        if (entity.getYoutubeUrl() != null) video.setYoutubeUrl(entity.getYoutubeUrl());
+        if (entity.getDescription() != null) video.setDescription(entity.getDescription());
+        if (entity.getIsLiveTv() != null) video.setIsLiveTv(entity.getIsLiveTv());
+        if (entity.getViewsCount() != null) video.setViewsCount(entity.getViewsCount());
+        if (entity.getThumbnailUrl() != null) video.setThumbnailUrl(entity.getThumbnailUrl());
+        if (entity.getDurationSeconds() != null) video.setDurationSeconds(entity.getDurationSeconds());
         
         VideoContent updated = videoContentRepository.save(video);
         return ResponseEntity.ok(updated);
