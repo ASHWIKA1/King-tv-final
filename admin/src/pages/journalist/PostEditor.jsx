@@ -1236,6 +1236,32 @@ const PostEditor = () => {
       'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
       'insertdatetime', 'media', 'table', 'help', 'wordcount', 'quickbars'
     ],
+    automatic_uploads: true,
+    images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', blobInfo.blob(), blobInfo.filename());
+      api.post('/articles/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => {
+          if (e.total) progress(Math.round((e.loaded / e.total) * 100));
+        }
+      })
+      .then(res => {
+        if (res.data && res.data.url) {
+          let imgUrl = res.data.url;
+          if (imgUrl.startsWith('http://localhost:8080')) {
+            imgUrl = imgUrl.replace('http://localhost:8080', '');
+          }
+          resolve(imgUrl);
+        } else {
+          reject('Image upload failed: Invalid response from server');
+        }
+      })
+      .catch(err => {
+        const msg = err.response?.data?.message || err.message || 'Server upload error';
+        reject('Image upload failed: ' + msg);
+      });
+    }),
     image_advtab: true,
     toolbar: 'formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media blockquote add_draggable_box add_columns | undo redo | fullscreen code',
     quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
