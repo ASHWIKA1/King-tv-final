@@ -9,7 +9,7 @@ import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
+const DEFAULT_GEMINI_KEY = '';
 
 export let activeAiConfig = { 
   apiKey: '', 
