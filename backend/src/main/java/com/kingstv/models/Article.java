@@ -26,10 +26,10 @@ public class Article implements Serializable {
     @Column(name = "constituency")
     private String constituency;
 
-    @Column(name = "title_ta", nullable = false)
+    @Column(name = "title_ta", nullable = false, columnDefinition = "TEXT")
     private String titleTa;
 
-    @Column(name = "title_en")
+    @Column(name = "title_en", columnDefinition = "TEXT")
     private String titleEn;
 
     @Column(name = "content_ta", nullable = false, columnDefinition = "TEXT")
@@ -44,7 +44,7 @@ public class Article implements Serializable {
     @Column(name = "short_desc_en", columnDefinition = "TEXT")
     private String shortDescEn;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @Column(name = "views_count")
@@ -57,25 +57,25 @@ public class Article implements Serializable {
     private LocalDateTime publishedAt = LocalDateTime.now();
 
     // --- SEO & Google News Extension Fields ---
-    @Column(name = "meta_title")
+    @Column(name = "meta_title", columnDefinition = "TEXT")
     private String metaTitle;
 
     @Column(name = "meta_description", columnDefinition = "TEXT")
     private String metaDescription;
 
-    @Column(name = "meta_keywords")
+    @Column(name = "meta_keywords", columnDefinition = "TEXT")
     private String metaKeywords;
 
-    @Column(name = "focus_keywords")
+    @Column(name = "focus_keywords", columnDefinition = "TEXT")
     private String focusKeywords;
 
     @Column(unique = true)
     private String slug;
 
-    @Column(name = "canonical_url")
+    @Column(name = "canonical_url", columnDefinition = "TEXT")
     private String canonicalUrl;
 
-    @Column(name = "featured_image")
+    @Column(name = "featured_image", columnDefinition = "TEXT")
     private String featuredImage;
 
     @Column(name = "author_name")
