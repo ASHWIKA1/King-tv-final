@@ -230,37 +230,46 @@ const Home = () => {
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
-        // Check localStorage first — admin builder preview overrides API
-        try {
-          const previewData = localStorage.getItem('dummy_layout_config');
-          if (previewData) {
-            const parsed = JSON.parse(previewData);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLayoutSections(parsed.filter(s => s.isVisible !== false));
-              setIsPreviewMode(true);
-              return;
+        // Check localStorage first — ONLY if explicitly in preview mode via ?preview=true
+        const searchParams = new URLSearchParams(window.location.search);
+        const isExplicitPreview = searchParams.get('preview') === 'true';
+
+        if (isExplicitPreview) {
+          try {
+            const previewData = localStorage.getItem('dummy_layout_config');
+            if (previewData) {
+              const parsed = JSON.parse(previewData);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setLayoutSections(parsed.filter(s => s.isVisible !== false));
+                setIsPreviewMode(true);
+                return;
+              }
             }
-          }
-        } catch (e) { /* ignore */ }
-        // No preview config — use API data
+          } catch (e) { /* ignore */ }
+        }
+
+        // Production mode — filter out dummy navigation test sections and use live API layout
         if (Array.isArray(data)) {
-          setLayoutSections(data);
+          const cleanSections = data.filter(s => s.sectionKey !== 'website_navigation' && s.titleEn !== 'Website Navigation');
+          setLayoutSections(cleanSections);
           setIsPreviewMode(false);
         }
       })
-
       .catch(() => {
-        // Even if API fails, try localStorage
-        try {
-          const previewData = localStorage.getItem('dummy_layout_config');
-          if (previewData) {
-            const parsed = JSON.parse(previewData);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLayoutSections(parsed.filter(s => s.isVisible !== false));
-              setIsPreviewMode(true);
+        const searchParams = new URLSearchParams(window.location.search);
+        const isExplicitPreview = searchParams.get('preview') === 'true';
+        if (isExplicitPreview) {
+          try {
+            const previewData = localStorage.getItem('dummy_layout_config');
+            if (previewData) {
+              const parsed = JSON.parse(previewData);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setLayoutSections(parsed.filter(s => s.isVisible !== false));
+                setIsPreviewMode(true);
+              }
             }
-          }
-        } catch (e) { /* ignore */ }
+          } catch (e) { /* ignore */ }
+        }
       });
 
     // Listen for localStorage changes from the admin builder (real-time preview)
