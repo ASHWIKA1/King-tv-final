@@ -274,10 +274,11 @@ public class AiConfigurationService {
                 }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AiConfigurationService.class).warn("LLM API execution failed, serving smart fallback JSON:", e);
+            org.slf4j.LoggerFactory.getLogger(AiConfigurationService.class).warn("LLM API execution failed on server:", e);
+            throw new IllegalStateException("Backend LLM API Key not configured or failed: " + e.getMessage());
         }
 
-        return buildSmartFallbackJson(prompt);
+        throw new IllegalStateException("Backend AI Provider API Key is not configured. Please set API Key in AI Configuration or use client-side Gemini key.");
     }
 
     private String buildSmartFallbackJson(String prompt) {
@@ -301,6 +302,7 @@ public class AiConfigurationService {
 
         return String.format("""
             {
+              "isFallback": true,
               "titleTa": "%s",
               "titleEn": "%s",
               "contentTa": "%s",

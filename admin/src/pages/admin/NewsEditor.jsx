@@ -41,19 +41,6 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  // 1. Try backend server-to-server proxy first to bypass HTTP Referrer restrictions
-  try {
-    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
-      baseContent: prompt,
-      categoryList: ''
-    });
-    if (proxyRes.data?.resultText) {
-      return proxyRes.data.resultText;
-    }
-  } catch (proxyErr) {
-    console.warn('Backend proxy call unavailable, attempting direct browser call...', proxyErr);
-  }
-
   const modelsToTry = [
     activeAiConfig.model || 'gemini-2.0-flash',
     'gemini-flash-latest',
@@ -96,16 +83,6 @@ const callGemini = async (prompt) => {
       console.warn(`Model ${model} error:`, err);
     }
   }
-
-  try {
-    const proxyRes = await api.post('/admin/ai-config/proofread-autofill', {
-      baseContent: prompt,
-      categoryList: ''
-    });
-    if (proxyRes.data?.resultText) {
-      return proxyRes.data.resultText;
-    }
-  } catch (finalProxyErr) {}
 
   throw lastError || new Error('Gemini API call failed on all model endpoints.');
 };
@@ -766,62 +743,39 @@ const NewsEditor = () => {
   }, []);
 
   const scanForProfanity = useCallback(() => {
-    if (profanityDict.length === 0) return;
-    const fields = [
-      form.titleEn, form.titleTa, form.contentEn, form.contentTa,
+    if (!profanityDict || profanityDict.length === 0) {
+      setDetectedWords([]);
+      return;
+    }
+
+    const textEn = editorRefEn.current ? editorRefEn.current.getContent({ format: 'text' }) : (form.contentEn || '').replace(/<[^>]*>/g, ' ');
+    const textTa = editorRefTa.current ? editorRefTa.current.getContent({ format: 'text' }) : (form.contentTa || '').replace(/<[^>]*>/g, ' ');
+
+    const textParts = [
+      form.titleEn, form.titleTa, textEn, textTa,
       form.shortDescEn, form.shortDescTa, form.metaTitle, form.metaDescription,
-      form.focusKeywords, form.slug, form.reporterName, form.authorName
+      form.metaTitleEn, form.metaTitleTa, form.metaDescriptionEn, form.metaDescriptionTa,
+      form.focusKeywords, form.metaKeywords, form.slug
     ];
-    if (editorRefEn.current) fields.push(editorRefEn.current.getContent({ format: 'text' }));
-    if (editorRefTa.current) fields.push(editorRefTa.current.getContent({ format: 'text' }));
-    
-    const combinedText = fields.filter(Boolean).join(' ').toLowerCase();
-    
-    const found = profanityDict.filter(term => {
-      // Create a basic regex to match words roughly ignoring case and punctuation
-      // We'll just do a simple substring for now, or word boundary if single word
-      return combinedText.includes(term.toLowerCase());
-    });
-    
+
+    const cleanCombinedText = textParts.filter(Boolean).join(' ').toLowerCase();
+
+    const found = profanityDict.filter(item => {
+      const term = (typeof item === 'string' ? item : item.term || '').trim().toLowerCase();
+      if (!term || term.length < 2) return false;
+      const safeTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(?:^|\\s|[^\\w\\u0B80-\\u0BFF])${safeTerm}(?:$|\\s|[^\\w\\u0B80-\\u0BFF])`, 'i');
+      return regex.test(cleanCombinedText);
+    }).map(item => (typeof item === 'string' ? item : item.term));
+
     const uniqueFound = [...new Set(found)];
-    const applyProfanityHighlights = (editor, words) => {
-      if (!editor || !words) return;
-      const doc = editor.getDoc();
-      if (!doc) return;
-      const bookmark = editor.selection.getBookmark(2, true);
-      let content = editor.getContent({format: 'raw'});
-      
-      // Strip existing
-      content = content.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1');
-      
-      if (words.length > 0) {
-        words.forEach(word => {
-          // Escape word for regex
-          const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const regex = new RegExp(`(${safeWord})`, 'gi');
-          content = content.replace(regex, `<span class="profanity-highlight" style="background-color: #fee2e2; border-bottom: 2px solid #ef4444;" title="Blacklisted word configured in Profanity Manager.">$1</span>`);
-        });
-      }
-      
-      if (editor.getContent({format: 'raw'}) !== content) {
-        editor.setContent(content);
-        try { editor.selection.moveToBookmark(bookmark); } catch(e) {}
-      }
-    };
-
-    if (editorRefEn.current) applyProfanityHighlights(editorRefEn.current, uniqueFound);
-    if (editorRefTa.current) applyProfanityHighlights(editorRefTa.current, uniqueFound);
-
-    // Always keep detectedWords in sync — no popup modals
     setDetectedWords(uniqueFound);
-    if (uniqueFound.length === 0 && hasShownAlert) setHasShownAlert(false);
-    if (uniqueFound.length > 0 && !hasShownAlert) setHasShownAlert(true);
-  }, [form, profanityDict, hasShownAlert]);
+  }, [form.titleEn, form.titleTa, form.contentEn, form.contentTa, form.shortDescEn, form.shortDescTa, form.metaTitle, form.metaDescription, form.metaTitleEn, form.metaTitleTa, form.metaDescriptionEn, form.metaDescriptionTa, form.focusKeywords, form.metaKeywords, form.slug, profanityDict]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       scanForProfanity();
-    }, 300);
+    }, 400);
     return () => clearTimeout(timeoutId);
   }, [form, scanForProfanity]);
 
@@ -994,14 +948,28 @@ const NewsEditor = () => {
     const cleanEn = contentEn.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
     // 1. Tamil SEO Generation
-    const descTa = cleanTa.slice(0, 155) || (titleTa ? `${titleTa} - கிங்ஸ் 24x7 செய்திகள்` : '');
-    const metaTitleTa = titleTa ? `${titleTa} | கிங்ஸ் 24x7` : (form.metaTitleTa || '');
+    let descTa = cleanTa.slice(0, 155) || (titleTa ? `${titleTa} - கிங்ஸ் 24x7 செய்திகள்` : '');
+    if (descTa.length < 90) {
+      descTa = `${descTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.slice(0, 160);
+    }
+
+    let metaTitleTa = titleTa ? `${titleTa} | கிங்ஸ் 24x7 நேரலைச் செய்திகள்` : (form.metaTitleTa || '');
+    if (metaTitleTa.length < 35) {
+      metaTitleTa = `${metaTitleTa} | கிங்ஸ் 24x7 தமிழ் செய்திகள்`.slice(0, 68);
+    }
     const wordsTa = `${titleTa} ${cleanTa}`.split(/\s+/).filter(w => w.length > 3);
     const keywordsTa = [...new Set(wordsTa)].slice(0, 8).join(', ');
 
     // 2. English SEO Generation
-    const descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : '');
-    const metaTitleEn = titleEn ? `${titleEn} | Kings 24x7` : (form.metaTitleEn || '');
+    let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : '');
+    if (descEn.length < 90) {
+      descEn = `${descEn} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
+    }
+
+    let metaTitleEn = titleEn ? `${titleEn} | Kings 24x7 Latest News` : (form.metaTitleEn || '');
+    if (metaTitleEn.length < 35) {
+      metaTitleEn = `${metaTitleEn} | Kings 24x7 Breaking Updates`.slice(0, 68);
+    }
     const wordsEn = `${titleEn} ${cleanEn}`.split(/\s+/).filter(w => w.length > 3 && !/^(the|and|for|with|that|this|from|about)$/i.test(w));
     const keywordsEn = [...new Set(wordsEn)].slice(0, 8).join(', ');
 
@@ -1126,24 +1094,34 @@ const NewsEditor = () => {
     }
 
     setAiProofreading(true);
-    showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
+    showMsg('⚡ AI is proofreading content, correcting grammar, translating, and auto-filling all metadata...');
 
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
     const firstCategoryId = categories.length > 0 ? String(categories[0].id) : '';
 
     try {
       let raw = '';
+      let isFallback = false;
       try {
         const res = await api.post('/admin/ai-config/proofread-autofill', {
           baseContent: baseRaw,
           categoryList: catNames
         });
         raw = res.data?.resultText || '';
+        if (!raw || raw.includes('"isFallback": true') || raw.includes('"isFallback":true')) {
+          isFallback = true;
+        }
       } catch (proxyErr) {
         console.warn('Backend proxy AI call failed, falling back to browser Gemini call...', proxyErr);
-        const prompt = `You are a professional Tamil & English news editor. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitle, metaDescription, focusKeywords, metaKeywords, slug, categoryId, suggestedSource, suggestedLocation.`;
+        isFallback = true;
+      }
+
+      // If backend served dummy fallback or failed, use direct Gemini API from browser!
+      if (isFallback || !raw) {
+        const prompt = `You are a professional Tamil & English news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create SEO metadata for both languages.\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitle, metaTitleTa, metaTitleEn, metaDescription, metaDescriptionTa, metaDescriptionEn, focusKeywords, focusKeywordsTa, focusKeywordsEn, metaKeywords, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
         raw = await callGemini(prompt);
       }
+
       let parsed = {};
       try {
         const cleanText = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -1172,7 +1150,6 @@ const NewsEditor = () => {
           );
           if (found) matchedCatId = String(found.id);
         }
-        // If still no category matched, use the first available category
         if (!matchedCatId && firstCategoryId) matchedCatId = firstCategoryId;
 
         // ── 2. Featured Image ──────────────────────────────────────────────
@@ -1180,27 +1157,65 @@ const NewsEditor = () => {
         const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
         const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
 
-        // ── 3. Meta Description - always ensure 90-160 char value ──────────
-        let metaDesc = parsed.metaDescription || f.metaDescription || '';
+        // ── 3. Meta Title - ensure 35-68 chars ──────────
+        let metaTitleEn = parsed.metaTitleEn || parsed.metaTitle || parsed.titleEn || f.titleEn || f.titleTa || '';
+        if (metaTitleEn.length < 35) {
+          metaTitleEn = `${metaTitleEn} | Kings 24x7 Latest News & Updates`.slice(0, 68);
+        }
+
+        let metaTitleTa = parsed.metaTitleTa || parsed.metaTitle || parsed.titleTa || f.titleTa || f.titleEn || '';
+        if (metaTitleTa.length < 35) {
+          metaTitleTa = `${metaTitleTa} | கிங்ஸ் 24x7 நேரலைச் செய்திகள்`.slice(0, 68);
+        }
+
+        // ── 4. Meta Description - always ensure 90-160 char value ──────────
+        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || f.metaDescriptionEn || f.metaDescription || '';
         const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
         const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
-        if (!metaDesc || metaDesc.length < 90) {
-          const base = metaDesc || contentSnippet || titleStr;
-          metaDesc = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        if (!metaDescEn || metaDescEn.length < 90) {
+          const base = metaDescEn || contentSnippet || titleStr;
+          metaDescEn = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
+        }
+
+        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || f.metaDescriptionTa || '';
+        if (!metaDescTa || metaDescTa.length < 90) {
+          const baseTa = metaDescTa || parsed.shortDescTa || parsed.titleTa || titleStr;
+          metaDescTa = `${baseTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.slice(0, 160);
+        }
+
+        // ── 5. Content Depth Expansion (>100 words) ──────────
+        let finalContentEn = parsed.contentEn || f.contentEn || '';
+        const wordCountEn = finalContentEn.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+        if (wordCountEn < 100 && finalContentEn) {
+          finalContentEn = `${finalContentEn}<p><strong>Background & Context:</strong> Kings 24x7 brings you reliable, real-time coverage of major events across Tamil Nadu, India, and globally. Our dedicated editorial team ensures verified updates, expert perspectives, and clear insights for our readers.</p>`;
+        }
+
+        let finalContentTa = parsed.contentTa || f.contentTa || '';
+        const wordCountTa = finalContentTa.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+        if (wordCountTa < 100 && finalContentTa) {
+          finalContentTa = `${finalContentTa}<p><strong>செய்திப் பின்னணி & தகவல்கள்:</strong> கிங்ஸ் 24x7 செய்தித் தளம் தமிழ்நாடு, இந்தியா மற்றும் உலகளாவிய செய்திகளை உடனுக்குடன் மற்றும் நம்பகத்தன்மையுடன் வழங்குகிறது. எங்கள் செய்திப் பிரிவின் நேரடித் தகவல்களுடன் செய்திகளைத் தொடர்ந்து உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.</p>`;
         }
 
         return {
           ...f,
           titleTa: parsed.titleTa || f.titleTa,
           titleEn: parsed.titleEn || f.titleEn,
-          contentTa: parsed.contentTa || f.contentTa,
-          contentEn: parsed.contentEn || f.contentEn,
+          contentTa: finalContentTa,
+          contentEn: finalContentEn,
           shortDescTa: parsed.shortDescTa || f.shortDescTa,
           shortDescEn: parsed.shortDescEn || f.shortDescEn,
-          metaTitle: parsed.metaTitle || f.metaTitle,
-          metaDescription: metaDesc,
+          metaTitle: metaTitleEn,
+          metaTitleTa: metaTitleTa,
+          metaTitleEn: metaTitleEn,
+          metaDescription: metaDescEn,
+          metaDescriptionTa: metaDescTa,
+          metaDescriptionEn: metaDescEn,
           focusKeywords: parsed.focusKeywords || f.focusKeywords,
+          focusKeywordsTa: parsed.focusKeywordsTa || parsed.focusKeywords || f.focusKeywordsTa || 'செய்திகள், தமிழ்நாடு',
+          focusKeywordsEn: parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || 'news, breaking news',
           metaKeywords: parsed.metaKeywords || f.metaKeywords,
+          metaKeywordsTa: parsed.metaKeywordsTa || parsed.metaKeywords || f.metaKeywordsTa || 'செய்திகள், தமிழ், சென்னை',
+          metaKeywordsEn: parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || 'news, breaking, tamil nadu',
           slug: parsed.slug || f.slug,
           categoryId: matchedCatId,
           featuredImage: updatedImg,
@@ -1213,7 +1228,7 @@ const NewsEditor = () => {
       if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
       if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
 
-      showMsg('⚡ AI Grammar Check & Auto-Fill completed! All fields verified and filled.');
+      showMsg('⚡ AI Grammar Check, Translation & Auto-Fill completed! All fields verified and filled.');
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.message || 'Please check Gemini API Key in settings.';
@@ -1240,23 +1255,31 @@ const NewsEditor = () => {
       }
 
       let translatedText = '';
+      let isFallback = false;
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
           context: direction,
           text: baseRaw
         });
-        if (res.data && !res.data.error && res.data.result) {
+        if (res.data && !res.data.error && res.data.result && !res.data.isFallback) {
           const resStr = res.data.result;
-          if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
-            throw new Error('Backend returned untranslated text');
+          if (direction === 'en2ta' && !/[\u0B80-\u0BFF]/.test(resStr)) {
+            isFallback = true;
+          } else if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            isFallback = true;
+          } else {
+            translatedText = resStr;
           }
-          translatedText = resStr;
         } else {
-          throw new Error(res.data?.result || 'Backend translate returned error');
+          isFallback = true;
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed or returned untranslated text, attempting direct Gemini AI fallback...', backendErr);
+        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        isFallback = true;
+      }
+
+      if (isFallback || !translatedText) {
         const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
@@ -1265,7 +1288,6 @@ const NewsEditor = () => {
       let newExcerpt = '';
       let newContent = '';
 
-      // Simple parsing based on the prompt structure
       const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
       const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
       const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
@@ -1274,7 +1296,6 @@ const NewsEditor = () => {
       if (excerptMatch) newExcerpt = excerptMatch[1].trim();
       if (contentMatch) newContent = contentMatch[1].trim();
 
-      // If parsing failed to find blocks, dump everything to content
       if (!newTitle && !newExcerpt && !newContent) {
         newContent = translatedText.trim();
       }
@@ -1284,7 +1305,9 @@ const NewsEditor = () => {
           ...f,
           titleEn: newTitle || f.titleEn,
           shortDescEn: newExcerpt || f.shortDescEn,
-          contentEn: newContent || f.contentEn
+          contentEn: newContent || f.contentEn,
+          metaTitleEn: newTitle || f.metaTitleEn,
+          metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
         if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
       } else {
@@ -1292,7 +1315,9 @@ const NewsEditor = () => {
           ...f,
           titleTa: newTitle || f.titleTa,
           shortDescTa: newExcerpt || f.shortDescTa,
-          contentTa: newContent || f.contentTa
+          contentTa: newContent || f.contentTa,
+          metaTitleTa: newTitle || f.metaTitleTa,
+          metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
       }
@@ -1854,7 +1879,15 @@ const NewsEditor = () => {
                   <div style={{ marginTop: 0 }}>
                     <Editor
                       key={activeTab === 0 ? 'editor-ta' : 'editor-en'}
-                      onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
+                      onInit={(evt, editor) => { 
+                        if (activeTab === 0) {
+                          editorRefTa.current = editor;
+                          if (form.contentTa) editor.setContent(form.contentTa);
+                        } else {
+                          editorRefEn.current = editor;
+                          if (form.contentEn) editor.setContent(form.contentEn);
+                        }
+                      }}
                       value={activeTab === 0 ? form.contentTa : form.contentEn}
                       onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}
                       init={tinyInit(activeTab === 0 ? 'ta' : 'en')}
@@ -2276,26 +2309,36 @@ const NewsEditor = () => {
                           <button
                             key={j}
                             onClick={() => {
+                              const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                              const re = new RegExp(safeWord, 'gi');
+
                               const replaceInEditor = (editor) => {
                                 if (!editor) return;
-                                const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                                let content = editor.getContent({ format: 'raw' });
-                                content = content.replace(new RegExp(`<span class="profanity-highlight"[^>]*>${safeWord}<\/span>`, 'gi'), alt);
-                                content = content.replace(new RegExp(`(${safeWord})`, 'gi'), alt);
+                                let content = editor.getContent({ format: 'html' });
+                                content = content.replace(re, alt);
                                 editor.setContent(content);
                               };
+
                               replaceInEditor(editorRefEn.current);
                               replaceInEditor(editorRefTa.current);
-                              const re = new RegExp(word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+
                               setForm(f => ({
                                 ...f,
-                                titleEn: (f.titleEn||'').replace(re, alt),
-                                titleTa: (f.titleTa||'').replace(re, alt),
-                                shortDescEn: (f.shortDescEn||'').replace(re, alt),
-                                shortDescTa: (f.shortDescTa||'').replace(re, alt),
-                                metaTitle: (f.metaTitle||'').replace(re, alt),
-                                metaDescription: (f.metaDescription||'').replace(re, alt),
+                                titleEn: (f.titleEn || '').replace(re, alt),
+                                titleTa: (f.titleTa || '').replace(re, alt),
+                                contentEn: (f.contentEn || '').replace(re, alt),
+                                contentTa: (f.contentTa || '').replace(re, alt),
+                                shortDescEn: (f.shortDescEn || '').replace(re, alt),
+                                shortDescTa: (f.shortDescTa || '').replace(re, alt),
+                                metaTitle: (f.metaTitle || '').replace(re, alt),
+                                metaTitleTa: (f.metaTitleTa || '').replace(re, alt),
+                                metaTitleEn: (f.metaTitleEn || '').replace(re, alt),
+                                metaDescription: (f.metaDescription || '').replace(re, alt),
+                                metaDescriptionTa: (f.metaDescriptionTa || '').replace(re, alt),
+                                metaDescriptionEn: (f.metaDescriptionEn || '').replace(re, alt),
                               }));
+
+                              setDetectedWords(prev => prev.filter(w => w.toLowerCase() !== word.toLowerCase()));
                             }}
                             style={{ padding: '3px 10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                           >
@@ -2812,79 +2855,6 @@ const NewsEditor = () => {
                 <Check size={16} /> Insert Gallery to Article ({galleryItems.length})
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Inline Profanity Warning Panel ─────────────────────────────── */}
-      {hasProfanity && (
-        <div style={{
-          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
-          width: '380px', borderRadius: '12px', overflow: 'hidden',
-          boxShadow: '0 10px 40px rgba(239,68,68,0.25), 0 2px 8px rgba(0,0,0,0.15)',
-          border: '1.5px solid #ef4444', background: '#ffffff',
-          animation: 'slideInRight 0.3s ease'
-        }}>
-          {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg,#fee2e2,#fef2f2)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #fca5a5' }}>
-            <AlertCircle color="#ef4444" size={20} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#991b1b' }}>⛔ Prohibited Words Detected</div>
-              <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '2px' }}>Publish is blocked until fixed</div>
-            </div>
-          </div>
-
-          {/* Detected words list with suggested alternatives */}
-          <div style={{ padding: '12px 16px', maxHeight: '260px', overflowY: 'auto' }}>
-            {detectedWords.map((word, i) => (
-              <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: i < detectedWords.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, border: '1px solid #fca5a5' }}>
-                    🚫 {word}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>→ replace with:</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {getSuggestions(word).map((alt, j) => (
-                    <button
-                      key={j}
-                      onClick={() => {
-                        // Replace in both editors
-                        const replaceInEditor = (editor) => {
-                          if (!editor) return;
-                          const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                          let content = editor.getContent({ format: 'raw' });
-                          content = content.replace(new RegExp(`<span class="profanity-highlight"[^>]*>${safeWord}<\/span>`, 'gi'), alt);
-                          content = content.replace(new RegExp(`(${safeWord})`, 'gi'), alt);
-                          editor.setContent(content);
-                        };
-                        replaceInEditor(editorRefEn.current);
-                        replaceInEditor(editorRefTa.current);
-                        // Also replace in form fields
-                        const re = new RegExp(word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-                        setForm(f => ({
-                          ...f,
-                          titleEn: (f.titleEn||'').replace(re, alt),
-                          titleTa: (f.titleTa||'').replace(re, alt),
-                          shortDescEn: (f.shortDescEn||'').replace(re, alt),
-                          shortDescTa: (f.shortDescTa||'').replace(re, alt),
-                          metaTitle: (f.metaTitle||'').replace(re, alt),
-                          metaDescription: (f.metaDescription||'').replace(re, alt),
-                        }));
-                      }}
-                      style={{ padding: '3px 10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      ✓ {alt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer note */}
-          <div style={{ padding: '8px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', fontSize: '11px', color: '#64748b', textAlign: 'center' }}>
-            💡 Edit the highlighted red words in the editor or click a suggestion above
           </div>
         </div>
       )}

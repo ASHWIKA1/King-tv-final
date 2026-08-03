@@ -70,7 +70,7 @@ public class AiAssistService {
 
         // Smart Fallback for assist action
         String fallbackResult = buildFallbackAssistResult(action, text);
-        return Map.of("error", false, "result", fallbackResult, "action", action);
+        return Map.of("error", false, "isFallback", true, "result", fallbackResult, "action", action);
     }
 
     private String buildFallbackAssistResult(String action, String text) {
