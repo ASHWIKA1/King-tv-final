@@ -339,12 +339,12 @@ const ArticleDetail = () => {
             id: data.id || data.article_id,
             categoryId: currentCategoryId,
             subcategoryId: data.subcategoryId,
-            titleTa: data.titleTa,
-            titleEn: data.titleEn,
-            descTa: data.shortDescTa,
-            descEn: data.shortDescEn,
-            contentTa: data.contentTa,
-            contentEn: data.contentEn,
+            titleTa: data.titleTa || data.titleEn || data.title || '',
+            titleEn: data.titleEn || data.titleTa || data.title || '',
+            descTa: data.shortDescTa || data.shortDescEn || data.metaDescription || '',
+            descEn: data.shortDescEn || data.shortDescTa || data.metaDescription || '',
+            contentTa: data.contentTa || data.contentEn || data.content || '',
+            contentEn: data.contentEn || data.contentTa || data.content || '',
             authorName: data.authorName || 'Kings TV Desk',
             authorNameEn: data.authorNameEn || 'Kings TV Desk',
             authorRole: 'செய்தி நிருபர்',
@@ -580,13 +580,64 @@ const ArticleDetail = () => {
 
       updateMetaTag('description', desc);
       updateMetaTag('keywords', keywords);
-      updateMetaTag('og:title', lang === 'en' ? article.titleEn : article.titleTa);
+      updateMetaTag('og:title', lang === 'en' ? (article.titleEn || article.titleTa) : (article.titleTa || article.titleEn));
       updateMetaTag('og:description', desc);
       if (article.imageUrl) {
         updateMetaTag('og:image', article.imageUrl);
       }
     }
   }, [lang, article]);
+
+  useEffect(() => {
+    if (!article || !article.id) return;
+
+    const hasTamil = (text) => /[\u0B80-\u0BFF]/.test(text || '');
+
+    const translateSection = async (text, targetLang) => {
+      if (!text || !text.trim()) return text;
+      const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!cleanText) return text;
+      try {
+        const encoded = encodeURIComponent(cleanText.substring(0, 2500));
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encoded}`);
+        const data = await res.json();
+        if (Array.isArray(data) && Array.isArray(data[0])) {
+          const translatedText = data[0].map(item => item[0]).join('');
+          if (text.includes('<p>')) {
+            return translatedText.split('. ').map(p => `<p>${p.trim()}</p>`).join('');
+          }
+          return translatedText;
+        }
+      } catch (e) {
+        console.warn('Auto translation fallback error', e);
+      }
+      return text;
+    };
+
+    const runAutoTranslationIfNeeded = async () => {
+      if (lang === 'en') {
+        const currentTitle = article.titleEn || article.titleTa || '';
+        const currentContent = article.contentEn || article.contentTa || '';
+        if (hasTamil(currentTitle) || hasTamil(currentContent)) {
+          const newTitle = hasTamil(currentTitle) ? await translateSection(currentTitle, 'en') : currentTitle;
+          const newContent = hasTamil(currentContent) ? await translateSection(currentContent, 'en') : currentContent;
+          const newDesc = article.descEn && hasTamil(article.descEn) ? await translateSection(article.descEn, 'en') : (article.descEn || '');
+          setArticle(prev => prev ? { ...prev, titleEn: newTitle, contentEn: newContent, descEn: newDesc } : prev);
+        }
+      } else if (lang === 'ta') {
+        const currentTitle = article.titleTa || article.titleEn || '';
+        const currentContent = article.contentTa || article.contentEn || '';
+        if (!hasTamil(currentTitle) || !hasTamil(currentContent)) {
+          const newTitle = !hasTamil(currentTitle) ? await translateSection(currentTitle, 'ta') : currentTitle;
+          const newContent = !hasTamil(currentContent) ? await translateSection(currentContent, 'ta') : currentContent;
+          const newDesc = article.descTa && !hasTamil(article.descTa) ? await translateSection(article.descTa, 'ta') : (article.descTa || '');
+          setArticle(prev => prev ? { ...prev, titleTa: newTitle, contentTa: newContent, descTa: newDesc } : prev);
+        }
+      }
+    };
+
+    runAutoTranslationIfNeeded();
+  }, [lang, article?.id]);
 
   if (!article) {
     return (
@@ -707,17 +758,17 @@ const ArticleDetail = () => {
             )}
             <i className="fas fa-chevron-right" style={{ fontSize: '8px', margin: '0 8px', opacity: 0.5 }}></i>
             <span style={{ color: 'var(--text-secondary)' }}>
-              {lang === 'en' 
-                ? ((article.titleEn || article.titleTa).length > 35 ? (article.titleEn || article.titleTa).substring(0, 35) + '...' : (article.titleEn || article.titleTa))
-                : (article.titleTa.length > 35 ? article.titleTa.substring(0, 35) + '...' : article.titleTa)
-              }
+              {(() => {
+                const titleStr = lang === 'en' ? (article.titleEn || article.titleTa || '') : (article.titleTa || article.titleEn || '');
+                return titleStr.length > 35 ? titleStr.substring(0, 35) + '...' : titleStr;
+              })()}
             </span>
           </div>
 
           {/* Headlines */}
           <div className="article-headlines">
             <h1 id="artTitle" style={{ fontSize: '26px', fontWeight: 800, lineHeight: 1.4, marginBottom: '20px', color: 'var(--text-dark)' }}>
-              {lang === 'en' ? (article.titleEn || article.titleTa) : article.titleTa}
+              {lang === 'en' ? (article.titleEn || article.titleTa) : (article.titleTa || article.titleEn)}
             </h1>
           </div>
 
@@ -730,7 +781,7 @@ const ArticleDetail = () => {
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
             dangerouslySetInnerHTML={{
               __html: getCleanContentHtml(
-                lang === 'en' ? (article.contentEn || article.contentTa) : article.contentTa,
+                lang === 'en' ? (article.contentEn || article.contentTa) : (article.contentTa || article.contentEn),
                 getImageUrl(article),
                 article
               )

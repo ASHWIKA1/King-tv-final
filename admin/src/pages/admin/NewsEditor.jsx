@@ -1370,8 +1370,21 @@ const NewsEditor = () => {
 
     // Clean out highlight spans before saving
     const cleanContent = (html) => html ? html.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1') : html;
-    const finalContentTa = cleanContent(editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa);
-    const finalContentEn = cleanContent(editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+    let finalContentTa = cleanContent(editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa);
+    let finalContentEn = cleanContent(editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+
+    let finalTitleTa = (form.titleTa || '').trim();
+    let finalTitleEn = (form.titleEn || '').trim();
+    let finalDescTa = (form.shortDescTa || '').trim();
+    let finalDescEn = (form.shortDescEn || '').trim();
+
+    // Cross-populate missing language fields so content & title are NEVER missing in DB
+    if (!finalContentTa && finalContentEn) finalContentTa = finalContentEn;
+    if (!finalContentEn && finalContentTa) finalContentEn = finalContentTa;
+    if (!finalTitleTa && finalTitleEn) finalTitleTa = finalTitleEn;
+    if (!finalTitleEn && finalTitleTa) finalTitleEn = finalTitleTa;
+    if (!finalDescTa && finalDescEn) finalDescTa = finalDescEn;
+    if (!finalDescEn && finalDescTa) finalDescEn = finalDescTa;
 
     // 3. Ensure valid unique slug
     let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
@@ -1382,6 +1395,10 @@ const NewsEditor = () => {
     try {
       const payload = { 
         ...form, 
+        titleTa: finalTitleTa,
+        titleEn: finalTitleEn,
+        shortDescTa: finalDescTa,
+        shortDescEn: finalDescEn,
         imageUrl: form.imageUrl || form.featuredImage,
         featuredImage: form.featuredImage || form.imageUrl,
         slug: finalSlug,
