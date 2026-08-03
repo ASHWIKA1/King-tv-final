@@ -115,7 +115,7 @@ const Sidebar = () => {
     const host = window.location.hostname;
     return (host === 'localhost' || host === '127.0.0.1')
       ? 'http://localhost:5173'
-      : 'https://king-tv.test-technoprint.online/kingstv/';
+      : 'https://king-tv.test-technoprint.online/';
   };
 
   return (

@@ -118,7 +118,7 @@ def main():
     except Exception as e:
         print("\nFailed to upload .htaccess:", e)
 
-    print("\n[SUCCESS] Deployment to Hostinger subdomain /public_html/king-tv finished successfully!")
+    print("\n[SUCCESS] Deployment to Hostinger subdomain https://king-tv.test-technoprint.online/ finished successfully!")
 
 if __name__ == "__main__":
     main()
