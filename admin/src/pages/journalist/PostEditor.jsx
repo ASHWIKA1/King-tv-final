@@ -1115,12 +1115,16 @@ const PostEditor = () => {
           text: baseRaw
         });
         if (res.data && !res.data.error && res.data.result) {
-          translatedText = res.data.result;
+          const resStr = res.data.result;
+          if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            throw new Error('Backend returned untranslated text');
+          }
+          translatedText = resStr;
         } else {
           throw new Error(res.data?.result || 'Backend translate returned error');
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        console.warn('Backend translation API failed or returned untranslated text, attempting direct Gemini AI fallback...', backendErr);
         const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }

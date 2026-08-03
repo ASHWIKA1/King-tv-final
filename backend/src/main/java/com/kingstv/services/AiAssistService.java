@@ -163,11 +163,20 @@ public class AiAssistService {
             case "translate" -> {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
-                        Translate the following text from %s.
-                        Return ONLY the translated text, no explanations or prefixes.
-                        Maintain the original formatting, paragraphs, and structure.
-                        
-                        Text: """.formatted(direction) + text;
+                        You are a professional news translator for KINGS 24x7. Translate the following news content from %s.
+                        Maintain the exact format structure with TITLE:, EXCERPT:, and CONTENT: headers as shown below:
+
+                        TITLE:
+                        [Translated Title]
+
+                        EXCERPT:
+                        [Translated Excerpt]
+
+                        CONTENT:
+                        [Translated HTML Content]
+
+                        Content to Translate:
+                        """.formatted(direction) + text;
             }
 
             case "rewrite" -> {
