@@ -1245,6 +1245,22 @@ const PostEditor = () => {
       targetStatus = 'pending_review';
     }
 
+    let finalContentTa = editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa;
+    let finalContentEn = editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn;
+
+    let finalTitleTa = (form.titleTa || '').trim();
+    let finalTitleEn = (form.titleEn || '').trim();
+    let finalDescTa = (form.shortDescTa || '').trim();
+    let finalDescEn = (form.shortDescEn || '').trim();
+
+    // Cross-populate missing language fields so content & title are NEVER missing in DB
+    if (!finalContentTa && finalContentEn) finalContentTa = finalContentEn;
+    if (!finalContentEn && finalContentTa) finalContentEn = finalContentTa;
+    if (!finalTitleTa && finalTitleEn) finalTitleTa = finalTitleEn;
+    if (!finalTitleEn && finalTitleTa) finalTitleEn = finalTitleTa;
+    if (!finalDescTa && finalDescEn) finalDescTa = finalDescEn;
+    if (!finalDescEn && finalDescTa) finalDescEn = finalDescTa;
+
     // 3. Ensure valid unique slug
     let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
     if (!finalSlug) finalSlug = `article-${Date.now()}`;
@@ -1254,12 +1270,16 @@ const PostEditor = () => {
     try {
       const payload = { 
         ...form, 
+        titleTa: finalTitleTa,
+        titleEn: finalTitleEn,
+        shortDescTa: finalDescTa,
+        shortDescEn: finalDescEn,
         imageUrl: form.imageUrl || form.featuredImage,
         featuredImage: form.featuredImage || form.imageUrl,
         slug: finalSlug,
         status: targetStatus,
-        contentTa: editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa,
-        contentEn: editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn
+        contentTa: finalContentTa,
+        contentEn: finalContentEn
       };
       if (!payload.publishedAt) delete payload.publishedAt;
       
