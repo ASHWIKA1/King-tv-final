@@ -275,6 +275,13 @@ public class Article implements Serializable {
     public String getShortDescEn() { return shortDescEn; }
     public void setShortDescEn(String shortDescEn) { this.shortDescEn = shortDescEn; }
 
+    public Integer getViewsCount() { return viewsCount != null ? viewsCount : 0; }
+    public void setViewsCount(Integer viewsCount) { this.viewsCount = viewsCount; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
+
     public String getMetaTitle() { return metaTitle; }
     public void setMetaTitle(String metaTitle) { this.metaTitle = metaTitle; }
     public String getMetaDescription() { return metaDescription; }
