@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: kings-tv-backend
+    env: java
+    rootDir: backend
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -Dserver.port=${PORT:-8080} -jar target/backend-java-1.0.0.jar
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JAVA_VERSION
+        value: 17
