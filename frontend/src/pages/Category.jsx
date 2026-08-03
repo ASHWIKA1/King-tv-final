@@ -23,6 +23,7 @@ const subcatEnTranslations = {
   'ஸ்மார்ட்போன்': 'Smartphones',
   'மென்பொருள்': 'Software',
   'AI': 'AI',
+  'செயற்கை நுண்ணறிவு': 'AI',
   'விண்வெளி': 'Space',
   'உலக செய்திகள்': 'World News',
   'state': 'State',
