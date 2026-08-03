@@ -55,11 +55,12 @@ const callGemini = async (prompt) => {
   }
 
   const modelsToTry = [
-    activeAiConfig.model || 'gemini-2.0-flash',
+    activeAiConfig.model || 'gemini-flash-latest',
     'gemini-flash-latest',
-    'gemini-1.5-flash',
     'gemini-2.5-flash',
-    'gemini-1.5-pro'
+    'gemini-2.0-flash',
+    'gemini-3.6-flash',
+    'gemini-2.0-flash-001'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
