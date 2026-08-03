@@ -1697,12 +1697,39 @@ const NewsEditor = () => {
                       {isTranslating ? 'Translating...' : (activeTab === 0 ? 'Auto-Translate to English' : 'Auto-Translate to Tamil')}
                     </button>
                   </div>
-                    <input 
-                      type="text" 
+                    <textarea 
                       value={activeTab === 0 ? form.titleTa : form.titleEn}
-                      onChange={e => set(activeTab === 0 ? 'titleTa' : 'titleEn', e.target.value)}
-                      style={{ width: '100%', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '18px', fontWeight: '600', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                      placeholder="Add title"
+                      onChange={e => {
+                        set(activeTab === 0 ? 'titleTa' : 'titleEn', e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      onFocus={e => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      ref={el => {
+                        if (el) {
+                          el.style.height = 'auto';
+                          el.style.height = `${Math.max(52, el.scrollHeight)}px`;
+                        }
+                      }}
+                      rows={1}
+                      style={{ 
+                        width: '100%', 
+                        padding: '12px 16px', 
+                        borderRadius: '6px', 
+                        border: '1px solid var(--border-color)', 
+                        fontSize: '18px', 
+                        fontWeight: '700', 
+                        background: 'var(--bg-secondary)', 
+                        color: 'var(--text-primary)',
+                        resize: 'none',
+                        overflow: 'hidden',
+                        lineHeight: '1.4',
+                        boxSizing: 'border-box'
+                      }}
+                      placeholder={`Add title (${activeTab === 0 ? 'Tamil' : 'English'})`}
                     />
                   </div>
 
