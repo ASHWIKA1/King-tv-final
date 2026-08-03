@@ -9,7 +9,7 @@ import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
+const DEFAULT_GEMINI_KEY = '';
 
 export let activeAiConfig = { 
   apiKey: '', 
@@ -1035,6 +1035,7 @@ const PostEditor = () => {
     showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
 
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
+    const firstCategoryId = categories.length > 0 ? String(categories[0].id) : '';
 
     try {
       let raw = '';
@@ -1060,23 +1061,59 @@ const PostEditor = () => {
         throw new Error('AI returned non-JSON text. Please try again.');
       }
 
-      setForm(f => ({
-        ...f,
-        titleTa: parsed.titleTa || f.titleTa,
-        titleEn: parsed.titleEn || f.titleEn,
-        contentTa: parsed.contentTa || f.contentTa,
-        contentEn: parsed.contentEn || f.contentEn,
-        shortDescTa: parsed.shortDescTa || f.shortDescTa,
-        shortDescEn: parsed.shortDescEn || f.shortDescEn,
-        metaTitle: parsed.metaTitle || f.metaTitle,
-        metaDescription: parsed.metaDescription || f.metaDescription,
-        focusKeywords: parsed.focusKeywords || f.focusKeywords,
-        metaKeywords: parsed.metaKeywords || f.metaKeywords,
-        slug: parsed.slug || f.slug,
-        categoryId: parsed.categoryId || f.categoryId,
-        reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
-        constituency: f.constituency || parsed.suggestedLocation || ''
-      }));
+      setForm(f => {
+        // ── 1. Smart Category Resolver ──────────────────────────────────────
+        let matchedCatId = f.categoryId;
+        if (parsed.categoryId && categories.length > 0) {
+          const catStr = String(parsed.categoryId).trim().toLowerCase();
+          const found = categories.find(c =>
+            String(c.id) === catStr ||
+            catStr.startsWith(String(c.id) + ':') ||
+            (c.slug && c.slug.toLowerCase() === catStr) ||
+            (c.name && c.name.toLowerCase() === catStr) ||
+            (c.nameEn && c.nameEn.toLowerCase() === catStr) ||
+            (c.nameTa && c.nameTa.toLowerCase() === catStr) ||
+            (c.nameEn && catStr.includes(c.nameEn.toLowerCase())) ||
+            (c.name && catStr.includes(c.name.toLowerCase()))
+          );
+          if (found) matchedCatId = String(found.id);
+        }
+        if (!matchedCatId && firstCategoryId) matchedCatId = firstCategoryId;
+
+        // ── 2. Featured Image ──────────────────────────────────────────────
+        const firstImg = (mediaList || []).find(m => m.url)?.url || '';
+        const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
+        const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
+
+        // ── 3. Meta Description - always ensure 90-160 char value ──────────
+        let metaDesc = parsed.metaDescription || f.metaDescription || '';
+        const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
+        const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
+        if (!metaDesc || metaDesc.length < 90) {
+          const base = metaDesc || contentSnippet || titleStr;
+          metaDesc = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        }
+
+        return {
+          ...f,
+          titleTa: parsed.titleTa || f.titleTa,
+          titleEn: parsed.titleEn || f.titleEn,
+          contentTa: parsed.contentTa || f.contentTa,
+          contentEn: parsed.contentEn || f.contentEn,
+          shortDescTa: parsed.shortDescTa || f.shortDescTa,
+          shortDescEn: parsed.shortDescEn || f.shortDescEn,
+          metaTitle: parsed.metaTitle || f.metaTitle,
+          metaDescription: metaDesc,
+          focusKeywords: parsed.focusKeywords || f.focusKeywords,
+          metaKeywords: parsed.metaKeywords || f.metaKeywords,
+          slug: parsed.slug || f.slug,
+          categoryId: matchedCatId,
+          featuredImage: updatedImg,
+          imageUrl: updatedImg,
+          reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
+          constituency: f.constituency || parsed.suggestedLocation || ''
+        };
+      });
 
       if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
       if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
@@ -1115,12 +1152,16 @@ const PostEditor = () => {
           text: baseRaw
         });
         if (res.data && !res.data.error && res.data.result) {
-          translatedText = res.data.result;
+          const resStr = res.data.result;
+          if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            throw new Error('Backend returned untranslated text');
+          }
+          translatedText = resStr;
         } else {
           throw new Error(res.data?.result || 'Backend translate returned error');
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        console.warn('Backend translation API failed or returned untranslated text, attempting direct Gemini AI fallback...', backendErr);
         const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
@@ -1161,7 +1202,7 @@ const PostEditor = () => {
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
       }
       
-      showMsg('✅ Translation completed successfully!');
+      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
@@ -1692,6 +1733,7 @@ const PostEditor = () => {
                   
                   <div style={{ marginTop: 0 }}>
                     <Editor
+                      key={activeTab === 0 ? 'editor-ta' : 'editor-en'}
                       onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
                       value={activeTab === 0 ? form.contentTa : form.contentEn}
                       onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}

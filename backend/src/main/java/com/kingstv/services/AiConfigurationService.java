@@ -64,7 +64,7 @@ public class AiConfigurationService {
                 conf.setBaseUrl(defaultUrls.get(prov));
                 conf.setModel(defaultModels.get(prov));
                 if ("gemini".equals(prov)) {
-                    conf.setApiKey("AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY");
+                    conf.setApiKey("");
                     conf.setEnableAi(true);
                 }
                 conf.setTemperature(0.3);

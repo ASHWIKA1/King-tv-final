@@ -9,7 +9,7 @@ import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
+const DEFAULT_GEMINI_KEY = '';
 
 export let activeAiConfig = { 
   apiKey: '', 
@@ -216,8 +216,14 @@ const NewsEditor = () => {
   const [profanityDict, setProfanityDict] = useState([]);
   const [detectedWords, setDetectedWords] = useState([]);
   const [hasShownAlert, setHasShownAlert] = useState(false);
-  const [moderationModalOpen, setModerationModalOpen] = useState(false);
-  const [publishBlockModalOpen, setPublishBlockModalOpen] = useState(false);
+  const hasProfanity = detectedWords.length > 0;
+
+  // Common alternative word suggestions for profanity replacement
+  const WORD_ALTERNATIVES = {
+    // add domain-specific entries here if needed
+    default: ['appropriate term', 'suitable word', 'correct expression']
+  };
+  const getSuggestions = (word) => WORD_ALTERNATIVES[word.toLowerCase()] || WORD_ALTERNATIVES.default;
   
   const [mediaList, setMediaList] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -805,15 +811,11 @@ const NewsEditor = () => {
 
     if (editorRefEn.current) applyProfanityHighlights(editorRefEn.current, uniqueFound);
     if (editorRefTa.current) applyProfanityHighlights(editorRefTa.current, uniqueFound);
-    
-    if (uniqueFound.length > 0 && !hasShownAlert) {
-      setModerationModalOpen(true);
-      setHasShownAlert(true);
-      setDetectedWords(uniqueFound);
-    } else if (uniqueFound.length === 0 && hasShownAlert) {
-      // Reset if resolved
-      setHasShownAlert(false);
-    }
+
+    // Always keep detectedWords in sync — no popup modals
+    setDetectedWords(uniqueFound);
+    if (uniqueFound.length === 0 && hasShownAlert) setHasShownAlert(false);
+    if (uniqueFound.length > 0 && !hasShownAlert) setHasShownAlert(true);
   }, [form, profanityDict, hasShownAlert]);
 
   useEffect(() => {
@@ -1127,6 +1129,7 @@ const NewsEditor = () => {
     showMsg('⚡ AI is proofreading content, correcting grammar, and auto-filling all metadata...');
 
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
+    const firstCategoryId = categories.length > 0 ? String(categories[0].id) : '';
 
     try {
       let raw = '';
@@ -1152,23 +1155,60 @@ const NewsEditor = () => {
         throw new Error('AI returned non-JSON text. Please try again.');
       }
 
-      setForm(f => ({
-        ...f,
-        titleTa: parsed.titleTa || f.titleTa,
-        titleEn: parsed.titleEn || f.titleEn,
-        contentTa: parsed.contentTa || f.contentTa,
-        contentEn: parsed.contentEn || f.contentEn,
-        shortDescTa: parsed.shortDescTa || f.shortDescTa,
-        shortDescEn: parsed.shortDescEn || f.shortDescEn,
-        metaTitle: parsed.metaTitle || f.metaTitle,
-        metaDescription: parsed.metaDescription || f.metaDescription,
-        focusKeywords: parsed.focusKeywords || f.focusKeywords,
-        metaKeywords: parsed.metaKeywords || f.metaKeywords,
-        slug: parsed.slug || f.slug,
-        categoryId: parsed.categoryId || f.categoryId,
-        reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
-        constituency: f.constituency || parsed.suggestedLocation || ''
-      }));
+      setForm(f => {
+        // ── 1. Smart Category Resolver ──────────────────────────────────────
+        let matchedCatId = f.categoryId;
+        if (parsed.categoryId && categories.length > 0) {
+          const catStr = String(parsed.categoryId).trim().toLowerCase();
+          const found = categories.find(c =>
+            String(c.id) === catStr ||
+            catStr.startsWith(String(c.id) + ':') ||
+            (c.slug && c.slug.toLowerCase() === catStr) ||
+            (c.name && c.name.toLowerCase() === catStr) ||
+            (c.nameEn && c.nameEn.toLowerCase() === catStr) ||
+            (c.nameTa && c.nameTa.toLowerCase() === catStr) ||
+            (c.nameEn && catStr.includes(c.nameEn.toLowerCase())) ||
+            (c.name && catStr.includes(c.name.toLowerCase()))
+          );
+          if (found) matchedCatId = String(found.id);
+        }
+        // If still no category matched, use the first available category
+        if (!matchedCatId && firstCategoryId) matchedCatId = firstCategoryId;
+
+        // ── 2. Featured Image ──────────────────────────────────────────────
+        const firstImg = (mediaList || []).find(m => m.url)?.url || '';
+        const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
+        const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
+
+        // ── 3. Meta Description - always ensure 90-160 char value ──────────
+        let metaDesc = parsed.metaDescription || f.metaDescription || '';
+        const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
+        const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
+        if (!metaDesc || metaDesc.length < 90) {
+          const base = metaDesc || contentSnippet || titleStr;
+          metaDesc = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
+        }
+
+        return {
+          ...f,
+          titleTa: parsed.titleTa || f.titleTa,
+          titleEn: parsed.titleEn || f.titleEn,
+          contentTa: parsed.contentTa || f.contentTa,
+          contentEn: parsed.contentEn || f.contentEn,
+          shortDescTa: parsed.shortDescTa || f.shortDescTa,
+          shortDescEn: parsed.shortDescEn || f.shortDescEn,
+          metaTitle: parsed.metaTitle || f.metaTitle,
+          metaDescription: metaDesc,
+          focusKeywords: parsed.focusKeywords || f.focusKeywords,
+          metaKeywords: parsed.metaKeywords || f.metaKeywords,
+          slug: parsed.slug || f.slug,
+          categoryId: matchedCatId,
+          featuredImage: updatedImg,
+          imageUrl: updatedImg,
+          reporterName: f.reporterName || parsed.suggestedSource || 'Kings TV Desk',
+          constituency: f.constituency || parsed.suggestedLocation || ''
+        };
+      });
 
       if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
       if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
@@ -1207,12 +1247,16 @@ const NewsEditor = () => {
           text: baseRaw
         });
         if (res.data && !res.data.error && res.data.result) {
-          translatedText = res.data.result;
+          const resStr = res.data.result;
+          if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            throw new Error('Backend returned untranslated text');
+          }
+          translatedText = resStr;
         } else {
           throw new Error(res.data?.result || 'Backend translate returned error');
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        console.warn('Backend translation API failed or returned untranslated text, attempting direct Gemini AI fallback...', backendErr);
         const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
@@ -1253,7 +1297,7 @@ const NewsEditor = () => {
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
       }
       
-      showMsg('✅ Translation completed successfully!');
+      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
@@ -1288,9 +1332,10 @@ const NewsEditor = () => {
     // --- Content Moderation: Pre-Save Block & Sanitize ---
     if (detectedWords.length > 0) {
       if (targetStatus === 'published' || targetStatus === 'pending_review') {
-        setPublishBlockModalOpen(true);
-        // Log the block
+        // Publish button is already disabled when hasProfanity; this guard handles direct calls
+        showMsg(`⛔ Cannot publish: article contains prohibited words (${detectedWords.join(', ')}). Please fix them first.`, true);
         api.post('/admin/profanity/public/log-event', { action: 'BLOCKED', details: `Blocked publish attempt containing: ${detectedWords.join(', ')}` }).catch(()=>{});
+        setSaving(false);
         return;
       } else if (targetStatus === 'draft') {
         showMsg('Draft saved with content moderation warnings.', true);
@@ -1589,8 +1634,13 @@ const NewsEditor = () => {
             <Save size={16} /> Save Draft
           </button>
           
-          <button onClick={() => handleSave('published')} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#2563EB', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(37,99,235,0.3)' }}>
-            <Send size={16} /> {saving ? 'Saving...' : 'Publish Now'}
+          <button
+            onClick={() => handleSave('published')}
+            disabled={saving || hasProfanity}
+            title={hasProfanity ? `Cannot publish: article has prohibited words — ${detectedWords.join(', ')}` : ''}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: hasProfanity ? '#94a3b8' : '#2563EB', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: hasProfanity ? 'not-allowed' : 'pointer', fontWeight: 600, boxShadow: hasProfanity ? 'none' : '0 2px 4px rgba(37,99,235,0.3)', opacity: hasProfanity ? 0.7 : 1, transition: 'all 0.2s' }}
+          >
+            <Send size={16} /> {saving ? 'Saving...' : hasProfanity ? '🚫 Publish Blocked' : 'Publish Now'}
           </button>
         </div>
       </div>
@@ -1803,6 +1853,7 @@ const NewsEditor = () => {
                   
                   <div style={{ marginTop: 0 }}>
                     <Editor
+                      key={activeTab === 0 ? 'editor-ta' : 'editor-en'}
                       onInit={(evt, editor) => { activeTab === 0 ? (editorRefTa.current = editor) : (editorRefEn.current = editor); }}
                       value={activeTab === 0 ? form.contentTa : form.contentEn}
                       onEditorChange={(newContent) => set(activeTab === 0 ? 'contentTa' : 'contentEn', newContent)}
@@ -2197,20 +2248,71 @@ const NewsEditor = () => {
           })()}
 
           {/* Content Moderation Status */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertCircle size={18} color={detectedWords.length > 0 ? '#EF4444' : '#10B981'} /> Content Moderation
+          <div style={{ background: 'var(--bg-surface)', border: `1.5px solid ${detectedWords.length > 0 ? '#ef4444' : 'var(--border-color)'}`, borderRadius: '8px', padding: '16px', transition: 'border-color 0.3s' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={16} color={detectedWords.length > 0 ? '#EF4444' : '#10B981'} />
+              Content Moderation
             </h3>
+
             {detectedWords.length > 0 ? (
-              <div 
-                style={{ background: '#FEE2E2', color: '#B91C1C', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                onClick={navigateToFirstHighlight}
-              >
-                🔴 {detectedWords.length} prohibited {detectedWords.length === 1 ? 'word' : 'words'} detected
+              <div>
+                {/* Warning banner */}
+                <div style={{ background: '#FEE2E2', color: '#B91C1C', padding: '10px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ⛔ {detectedWords.length} prohibited {detectedWords.length === 1 ? 'word' : 'words'} found — Publish blocked
+                </div>
+
+                {/* Per-word list with alternatives */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {detectedWords.map((word, i) => (
+                    <div key={i} style={{ background: '#fff5f5', border: '1px solid #fca5a5', borderRadius: '6px', padding: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, border: '1px solid #fca5a5' }}>
+                          🚫 {word}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>→ use instead:</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {(getSuggestions(word)).map((alt, j) => (
+                          <button
+                            key={j}
+                            onClick={() => {
+                              const replaceInEditor = (editor) => {
+                                if (!editor) return;
+                                const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                                let content = editor.getContent({ format: 'raw' });
+                                content = content.replace(new RegExp(`<span class="profanity-highlight"[^>]*>${safeWord}<\/span>`, 'gi'), alt);
+                                content = content.replace(new RegExp(`(${safeWord})`, 'gi'), alt);
+                                editor.setContent(content);
+                              };
+                              replaceInEditor(editorRefEn.current);
+                              replaceInEditor(editorRefTa.current);
+                              const re = new RegExp(word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                              setForm(f => ({
+                                ...f,
+                                titleEn: (f.titleEn||'').replace(re, alt),
+                                titleTa: (f.titleTa||'').replace(re, alt),
+                                shortDescEn: (f.shortDescEn||'').replace(re, alt),
+                                shortDescTa: (f.shortDescTa||'').replace(re, alt),
+                                metaTitle: (f.metaTitle||'').replace(re, alt),
+                                metaDescription: (f.metaDescription||'').replace(re, alt),
+                              }));
+                            }}
+                            style={{ padding: '3px 10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            ✓ {alt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ margin: '10px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                  💡 Click a suggestion to auto-replace, or edit the red-highlighted words in the editor above.
+                </p>
               </div>
             ) : (
-              <div style={{ background: '#D1FAE5', color: '#047857', padding: '12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🟢 No prohibited words detected
+              <div style={{ background: '#D1FAE5', color: '#047857', padding: '10px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🟢 No prohibited words detected — Publish ready
               </div>
             )}
           </div>
@@ -2714,62 +2816,75 @@ const NewsEditor = () => {
         </div>
       )}
 
-      {/* Content Moderation Alert Modal */}
-      {moderationModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#ffffff', width: '460px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #ef4444' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#fee2e2', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <AlertCircle color="#ef4444" size={24} />
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#991b1b' }}>Content Moderation Alert</h2>
-            </div>
-            <div style={{ padding: '24px' }}>
-              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
-                One or more words in this article match entries configured in the Profanity Manager.
-                <br/><br/>
-                Please review and remove or replace the highlighted words before publishing to ensure compliance with your organization's editorial and content moderation policies.
-              </p>
-              
-              <div style={{ margin: '20px 0' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Detected Words</h4>
-                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {detectedWords.map((word, i) => (
-                    <li key={i} style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid #fca5a5' }}>
-                      • {word}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => { setModerationModalOpen(false); navigateToFirstHighlight(); }} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Review Content</button>
-              <button onClick={() => { setModerationModalOpen(false); handleReplaceAutomatically(); }} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Replace Automatically</button>
-              <button onClick={() => setModerationModalOpen(false)} style={{ padding: '8px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Close</button>
+      {/* ── Inline Profanity Warning Panel ─────────────────────────────── */}
+      {hasProfanity && (
+        <div style={{
+          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+          width: '380px', borderRadius: '12px', overflow: 'hidden',
+          boxShadow: '0 10px 40px rgba(239,68,68,0.25), 0 2px 8px rgba(0,0,0,0.15)',
+          border: '1.5px solid #ef4444', background: '#ffffff',
+          animation: 'slideInRight 0.3s ease'
+        }}>
+          {/* Header */}
+          <div style={{ background: 'linear-gradient(135deg,#fee2e2,#fef2f2)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #fca5a5' }}>
+            <AlertCircle color="#ef4444" size={20} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '14px', color: '#991b1b' }}>⛔ Prohibited Words Detected</div>
+              <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '2px' }}>Publish is blocked until fixed</div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Publish Block Modal */}
-      {publishBlockModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#ffffff', width: '460px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #ef4444' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#fee2e2', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <AlertCircle color="#ef4444" size={24} />
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#991b1b' }}>Content Moderation Alert</h2>
-            </div>
-            <div style={{ padding: '24px' }}>
-              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
-                Publishing cannot continue because this article contains words configured in the Profanity Manager.
-                <br/><br/>
-                Please review and remove or replace the highlighted content before publishing.
-              </p>
-            </div>
-            
-            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => { setPublishBlockModalOpen(false); navigateToFirstHighlight(); setSaving(false); }} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Return to Editor</button>
-              <button onClick={() => { setPublishBlockModalOpen(false); handleReplaceAutomatically(); setSaving(false); }} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>Replace Automatically</button>
-            </div>
+          {/* Detected words list with suggested alternatives */}
+          <div style={{ padding: '12px 16px', maxHeight: '260px', overflowY: 'auto' }}>
+            {detectedWords.map((word, i) => (
+              <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: i < detectedWords.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, border: '1px solid #fca5a5' }}>
+                    🚫 {word}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>→ replace with:</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {getSuggestions(word).map((alt, j) => (
+                    <button
+                      key={j}
+                      onClick={() => {
+                        // Replace in both editors
+                        const replaceInEditor = (editor) => {
+                          if (!editor) return;
+                          const safeWord = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                          let content = editor.getContent({ format: 'raw' });
+                          content = content.replace(new RegExp(`<span class="profanity-highlight"[^>]*>${safeWord}<\/span>`, 'gi'), alt);
+                          content = content.replace(new RegExp(`(${safeWord})`, 'gi'), alt);
+                          editor.setContent(content);
+                        };
+                        replaceInEditor(editorRefEn.current);
+                        replaceInEditor(editorRefTa.current);
+                        // Also replace in form fields
+                        const re = new RegExp(word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                        setForm(f => ({
+                          ...f,
+                          titleEn: (f.titleEn||'').replace(re, alt),
+                          titleTa: (f.titleTa||'').replace(re, alt),
+                          shortDescEn: (f.shortDescEn||'').replace(re, alt),
+                          shortDescTa: (f.shortDescTa||'').replace(re, alt),
+                          metaTitle: (f.metaTitle||'').replace(re, alt),
+                          metaDescription: (f.metaDescription||'').replace(re, alt),
+                        }));
+                      }}
+                      style={{ padding: '3px 10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      ✓ {alt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer note */}
+          <div style={{ padding: '8px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', fontSize: '11px', color: '#64748b', textAlign: 'center' }}>
+            💡 Edit the highlighted red words in the editor or click a suggestion above
           </div>
         </div>
       )}
