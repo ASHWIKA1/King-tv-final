@@ -1,5 +1,5 @@
 # Multi-stage Docker build for Render deployment
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copy pom.xml and src from backend directory
@@ -10,7 +10,7 @@ COPY backend/src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime Container
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/backend-java-1.0.0.jar app.jar
 EXPOSE 8080
