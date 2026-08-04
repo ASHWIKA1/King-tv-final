@@ -60,6 +60,9 @@ public class BackendJavaApplication implements CommandLineRunner {
     @Autowired
     private com.kingstv.repository.CandidateRepository candidateRepository;
 
+    @Autowired
+    private com.kingstv.services.ClassifiedService classifiedService;
+
     public static void main(String[] args) {
         System.setOut(new com.kingstv.services.MaskingPrintStream(System.out, System.out));
         System.setErr(new com.kingstv.services.MaskingPrintStream(System.err, System.err));
@@ -82,6 +85,7 @@ public class BackendJavaApplication implements CommandLineRunner {
         seedObituaryFrameTemplates();
         seedJobCategoriesAndCompanies();
         seedClassifiedCategoriesAndSubcategories();
+        seedDummyClassifieds();
     }
 
     private void seedCategories() {
@@ -297,6 +301,53 @@ public class BackendJavaApplication implements CommandLineRunner {
         s.setName(name);
         s.setSlug(slug);
         classifiedSubcategoryRepository.save(s);
+    }
+
+    private void seedDummyClassifieds() {
+        if (classifiedService.getClassifieds(null, null, null, null, null, null, null, null, "newest", org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements() == 0) {
+            
+            // Dummy Ad 1
+            com.kingstv.models.ClassifiedListing ad1 = new com.kingstv.models.ClassifiedListing();
+            ad1.setTitle("iPhone 13 Pro - 256GB Excellent Condition");
+            ad1.setDescription("Used for 1 year, no scratches, battery health 89%. Comes with box and charger.");
+            ad1.setPrice(45000.0);
+            ad1.setContactPhone("9876543210");
+            ad1.setLocation("Chennai, Tamil Nadu");
+            ad1.setCategoryId(3L); // Mobiles
+            ad1.setSubcategoryId(5L); // Mobiles
+            ad1.setStatus("active");
+            ad1.setConditionId(3L);
+            classifiedService.createClassified(ad1, java.util.Arrays.asList("https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500"));
+
+            // Dummy Ad 2
+            com.kingstv.models.ClassifiedListing ad2 = new com.kingstv.models.ClassifiedListing();
+            ad2.setTitle("Sony Bravia 55 inch 4K Smart TV");
+            ad2.setDescription("Like new, 6 months old. Moving out of city, need to sell urgently.");
+            ad2.setPrice(32000.0);
+            ad2.setContactPhone("9876543211");
+            ad2.setLocation("Coimbatore, Tamil Nadu");
+            ad2.setCategoryId(4L); // Electronics
+            ad2.setSubcategoryId(8L); // TVs
+            ad2.setStatus("active");
+            ad2.setConditionId(2L);
+            classifiedService.createClassified(ad2, java.util.Arrays.asList("https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500"));
+
+            // Dummy Ad 3
+            com.kingstv.models.ClassifiedListing ad3 = new com.kingstv.models.ClassifiedListing();
+            ad3.setTitle("Honda City V MT Petrol - 2018");
+            ad3.setDescription("Single owner, showroom track, fully insured. Price slightly negotiable.");
+            ad3.setPrice(750000.0);
+            ad3.setNegotiable(true);
+            ad3.setContactPhone("9876543212");
+            ad3.setLocation("Madurai, Tamil Nadu");
+            ad3.setCategoryId(1L); // Vehicles
+            ad3.setSubcategoryId(1L); // Cars
+            ad3.setStatus("active");
+            ad3.setConditionId(3L);
+            classifiedService.createClassified(ad3, java.util.Arrays.asList("https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=500", "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=500"));
+
+            System.out.println("Default classifieds dummy dataset seeded.");
+        }
     }
 }
 
