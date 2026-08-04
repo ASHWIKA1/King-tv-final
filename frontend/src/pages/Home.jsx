@@ -748,15 +748,15 @@ const Home = () => {
     ]);
 
     return (
-      <div className="breaking-news-wrapper" style={{ background: '#FFFBEB', borderTop: '1px solid #FDE68A', borderBottom: '1px solid #FCD34D' }}>
+      <div className="breaking-news-wrapper" style={{ background: '#FACC15', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: '42px', overflow: 'hidden' }}>
-          <div style={{ background: '#EF4444', color: '#FFFFFF', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
-            <span style={{ width: '8px', height: '8px', background: '#FFFFFF', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
+          <div style={{ background: '#000000', color: '#FACC15', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
+            <span style={{ width: '8px', height: '8px', background: '#FACC15', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
             {lang === 'en' ? 'BREAKING' : 'முக்கிய செய்தி'}
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden', padding: '0 16px', whiteSpace: 'nowrap' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#1F2937' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#000000' }}>
               <span style={{ color: '#DC2626' }}>⚡</span>
               <span>{activeTickers[tickerIndex % activeTickers.length]}</span>
             </div>
@@ -765,14 +765,14 @@ const Home = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '10px', flexShrink: 0 }}>
             <button 
               onClick={() => setTickerIndex(prev => (prev - 1 + activeTickers.length) % activeTickers.length)}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
               title="Previous"
             >
               <i className="fas fa-chevron-left"></i>
             </button>
             <button 
               onClick={() => setTickerIndex(prev => (prev + 1) % activeTickers.length)}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
               title="Next"
             >
               <i className="fas fa-chevron-right"></i>
