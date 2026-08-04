@@ -42,7 +42,7 @@ const ArticleDetail = () => {
 
   const [isBookmarkedOffline, setIsBookmarkedOffline] = useState(false);
 
-  const getCleanContentHtml = (htmlContent, heroImgUrl, articleObj) => {
+  const getCleanContentHtml = (htmlContent) => {
     if (!htmlContent) return '';
     try {
       const parser = new DOMParser();
@@ -52,82 +52,12 @@ const ArticleDetail = () => {
       const imgs = wrapper.querySelectorAll('img');
       if (imgs.length === 0) return htmlContent;
 
-      // Collect ALL possible featured/thumbnail image URLs from the article
-      const featuredUrls = [];
-      if (articleObj) {
-        [articleObj.imageUrl, articleObj.featuredImage, articleObj.ogImage, articleObj.image_url, articleObj.featured_image].forEach(u => {
-          if (u && typeof u === 'string' && u.trim()) featuredUrls.push(u.trim());
-        });
-      }
-      if (heroImgUrl && typeof heroImgUrl === 'string' && heroImgUrl.trim()) {
-        featuredUrls.push(heroImgUrl.trim());
-      }
-
-      // Build a set of basenames and path-segments for robust matching
-      const featuredBasenames = new Set();
-      const featuredPaths = new Set();
-      featuredUrls.forEach(url => {
-        const lowerUrl = url.toLowerCase();
-        featuredPaths.add(lowerUrl);
-        // Extract basename (filename) from URL
-        const basename = lowerUrl.split('/').pop().split('?')[0].split('#')[0].trim();
-        if (basename && basename.length >= 3) featuredBasenames.add(basename);
-        // Also extract the path portion (without domain) for cross-domain matching
-        try {
-          const urlObj = new URL(url, window.location.origin);
-          featuredPaths.add(urlObj.pathname.toLowerCase());
-        } catch(e) {
-          // If URL parsing fails, add the raw path
-          const pathMatch = url.match(/\/uploads\/[^\s?#]+/i);
-          if (pathMatch) featuredPaths.add(pathMatch[0].toLowerCase());
-        }
-      });
-
       imgs.forEach((img) => {
         const src = (img.getAttribute('src') || '').trim();
-        
-        let shouldRemove = false;
-
-        // Condition 1: It's an auto-embedded base64 image from a failed TinyMCE upload
+        // Remove only auto-embedded base64 images from failed TinyMCE uploads
         if (src.startsWith('data:image/')) {
-          shouldRemove = true;
-        }
-        
-        // Condition 2: Match against ANY featured image URL
-        if (!shouldRemove && featuredBasenames.size > 0 && !src.startsWith('data:')) {
-          const srcLower = src.toLowerCase();
-          const srcBasename = srcLower.split('/').pop().split('?')[0].split('#')[0].trim();
-          
-          // 2a: Exact basename match (e.g., same hash filename)
-          if (srcBasename && featuredBasenames.has(srcBasename)) {
-            shouldRemove = true;
-          }
-          
-          // 2b: Full URL or path match
-          if (!shouldRemove) {
-            for (const fp of featuredPaths) {
-              if (srcLower === fp || srcLower.endsWith(fp) || fp.endsWith(srcLower.replace(/^https?:\/\/[^/]+/, ''))) {
-                shouldRemove = true;
-                break;
-              }
-            }
-          }
-
-          // 2c: Path-segment match (handles different domains pointing to same file)
-          if (!shouldRemove) {
-            try {
-              const srcPath = new URL(src, window.location.origin).pathname.toLowerCase();
-              if (featuredPaths.has(srcPath)) {
-                shouldRemove = true;
-              }
-            } catch(e) {}
-          }
-        }
-
-        if (shouldRemove) {
           const parent = img.parentElement;
           img.remove();
-          // Cleanup empty parent tags like <p> or <figure>
           if (parent && parent !== wrapper && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
             parent.remove();
           }
@@ -772,7 +702,25 @@ const ArticleDetail = () => {
             </h1>
           </div>
 
-          {/* Featured Image is used as thumbnail externally only */}
+          {/* Featured Hero Photo (Thumbnail Photo visible inside Article) */}
+          {getImageUrl(article) && (
+            <div className="article-featured-hero" style={{ marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+              <img 
+                src={getImageUrl(article)} 
+                alt={lang === 'en' ? (article.titleEn || article.titleTa) : (article.titleTa || article.titleEn)} 
+                style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              {(article.imageCaption || (lang === 'en' ? article.shortDescEn : article.shortDescTa)) && (
+                <div style={{ padding: '8px 14px', background: 'var(--bg-light)', fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-color)' }}>
+                  <i className="fas fa-camera" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  {article.imageCaption || (lang === 'en' ? article.shortDescEn : article.shortDescTa)}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Article Body */}
           <article 
@@ -781,9 +729,7 @@ const ArticleDetail = () => {
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
             dangerouslySetInnerHTML={{
               __html: getCleanContentHtml(
-                lang === 'en' ? (article.contentEn || article.contentTa) : (article.contentTa || article.contentEn),
-                getImageUrl(article),
-                article
+                lang === 'en' ? (article.contentEn || article.contentTa) : (article.contentTa || article.contentEn)
               )
             }}
           />
