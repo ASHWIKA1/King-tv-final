@@ -1,5 +1,6 @@
 package com.kingstv.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -55,11 +59,10 @@ public class SecurityConfig {
                     "/api/v1/pdfs", "/api/v1/pdfs/**",
                     "/api/v1/jobs", "/api/v1/jobs/**",
                     "/api/jobs", "/api/jobs/**",
-                    "/api/resume/**", "/api/candidate/**", "/api/employer/**",
+                    "/api/resume/**", "/api/candidate/**",
                     "/api/obituaries", "/api/obituaries/**",
                     "/api/v1/classifieds", "/api/v1/classifieds/**",
                     "/api/classifieds", "/api/classifieds/**",
-                    "/api/sellers/**", "/api/my-classifieds",
                     "/api/v1/wishes", "/api/v1/wishes/**",
                     "/api/wishes", "/api/wishes/**",
                     "/api/v1/obituaries", "/api/v1/obituaries/**",
@@ -76,24 +79,24 @@ public class SecurityConfig {
                     "/t/{shortCode}",
                     "/api/v1/deals", "/api/v1/deals/**",
                     "/api/v1/rfq", "/api/v1/rfq/**",
-                    "/api/v1/public/**", "/api/v1/admin/layout/public/**",
                     "/api/v1/nfc/stats", "/api/v1/nfc/taps", "/api/v1/nfc/request",
                     "/api/v1/rss-aggregator", "/api/v1/rss-aggregator/**",
                     "/api/v1/analytics/trending-keywords",
                     "/api/v1/advertisements", "/api/v1/advertisements/**",
                     "/robots.txt", "/sitemap.xml", "/rss.xml", "/news/**",
                     "/swagger-ui/**",
+                    "/swagger-ui/index.html",
                     "/swagger-ui.html",
+                    "/v3/api-docs",
                     "/v3/api-docs/**",
-                    "/api/v1/public/**",
+                    "/v3/api-docs.yaml",
                     "/ws/**",
                     "/api/uptime",
                     "/api/v1/uptime",
-                    "/error",
-                    "/"
+                    "/error"
                 ).permitAll()
-                // Admin portal endpoints require authentication
-                .requestMatchers("/api/v1/admin/**").authenticated()
+                // Admin & user portal endpoints require authentication
+                .requestMatchers("/api/v1/admin/**", "/api/sellers/**", "/api/my-classifieds", "/api/employer/**").authenticated()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
@@ -116,9 +119,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*"));
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

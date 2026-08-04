@@ -141,14 +141,44 @@ public class StorageServiceImpl implements StorageService {
             throw new IllegalArgumentException("Cannot upload empty file.");
         }
 
+        // Whitelist allowed folder types to prevent directory traversal
+        String cleanFolder = "general";
+        if (folderType != null) {
+            String lower = folderType.toLowerCase().replaceAll("[^a-z0-9_-]", "");
+            if (java.util.Set.of("articles", "webstories", "classifieds", "obituaries", "wishes", "users", "documents", "images", "videos").contains(lower)) {
+                cleanFolder = lower;
+            }
+        }
+        folderType = cleanFolder;
+
         LocalDate now = LocalDate.now();
         String year = String.valueOf(now.getYear());
         String month = String.format("%02d", now.getMonthValue());
 
+        String contentType = file.getContentType();
+        String originalName = file.getOriginalFilename();
+
+        // Path Traversal check on original filename
+        if (originalName != null && (originalName.contains("..") || originalName.contains("/") || originalName.contains("\\"))) {
+            throw new IllegalArgumentException("Invalid filename detected.");
+        }
+
+        String extension = "";
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf(".")).toLowerCase();
+        }
+
+        // Disallow dangerous script / executable file extensions
+        java.util.Set<String> forbiddenExtensions = java.util.Set.of(
+                ".php", ".jsp", ".exe", ".sh", ".bat", ".cmd", ".html", ".htm", ".js", ".vbs", ".jar", ".war"
+        );
+        if (forbiddenExtensions.contains(extension)) {
+            throw new IllegalArgumentException("File type not allowed for upload: " + extension);
+        }
+
         // Organize uploads folder in bucket by type
         String bucketFolder = "documents";
-        String contentType = file.getContentType();
-        if (folderType != null && folderType.equalsIgnoreCase("webstories")) {
+        if (folderType.equalsIgnoreCase("webstories")) {
             bucketFolder = "webstories";
         } else if (contentType != null) {
             if (contentType.startsWith("image/")) {
@@ -160,11 +190,7 @@ public class StorageServiceImpl implements StorageService {
             }
         }
 
-        String originalName = file.getOriginalFilename();
-        String extension = "";
-        if (originalName != null && originalName.contains(".")) {
-            extension = originalName.substring(originalName.lastIndexOf("."));
-        } else {
+        if (extension.isEmpty()) {
             // Determine extension from content-type if missing
             if (contentType != null) {
                 if (contentType.equals("image/png")) extension = ".png";

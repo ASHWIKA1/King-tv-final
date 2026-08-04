@@ -11,6 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.RequestDispatcher;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.Hidden;
+
+@Hidden
 @RestController
 public class RootController implements ErrorController {
 

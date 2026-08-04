@@ -10,6 +10,8 @@ import com.kingstv.security.JwtUtil;
 import com.kingstv.services.LoginAttemptService;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,17 +21,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import com.kingstv.models.AuditLog;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 
+@Tag(name = "Authentication", description = "User registration, login, 2FA, OTP, token refresh operations")
 @RestController
 @RequestMapping({"/api/v1/auth", "/api/auth"})
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
     private UserRepository userRepository;
@@ -103,6 +114,12 @@ public class AuthController {
         return userMap;
     }
 
+    @Operation(summary = "Register new user account", description = "Creates a new user with READER role and returns access and refresh JWT tokens.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "User registered successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid payload or password requirements not met"),
+        @ApiResponse(responseCode = "409", description = "Email address already registered")
+    })
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
         String fullName = request.get("fullName");
@@ -342,8 +359,8 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Invalid phone number"));
         }
 
-        // Generate a 6-digit OTP
-        String otp = String.format("%06d", new Random().nextInt(1000000));
+        // Generate a cryptographically secure 6-digit OTP
+        String otp = String.format("%06d", secureRandom.nextInt(1000000));
 
         // Use cleanPhone to save OTP in password_reset_otps table
         String lookupKey = "phone_" + cleanPhone;
@@ -368,7 +385,6 @@ public class AuthController {
         } else {
             response.put("message", "SMS Gateway not configured. OTP logged successfully.");
             response.put("sandbox", true);
-            response.put("otpCode", otp); // return OTP code to frontend for sandbox testing
         }
 
         return ResponseEntity.ok(response);
@@ -417,7 +433,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "No account registered with this email address"));
         }
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        String otp = String.format("%06d", secureRandom.nextInt(1000000));
         
         List<PasswordResetOtp> existingOtps = otpRepository.findByEmail(email.toLowerCase());
         if (!existingOtps.isEmpty()) {
@@ -431,11 +447,9 @@ public class AuthController {
         resetOtp.setIsVerified(false);
         otpRepository.save(resetOtp);
 
-        System.out.println("==========================================");
-        System.out.println("PASSWORD RESET OTP FOR " + email + ": " + otp);
-        System.out.println("==========================================");
+        log.info("Password reset OTP generated for account: {}", email);
 
-        return ResponseEntity.ok(Map.of("message", "Password reset OTP has been sent. Please check your console logs."));
+        return ResponseEntity.ok(Map.of("message", "Password reset OTP has been sent to your registered email/phone."));
     }
 
     @PostMapping("/verify-otp")

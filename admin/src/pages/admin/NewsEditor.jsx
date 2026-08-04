@@ -41,12 +41,12 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
+  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
-    activeAiConfig.model || 'gemini-2.0-flash',
+    configuredModel,
     'gemini-flash-latest',
     'gemini-1.5-flash',
-    'gemini-2.5-flash',
-    'gemini-1.5-pro'
+    'gemini-2.5-flash'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
@@ -2920,7 +2920,6 @@ const NewsEditor = () => {
                   <option value="gemini-flash-latest">gemini-flash-latest</option>
                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                   <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
                 </select>
               </div>
             </div>

@@ -2,6 +2,9 @@ package com.kingstv.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.Map;
@@ -9,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
     private final Map<String, TokenBucket> ipBuckets = new ConcurrentHashMap<>();
 
@@ -44,6 +49,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 lastRefillTime = now;
             }
         }
+
+        public synchronized boolean isStale() {
+            return (System.currentTimeMillis() - lastRefillTime) > 600000; // 10 minutes inactive
+        }
+    }
+
+    @Scheduled(fixedRate = 600000) // Cleanup every 10 minutes
+    public void cleanupStaleBuckets() {
+        int beforeSize = ipBuckets.size();
+        ipBuckets.entrySet().removeIf(entry -> entry.getValue().isStale());
+        log.debug("Cleaned up stale rate limit buckets. Before: {}, After: {}", beforeSize, ipBuckets.size());
     }
 
     @Override

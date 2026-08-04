@@ -1,16 +1,22 @@
 package com.kingstv.config;
 
-import org.springframework.boot.jdbc.DataSourceBuilder;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.beans.factory.annotation.Value;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
 @Configuration
 public class DataSourceConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
 
     @Value("${spring.datasource.url}")
     private String mysqlUrl;
@@ -24,34 +30,54 @@ public class DataSourceConfig {
     @Value("${spring.datasource.driver-class-name}")
     private String mysqlDriver;
 
+    @Value("${spring.datasource.hikari.maximum-pool-size:20}")
+    private int maxPoolSize;
+
+    @Value("${spring.datasource.hikari.minimum-idle:5}")
+    private int minIdle;
+
+    @Value("${spring.datasource.hikari.idle-timeout:300000}")
+    private long idleTimeout;
+
+    @Value("${spring.datasource.hikari.max-lifetime:1800000}")
+    private long maxLifetime;
+
+    @Value("${spring.datasource.hikari.connection-timeout:30000}")
+    private long connectionTimeout;
+
     @Bean
     @Primary
     public DataSource dataSource() {
+        if (mysqlUsername == null || mysqlUsername.trim().isEmpty()) {
+            log.error("CRITICAL: Database username ('spring.datasource.username' or 'SPRING_DATASOURCE_USERNAME') is missing!");
+            throw new IllegalStateException("Database configuration error: Database username is required. Application startup aborted.");
+        }
+
+        log.info("Attempting connection test to TiDB/MySQL database at: {}", mysqlUrl);
+
         try {
-            // Load driver class
             Class.forName(mysqlDriver);
-            // Verify connection with a short timeout
-            DriverManager.setLoginTimeout(3);
+            DriverManager.setLoginTimeout(5);
             try (Connection conn = DriverManager.getConnection(mysqlUrl, mysqlUsername, mysqlPassword)) {
-                System.out.println(">>> MySQL database connection successful! Using MySQL database.");
-                return DataSourceBuilder.create()
-                        .url(mysqlUrl)
-                        .username(mysqlUsername)
-                        .password(mysqlPassword)
-                        .driverClassName(mysqlDriver)
-                        .build();
+                log.info("TiDB/MySQL database connection successful! Active pool: HikariCP");
             }
         } catch (Exception e) {
-            System.err.println(">>> MySQL connection failed: " + e.getMessage());
-            System.out.println(">>> FALLING BACK TO IN-MEMORY H2 DATABASE FOR LOCAL EXECUTION.");
-            
-            // Expose fallback properties
-            return DataSourceBuilder.create()
-                    .url("jdbc:h2:mem:kings_tv_db;DB_CLOSE_DELAY=-1;MODE=MySQL;DATABASE_TO_UPPER=false")
-                    .username("sa")
-                    .password("")
-                    .driverClassName("org.h2.Driver")
-                    .build();
+            log.error("CRITICAL: Failed to connect to TiDB/MySQL database at {}: {}", mysqlUrl, e.getMessage());
+            throw new IllegalStateException("CRITICAL: Could not establish connection to TiDB/MySQL database. H2 fallback is disabled. Application startup aborted.", e);
         }
+
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(mysqlUrl);
+        hikariConfig.setUsername(mysqlUsername);
+        hikariConfig.setPassword(mysqlPassword);
+        hikariConfig.setDriverClassName(mysqlDriver);
+        hikariConfig.setMaximumPoolSize(maxPoolSize);
+        hikariConfig.setMinimumIdle(minIdle);
+        hikariConfig.setIdleTimeout(idleTimeout);
+        hikariConfig.setMaxLifetime(maxLifetime);
+        hikariConfig.setConnectionTimeout(connectionTimeout);
+        hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
+
+        return new HikariDataSource(hikariConfig);
     }
 }

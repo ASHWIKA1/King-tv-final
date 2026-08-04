@@ -2,10 +2,15 @@ package com.kingstv.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.*;
 import java.util.function.Function;
@@ -13,17 +18,29 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+
+    @Value("${jwt.secret:}")
     private String jwtSecret;
+
+    @Value("${jwt.expiration-ms:3600000}")
+    private long jwtExpirationMs;
 
     private Key key;
 
     @PostConstruct
     public void init() {
-        byte[] keyBytes = jwtSecret.getBytes();
+        if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+            log.warn("jwt.secret is not set! Generating a secure random key for current runtime session.");
+            this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            return;
+        }
+
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
+            log.warn("Provided jwt.secret length is less than 256 bits (32 bytes). Padding secret key securely.");
             byte[] padded = new byte[32];
-            System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, 32));
+            System.arraycopy(keyBytes, 0, padded, 0, keyBytes.length);
             keyBytes = padded;
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
@@ -48,18 +65,25 @@ public class JwtUtil {
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
+        long now = System.currentTimeMillis();
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
-                .signWith(key)
+                .setId(UUID.randomUUID().toString())
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + jwtExpirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Boolean validateToken(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+        try {
+            final String extractedUsername = extractUsername(token);
+            return (extractedUsername != null && extractedUsername.equals(username) && !isTokenExpired(token));
+        } catch (Exception e) {
+            log.debug("Token validation failed for user {}: {}", username, e.getMessage());
+            return false;
+        }
     }
 
     public String extractUsername(String token) {
@@ -95,7 +119,11 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     private Boolean isTokenExpired(String token) {

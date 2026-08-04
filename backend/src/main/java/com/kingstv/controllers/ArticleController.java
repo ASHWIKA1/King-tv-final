@@ -39,7 +39,12 @@ import java.nio.file.StandardCopyOption;
 import java.io.IOException;
 import com.kingstv.security.RequiresPermission;
 import com.kingstv.models.Role;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "News", description = "News articles, web stories, draft & publishing workflows")
 @RestController
 @RequestMapping("/api/v1/articles")
 public class ArticleController {

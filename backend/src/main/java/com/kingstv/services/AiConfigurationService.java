@@ -48,7 +48,7 @@ public class AiConfigurationService {
             "ollama", "http://localhost:11434/api/chat"
         );
         Map<String, String> defaultModels = Map.of(
-            "gemini", "gemini-2.0-flash",
+            "gemini", "gemini-flash-latest",
             "openai", "gpt-4o-mini",
             "anthropic", "claude-3-5-sonnet-20241022",
             "groq", "llama-3.3-70b-versatile",
@@ -64,7 +64,19 @@ public class AiConfigurationService {
                 conf.setBaseUrl(defaultUrls.get(prov));
                 conf.setModel(defaultModels.get(prov));
                 if ("gemini".equals(prov)) {
-                    conf.setApiKey("");
+                    String geminiKey = System.getenv("GEMINI_API_KEY");
+                    if (geminiKey != null && !geminiKey.isBlank()) {
+                        try {
+                            conf.setApiKey(encryptionService.encrypt(geminiKey));
+                            conf.setIsEncrypted(true);
+                        } catch (Exception e) {
+                            conf.setApiKey(geminiKey);
+                            conf.setIsEncrypted(false);
+                        }
+                    } else {
+                        conf.setApiKey("");
+                        conf.setIsEncrypted(false);
+                    }
                     conf.setEnableAi(true);
                 }
                 conf.setTemperature(0.3);
@@ -81,7 +93,6 @@ public class AiConfigurationService {
                 conf.setEnableLogging(false);
                 conf.setEnableCache(false);
                 conf.setIsActive(prov.equals("gemini")); // Make gemini active by default
-                conf.setIsEncrypted(false);
                 conf.setCreatedAt(LocalDateTime.now());
                 conf.setUpdatedAt(LocalDateTime.now());
                 aiConfigurationRepository.save(conf);
@@ -119,6 +130,12 @@ public class AiConfigurationService {
                     dec.setApiKey(encryptionService.decrypt(dec.getApiKey()));
                 } catch (Exception e) {
                     // Ignore decryption failure if it wasn't valid AES
+                }
+            }
+            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "gemini".equalsIgnoreCase(dec.getProvider())) {
+                String envKey = System.getenv("GEMINI_API_KEY");
+                if (envKey != null && !envKey.isBlank()) {
+                    dec.setApiKey(envKey);
                 }
             }
             return Optional.of(dec);
