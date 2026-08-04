@@ -48,36 +48,37 @@ public class DataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        if (mysqlUsername == null || mysqlUsername.trim().isEmpty()) {
-            log.error("CRITICAL: Database username ('spring.datasource.username' or 'SPRING_DATASOURCE_USERNAME') is missing!");
+        String cleanUrl = mysqlUrl != null ? mysqlUrl.trim() : "";
+        String cleanUsername = mysqlUsername != null ? mysqlUsername.trim() : "";
+        String cleanPassword = mysqlPassword != null ? mysqlPassword.trim() : "";
+
+        if (cleanUsername.isEmpty()) {
+            log.error("CRITICAL: Database username is missing!");
             throw new IllegalStateException("Database configuration error: Database username is required. Application startup aborted.");
         }
 
-        log.info("Attempting connection test to TiDB/MySQL database at: {}", mysqlUrl);
-
-        try {
-            Class.forName(mysqlDriver);
-            DriverManager.setLoginTimeout(5);
-            try (Connection conn = DriverManager.getConnection(mysqlUrl, mysqlUsername, mysqlPassword)) {
-                log.info("TiDB/MySQL database connection successful! Active pool: HikariCP");
-            }
-        } catch (Exception e) {
-            log.error("CRITICAL: Failed to connect to TiDB/MySQL database at {}: {}", mysqlUrl, e.getMessage());
-            throw new IllegalStateException("CRITICAL: Could not establish connection to TiDB/MySQL database. H2 fallback is disabled. Application startup aborted.", e);
-        }
+        log.info("Initializing HikariCP connection pool for TiDB/MySQL database at: {}", cleanUrl);
 
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(mysqlUrl);
-        hikariConfig.setUsername(mysqlUsername);
-        hikariConfig.setPassword(mysqlPassword);
+        hikariConfig.setJdbcUrl(cleanUrl);
+        hikariConfig.setUsername(cleanUsername);
+        hikariConfig.setPassword(cleanPassword);
         hikariConfig.setDriverClassName(mysqlDriver);
         hikariConfig.setMaximumPoolSize(maxPoolSize);
         hikariConfig.setMinimumIdle(minIdle);
         hikariConfig.setIdleTimeout(idleTimeout);
         hikariConfig.setMaxLifetime(maxLifetime);
         hikariConfig.setConnectionTimeout(connectionTimeout);
+        hikariConfig.setInitializationFailTimeout(30000); // 30s timeout for Hikari pool initialization
         hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
 
-        return new HikariDataSource(hikariConfig);
+        try {
+            HikariDataSource ds = new HikariDataSource(hikariConfig);
+            log.info("HikariCP connection pool initialized successfully! TiDB/MySQL connection active.");
+            return ds;
+        } catch (Exception e) {
+            log.error("CRITICAL: Failed to initialize HikariCP connection pool to TiDB/MySQL database at {}: {}", cleanUrl, e.getMessage());
+            throw new IllegalStateException("CRITICAL: Could not establish connection to TiDB/MySQL database. Application startup aborted.", e);
+        }
     }
 }
