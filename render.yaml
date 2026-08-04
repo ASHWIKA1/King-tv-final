@@ -1,13 +1,22 @@
 services:
   - type: web
-    name: kings-tv-backend
+    name: king-tv-backend
     env: docker
     dockerfilePath: Dockerfile
-    dockerContext: .
     plan: free
-    healthCheckPath: /api/v1/health
+    region: singapore
     envVars:
       - key: PORT
         value: 8080
-      - key: JAVA_VERSION
-        value: 17
+      - key: SPRING_JPA_DDL_AUTO
+        value: update
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
