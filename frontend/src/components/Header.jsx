@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
+import { DistrictContext } from '../context/DistrictContext';
 import { fetchApi, API_BASE } from '../utils/api';
 import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
@@ -56,7 +57,7 @@ const Header = () => {
   const isRegionalPage = regionalPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   const [timeStr, setTimeStr] = useState('');
-  const [district, setDistrict] = useState('சென்னை');
+  const { district, setDistrict } = useContext(DistrictContext);
   const [weatherTemp, setWeatherTemp] = useState('32°C');
 
   useEffect(() => {

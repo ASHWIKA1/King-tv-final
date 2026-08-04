@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { DistrictContext } from '../context/DistrictContext';
+import districtDummyNews from '../data/districtDummyNews';
 import { fetchApi, getImageUrl } from '../utils/api';
 import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
@@ -12,6 +14,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
   const { widgetWidth, slideSpeed, sections } = useContext(ThemeContext);
+  const { district } = useContext(DistrictContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [articles, setArticles] = useState([]);
@@ -572,7 +575,8 @@ const Home = () => {
     });
   };
 
-  const displayArticles = articles || [];
+  const districtNewsPool = districtDummyNews[district] || districtDummyNews['சென்னை'] || [];
+  const displayArticles = districtNewsPool.length > 0 ? [...districtNewsPool, ...articles] : (articles || []);
   const displayVideos = videos || [];
   const displayCrowd = crowdReports || [];
   const displayInstitution = institutionNews || [];
