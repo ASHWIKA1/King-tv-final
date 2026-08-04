@@ -399,3 +399,58 @@
     margin-bottom: 16px !important;
   }
 }
+
+/* ==========================================================================
+   BIZ DIRECTORY MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Business card grids collapse to single column */
+  .biz-cards-grid,
+  .biz-featured-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  /* Details info map row */
+  .biz-details-info-map-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Modal form grids */
+  .biz-form-row-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* All 1fr 1fr divs inside modal collapse */
+  .modal-overlay .modal-content div[style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Claim/Contact modals share buttons */
+  .biz-share-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Category tag filter row scrolls horizontally */
+  .biz-cat-filter-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 6px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .biz-hero-title {
+    font-size: 18px !important;
+  }
+  .biz-highlights-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+}
+

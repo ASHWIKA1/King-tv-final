@@ -624,4 +624,60 @@
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
 }
 
+/* ==========================================================================
+   RFQ MARKETPLACE MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Hero banner */
+  .rfq-hero-banner {
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 16px !important;
+  }
+  .rfq-hero-title {
+    font-size: 20px !important;
+  }
+  .rfq-hero-btns {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .rfq-hero-btn-post,
+  .rfq-hero-btn-browse {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Main layout collapses to single column */
+  .rfq-main-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Cards grid */
+  .rfq-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Filter sidebar hidden → toggle button shows */
+  .rfq-filter-sidebar {
+    display: none !important;
+  }
+
+  /* Modal forms collapse */
+  .rfq-form-row-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .rfq-hero-title {
+    font-size: 17px !important;
+  }
+}
+
+
 

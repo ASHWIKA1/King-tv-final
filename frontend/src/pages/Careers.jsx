@@ -58,7 +58,7 @@ const Careers = () => {
         {/* Benefits section */}
         <div style={{ marginTop: '40px', borderTop: '1px solid #eee', paddingTop: '30px' }}>
           <h2 style={{ marginBottom: '20px' }}>{lang === 'en' ? 'Why Join Us?' : 'ஏன் எங்களுடன் இணைய வேண்டும்?'}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+          <div className="careers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
             <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '8px' }}>
               <i className="fas fa-users fa-2x" style={{ color: '#3B82F6', marginBottom: '10px' }}></i>
               <h4>{lang === 'en' ? 'Great Culture' : 'சிறந்த கலாச்சாரம்'}</h4>

@@ -74,7 +74,7 @@ const Advertise = () => {
             {lang === 'en' ? 'Our Ad Channels & Sizes' : 'எங்களது விளம்பர வழிகள் மற்றும் அளவுகள்'}
           </h2>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          <div className="advertise-packages-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
               <i className="fas fa-desktop fa-2x" style={{ color: '#10B981', marginBottom: '12px' }}></i>
               <h4 style={{ margin: '0 0 8px 0' }}>{lang === 'en' ? 'Web Banner Ads' : 'இணையதள பேனர் விளம்பரங்கள்'}</h4>
@@ -107,7 +107,7 @@ const Advertise = () => {
           </div>
         </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
+        <div className="advertise-rates-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
           {/* Ad Contacts Info */}
           <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', margin: '0' }}>

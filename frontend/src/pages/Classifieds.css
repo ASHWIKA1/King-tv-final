@@ -468,3 +468,84 @@
   font-weight: 700 !important;
   text-transform: uppercase !important;
 }
+
+/* ==========================================================================
+   CLASSIFIEDS MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Hero banner */
+  .class-hero-banner {
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 16px !important;
+  }
+  .class-hero-title {
+    font-size: 20px !important;
+  }
+  .class-hero-subtitle {
+    font-size: 12px !important;
+  }
+  .class-hero-btns {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  .class-hero-btn-post,
+  .class-hero-btn-browse {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Filter panel */
+  .class-filter-panel {
+    padding: 12px !important;
+  }
+  .class-filter-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .class-filter-input-wrap {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+  .class-search-action-btn {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 10px !important;
+  }
+
+  /* Modal form grids collapse to single column */
+  .modal-content .class-form-row,
+  .modal-overlay .class-form-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Category sidebar stacks below on mobile */
+  .class-sidebar-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+  .class-sidebar-zone-btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
+  .class-category-list-item {
+    padding: 10px 0 !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .class-hero-title {
+    font-size: 17px !important;
+  }
+  .latest-ads-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
