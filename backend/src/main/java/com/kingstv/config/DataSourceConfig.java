@@ -49,6 +49,9 @@ public class DataSourceConfig {
     @Primary
     public DataSource dataSource() {
         String cleanUrl = mysqlUrl != null ? mysqlUrl.trim() : "";
+        if (cleanUrl.contains("sslMode=VERIFY_IDENTITY")) {
+            cleanUrl = cleanUrl.replace("sslMode=VERIFY_IDENTITY", "sslMode=PREFERRED");
+        }
         String cleanUsername = mysqlUsername != null ? mysqlUsername.trim() : "";
         String cleanPassword = mysqlPassword != null ? mysqlPassword.trim() : "";
 

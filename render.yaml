@@ -11,12 +11,10 @@ services:
       - key: SPRING_JPA_DDL_AUTO
         value: update
       - key: SPRING_DATASOURCE_URL
-        sync: false
+        value: jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/kings_tv_db?sslMode=PREFERRED&useSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&useUnicode=true&characterEncoding=UTF-8
       - key: SPRING_DATASOURCE_USERNAME
-        sync: false
+        value: fayxknEDQC42KGU.root
       - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+        value: m5Lg2NdFbJhvoRsi
       - key: JWT_SECRET
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
+        value: super_secret_kings_tv_token_key_1234_long_string_required_for_spring_boot_security
