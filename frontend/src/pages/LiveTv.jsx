@@ -62,7 +62,7 @@ const LiveTv = () => {
         <span>{lang === 'en' ? 'Live TV' : 'நேரலை தொலைக்காட்சி'}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+      <div className="live-tv-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Video Player */}
           <div style={{ borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)', background: '#000', overflow: 'hidden' }}>

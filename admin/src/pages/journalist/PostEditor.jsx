@@ -1265,6 +1265,13 @@ const PostEditor = () => {
     let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
     if (!finalSlug) finalSlug = `article-${Date.now()}`;
 
+    const toCommaString = (val) => {
+      if (!val) return '';
+      if (Array.isArray(val)) return val.join(', ').slice(0, 240);
+      if (typeof val === 'string') return val.slice(0, 240);
+      return String(val).slice(0, 240);
+    };
+
     setSaving(true);
     setMsg(null);
     try {
@@ -1274,12 +1281,12 @@ const PostEditor = () => {
         titleEn: finalTitleEn,
         shortDescTa: finalDescTa,
         shortDescEn: finalDescEn,
-        metaKeywords: (form.metaKeywords || form.focusKeywords || '').slice(0, 240),
-        metaKeywordsTa: (form.metaKeywordsTa || form.focusKeywordsTa || '').slice(0, 240),
-        metaKeywordsEn: (form.metaKeywordsEn || form.focusKeywordsEn || '').slice(0, 240),
-        focusKeywords: (form.focusKeywords || form.metaKeywords || '').slice(0, 240),
-        focusKeywordsTa: (form.focusKeywordsTa || form.metaKeywordsTa || '').slice(0, 240),
-        focusKeywordsEn: (form.focusKeywordsEn || form.metaKeywordsEn || '').slice(0, 240),
+        metaKeywords: toCommaString(form.metaKeywords || form.focusKeywords),
+        metaKeywordsTa: toCommaString(form.metaKeywordsTa || form.focusKeywordsTa),
+        metaKeywordsEn: toCommaString(form.metaKeywordsEn || form.focusKeywordsEn),
+        focusKeywords: toCommaString(form.focusKeywords || form.metaKeywords),
+        focusKeywordsTa: toCommaString(form.focusKeywordsTa || form.metaKeywordsTa),
+        focusKeywordsEn: toCommaString(form.focusKeywordsEn || form.metaKeywordsEn),
         imageUrl: form.imageUrl || form.featuredImage,
         featuredImage: form.featuredImage || form.imageUrl,
         slug: finalSlug,

@@ -69,7 +69,7 @@ const ContactUs = () => {
           </p>
         </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
+        <div className="contact-grid-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
           {/* Contact Details Card */}
           <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', margin: '0' }}>

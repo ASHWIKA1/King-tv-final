@@ -477,3 +477,65 @@
     border-radius: 4px !important;
   }
 }
+
+/* ==========================================================================
+   WISHES ADDITIONAL MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Hero banner */
+  .wishes-hero-banner {
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 16px !important;
+  }
+  .wishes-hero-title {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+  .wishes-hero-btns {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .wishes-hero-btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Main layout */
+  .wishes-main-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Sidebar zone cards stack */
+  .wishes-sidebar-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .wishes-sidebar-zone-btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Modal form grids */
+  .wishes-form-row-2 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Modal inline 1fr 1fr grids */
+  .modal-overlay .modal-content div[style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .wishes-hero-title {
+    font-size: 17px !important;
+  }
+}
+

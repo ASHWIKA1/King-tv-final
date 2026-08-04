@@ -502,3 +502,78 @@
   background: #e5e7eb !important;
   color: #111827 !important;
 }
+
+/* ==========================================================================
+   OBITUARIES MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Hero banner */
+  .obits-hero-banner {
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 16px !important;
+  }
+  .obits-hero-title {
+    font-size: 20px !important;
+  }
+
+  /* Main layout already collapses at 1024px via existing rule */
+
+  /* Slider row wraps on mobile */
+  .obits-slider-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .obits-center-callout-box {
+    max-width: 100% !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Memorial card grid */
+  .memorial-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  /* Modal: body grid collapses */
+  .modal-body[style*="minmax(320px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal form grids */
+  .obits-form-row-2,
+  .obits-form-grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Sidebar zone cards stack */
+  .obits-sidebar-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+  .obits-sidebar-zone-btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* All inline 1fr 1fr grids inside modal collapse */
+  .modal-overlay .modal-content div[style*="1fr 1fr"],
+  .modal-overlay .modal-content div[style*="repeat(3, 1fr)"],
+  .modal-overlay .modal-content div[style*="1fr 2fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .obits-hero-title {
+    font-size: 18px !important;
+  }
+}
+

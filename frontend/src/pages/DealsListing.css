@@ -281,3 +281,51 @@
   margin-top: 8px !important;
   font-weight: bold !important;
 }
+
+/* ==========================================================================
+   DEALS LISTING MOBILE RESPONSIVE OVERRIDES
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Hero banner */
+  .deals-hero-banner {
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+  }
+  .deals-hero-title {
+    font-size: 20px !important;
+  }
+  .deals-hero-btns {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* Main layout */
+  .deals-main-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Filter sidebar hidden on mobile */
+  .deals-filter-sidebar {
+    display: none !important;
+  }
+
+  /* Deals cards grid */
+  .deals-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .deals-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .deals-hero-title {
+    font-size: 17px !important;
+  }
+}
+

@@ -684,7 +684,7 @@ const Jobs = () => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginTop: '24px' }}>
+        <div className="jobs-dashboard-grid" style={{ marginTop: '24px' }}>
           
           <div className="dashboard-widget-card">
             <h3 className="dashboard-widget-title">

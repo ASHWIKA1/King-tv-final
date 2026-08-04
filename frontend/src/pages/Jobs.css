@@ -1015,3 +1015,169 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE OVERHAUL FOR JOBS PORTAL
+   ========================================================================== */
+
+.jobs-dashboard-grid {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: 24px !important;
+}
+
+.jobs-metrics-auto-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.jobs-details-2col-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 900px) {
+  .jobs-hero-banner {
+    padding: 24px 20px !important;
+    border-radius: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .jobs-hero-title {
+    font-size: 22px !important;
+  }
+
+  .jobs-hero-subtitle {
+    font-size: 13px !important;
+  }
+
+  .jobs-stat-badge-float,
+  .jobs-banner-illustration {
+    display: none !important;
+  }
+
+  .jobs-main-layout {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .jobs-dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .featured-jobs-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .featured-job-card {
+    height: auto !important;
+    min-height: 180px !important;
+    padding: 16px !important;
+  }
+
+  .jobs-filter-panel {
+    padding: 14px !important;
+    border-radius: 12px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .jobs-filter-row {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .jobs-filter-input-wrap {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .jobs-search-action-btn {
+    width: 100% !important;
+    padding: 12px !important;
+    text-align: center !important;
+  }
+
+  .jobs-sidebar-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .jobs-sidebar-zone-details {
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .jobs-sidebar-zone-btn {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 9px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .jobs-category-list-item {
+    padding: 10px 0 !important;
+  }
+
+  .jobs-category-list-item-left {
+    font-size: 13px !important;
+  }
+
+  .jobs-category-list-item-right {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .jobs-hero-banner {
+    padding: 18px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .jobs-hero-title {
+    font-size: 18px !important;
+  }
+
+  .jobs-hero-btns {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .jobs-hero-btn-find,
+  .jobs-hero-btn-post {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 10px !important;
+  }
+
+  .jobs-metrics-auto-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .jobs-details-2col-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .job-card {
+    padding: 14px !important;
+  }
+
+  .job-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .recruitment-dialog {
+    padding: 16px !important;
+    width: 95% !important;
+  }
+}
+
