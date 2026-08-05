@@ -2802,8 +2802,18 @@ ul {
 }
 
 .breaking-news {
-  background: var(--white);
-  border-bottom: 1px solid #E2E8F0;
+  background: #FBBF24 !important;
+  border-bottom: 1px solid #F59E0B;
+}
+.breaking-news a {
+  color: #000000 !important;
+}
+[data-theme="dark"] .breaking-news {
+  background: #FBBF24 !important;
+  border-color: #F59E0B;
+}
+[data-theme="dark"] .breaking-news a {
+  color: #000000 !important;
 }
 
 /* Hero news grid (2 columns) */

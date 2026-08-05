@@ -15,5 +15,6 @@ WORKDIR /app
 COPY --from=build /app/target/backend-java-1.0.0.jar app.jar
 EXPOSE 8080
 
-# Run Spring Boot with dynamic $PORT binding
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
+# Run Spring Boot with dynamic $PORT binding and strict memory allocation for Render Free Tier (512MB limit)
+ENTRYPOINT ["sh", "-c", "java -Xmx384m -Xms128m -Dserver.port=${PORT:-8080} -jar app.jar"]
+

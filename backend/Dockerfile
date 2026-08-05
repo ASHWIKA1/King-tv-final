@@ -12,4 +12,5 @@ WORKDIR /app
 COPY --from=build /app/target/backend-java-1.0.0.jar app.jar
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Xmx384m -Xms128m -Dserver.port=${PORT:-8080} -jar app.jar"]
+

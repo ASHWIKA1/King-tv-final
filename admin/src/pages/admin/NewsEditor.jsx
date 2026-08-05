@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw, FolderOpen } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
 import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
+import MediaSelectModal from '../../components/common/MediaSelectModal';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
 const DEFAULT_GEMINI_KEY = '';
@@ -331,6 +332,7 @@ const NewsEditor = () => {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [videoUrlInput, setVideoUrlInput] = useState('');
   const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaSelectModalOpen, setMediaSelectModalOpen] = useState(false);
   const [isCustomAuthor, setIsCustomAuthor] = useState(false);
   const [aiProofreading, setAiProofreading] = useState(false);
 
@@ -460,6 +462,33 @@ const NewsEditor = () => {
       return res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
     }
     throw new Error('Upload failed');
+  };
+
+  const getPreviewUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+      .replace(/\/api\/v1\/?$/, '')
+      .replace(/\/api\/?$/, '');
+    return serverBase + (url.startsWith('/') ? url : '/' + url);
+  };
+
+  const handleInsertFromLibrary = (selectedItems) => {
+    selectedItems.forEach(item => {
+      let html = '';
+      const finalUrl = getPreviewUrl(item.url);
+      if (item.category === 'image') {
+        html = `<p><img src="${finalUrl}" alt="${item.name}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 12px 0; display: block;" /></p><p>&nbsp;</p>`;
+      } else if (item.category === 'video') {
+        html = `<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${finalUrl}"><source src="${finalUrl}" type="video/mp4"></video></p><p>&nbsp;</p>`;
+      } else if (item.category === 'audio') {
+        html = `<p><audio controls style="width: 100%; margin: 12px 0;" src="${finalUrl}"></audio></p><p>&nbsp;</p>`;
+      } else {
+        html = `<p><a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${item.name}</a></p><p>&nbsp;</p>`;
+      }
+      insertIntoActiveContent(html);
+    });
+    showMsg('Media inserted from library successfully!');
   };
 
   // 1. Add Media (Images)
@@ -971,7 +1000,7 @@ const NewsEditor = () => {
     }
   };
 
-  // ── Rule-Based Instant Auto-SEO (Tamil for Tamil, English for English) ─────
+  // ── Rule-Based Instant Auto-SEO (Dual Language: Tamil & English) ─────────────
   const handleRuleBasedAutoFill = () => {
     const titleTa = (form.titleTa || '').trim();
     const titleEn = (form.titleEn || '').trim();
@@ -987,60 +1016,98 @@ const NewsEditor = () => {
     const cleanTa = contentTa.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     const cleanEn = contentEn.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
+    // Context metadata
+    const category = categories.find(c => String(c.id) === String(form.categoryId));
+    const district = districts.find(d => String(d.id) === String(form.districtId));
+    
+    const catTa = category?.nameTa || '';
+    const catEn = category?.name || category?.nameEn || '';
+    const distTa = district?.nameTa || '';
+    const distEn = district?.nameEn || district?.name || '';
+    const city = form.constituency || '';
+
     // 1. Tamil SEO Generation
-    let descTa = cleanTa.slice(0, 155) || (titleTa ? `${titleTa} - கிங்ஸ் 24x7 செய்திகள்` : '');
+    let descTa = cleanTa.slice(0, 155) || (titleTa ? `${titleTa} - கிங்ஸ் 24x7 செய்திகள்` : (titleEn ? `${titleEn} - தமிழ் செய்திகள்` : ''));
     if (descTa.length < 90) {
       descTa = `${descTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.slice(0, 160);
     }
 
     let metaTitleTa = titleTa ? `${titleTa} | கிங்ஸ் 24x7 நேரலைச் செய்திகள்` : (form.metaTitleTa || '');
     if (metaTitleTa.length < 35) {
-      metaTitleTa = `${metaTitleTa} | கிங்ஸ் 24x7 தமிழ் செய்திகள்`.slice(0, 68);
+      metaTitleTa = `${metaTitleTa || titleEn || 'செய்திகள்'} | கிங்ஸ் 24x7 தமிழ் செய்திகள்`.slice(0, 68);
     }
-    const wordsTa = `${titleTa} ${cleanTa}`.split(/\s+/).filter(w => w.length > 3);
-    const keywordsTa = [...new Set(wordsTa)].slice(0, 8).join(', ');
+
+    const wordsTaRaw = `${titleTa} ${cleanTa}`.split(/\s+/).filter(w => w.length > 3 && !/^[\x00-\x7F]+$/.test(w));
+    const setTa = new Set(wordsTaRaw);
+    if (catTa) setTa.add(catTa);
+    if (distTa) setTa.add(distTa);
+    if (city) setTa.add(city);
+    setTa.add('செய்திகள்');
+    setTa.add('தமிழ்நாடு');
+
+    const keywordsTaArr = Array.from(setTa).filter(Boolean);
+    const keywordsTa = keywordsTaArr.slice(0, 8).join(', ');
+    const focusTa = keywordsTaArr.slice(0, 3).join(', ');
 
     // 2. English SEO Generation
-    let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : '');
+    let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : (titleTa ? `${titleTa} - Kings 24x7 Latest News` : ''));
     if (descEn.length < 90) {
-      descEn = `${descEn} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
+      descEn = `${descEn} - Get the latest news and live updates on Kings 24x7, your trusted news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
     }
 
-    let metaTitleEn = titleEn ? `${titleEn} | Kings 24x7 Latest News` : (form.metaTitleEn || '');
+    let metaTitleEn = titleEn ? `${titleEn} | Kings 24x7 Latest News` : (titleTa ? `${titleTa} | Kings 24x7 News` : (form.metaTitleEn || ''));
     if (metaTitleEn.length < 35) {
-      metaTitleEn = `${metaTitleEn} | Kings 24x7 Breaking Updates`.slice(0, 68);
+      metaTitleEn = `${metaTitleEn || 'Kings 24x7 News'} | Kings 24x7 Breaking Updates`.slice(0, 68);
     }
-    const wordsEn = `${titleEn} ${cleanEn}`.split(/\s+/).filter(w => w.length > 3 && !/^(the|and|for|with|that|this|from|about)$/i.test(w));
-    const keywordsEn = [...new Set(wordsEn)].slice(0, 8).join(', ');
 
-    // 3. Search Slug Generation
+    const wordsEnRaw = `${titleEn} ${cleanEn}`.split(/\s+/).filter(w => w.length > 3 && /^[a-zA-Z0-9]+$/.test(w) && !/^(the|and|for|with|that|this|from|about|which|their|there|would|could|should|have|been|has|had)$/i.test(w));
+    const setEn = new Set(wordsEnRaw);
+    if (catEn) setEn.add(catEn);
+    if (distEn) setEn.add(distEn);
+    if (city) setEn.add(city);
+    
+    if (form.slug) {
+      form.slug.split('-').filter(w => w.length > 2).forEach(w => setEn.add(w.charAt(0).toUpperCase() + w.slice(1)));
+    }
+    setEn.add('Tamil Nadu');
+    setEn.add('Breaking News');
+    setEn.add('Kings 24x7');
+    setEn.add('Latest Updates');
+
+    const keywordsEnArr = Array.from(setEn).filter(Boolean);
+    const keywordsEn = keywordsEnArr.slice(0, 8).join(', ');
+    const focusEn = keywordsEnArr.slice(0, 3).join(', ');
+
+    // 3. Search Slug Generation & Dual-Language Combining
     const generatedSlug = form.slug ? slugify(form.slug) : slugify(titleEn || titleTa);
+    const dualKeywords = [keywordsTa, keywordsEn].filter(Boolean).join(', ');
+    const dualFocus = [focusTa, focusEn].filter(Boolean).join(', ');
 
     setForm(f => ({
       ...f,
       // Tamil SEO
       metaTitleTa: metaTitleTa,
       metaDescriptionTa: descTa,
-      focusKeywordsTa: keywordsTa,
-      metaKeywordsTa: keywordsTa || 'செய்திகள், தமிழ்நாடு, சென்னை',
+      focusKeywordsTa: dualFocus || focusTa || keywordsTa,
+      metaKeywordsTa: dualKeywords || keywordsTa || 'செய்திகள், தமிழ்நாடு, சென்னை',
       shortDescTa: f.shortDescTa || cleanTa.slice(0, 200),
       
       // English SEO
       metaTitleEn: metaTitleEn,
       metaDescriptionEn: descEn,
-      focusKeywordsEn: keywordsEn,
-      metaKeywordsEn: keywordsEn || 'news, breaking, tamil nadu',
+      focusKeywordsEn: dualFocus || focusEn || keywordsEn,
+      metaKeywordsEn: dualKeywords || keywordsEn || 'Tamil Nadu, Breaking News, Politics, Latest Updates',
       shortDescEn: f.shortDescEn || cleanEn.slice(0, 200),
 
-      // Fallbacks
+      // Unified Dual-Language Keywords across both tabs
       metaTitle: activeTab === 0 ? metaTitleTa : metaTitleEn,
       metaDescription: activeTab === 0 ? descTa : descEn,
-      focusKeywords: activeTab === 0 ? keywordsTa : keywordsEn,
-      metaKeywords: activeTab === 0 ? (keywordsTa || 'செய்திகள், தமிழ்நாடு') : (keywordsEn || 'news, breaking'),
+      focusKeywords: dualFocus || focusTa || keywordsTa,
+      metaKeywords: dualKeywords || keywordsTa || keywordsEn,
       slug: generatedSlug
     }));
 
-    showMsg(`⚡ Instant Auto-SEO generated: ${activeTab === 0 ? 'Tamil (தமிழ்)' : 'English'} Metadata!`);
+    showMsg('⚡ Dual Language Auto-SEO generated: Tamil (🔴 தமிழ்) & English (🔵 English) Metadata Updated!');
   };
 
   // ── RankMath-Style Dynamic SEO Score & Readability Metrics Engine ──────────
@@ -1949,6 +2016,20 @@ const NewsEditor = () => {
                       >
                         <LayoutTemplate size={15} color="#10B981" /> Create Gallery
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMediaSelectModalOpen(true)}
+                        disabled={mediaUploading}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
+                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <FolderOpen size={15} color="#4F46E5" /> Choose from Library
+                      </button>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '14px' }}>
@@ -1984,12 +2065,13 @@ const NewsEditor = () => {
 
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Short Excerpt</label>
-                    <textarea 
-                      rows="2"
-                      value={activeTab === 0 ? form.shortDescTa : form.shortDescEn}
+                    <AutoExpandTextarea 
+                      value={activeTab === 0 ? (form.shortDescTa || '') : (form.shortDescEn || '')}
                       onChange={e => set(activeTab === 0 ? 'shortDescTa' : 'shortDescEn', e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '14px', background: 'var(--bg-secondary)', resize: 'vertical' }}
                       placeholder="Brief summary..."
+                      minHeight="60px"
+                      maxHeight="250px"
+                      style={{ background: 'var(--bg-secondary)' }}
                     />
                   </div>
 
@@ -2074,32 +2156,30 @@ const NewsEditor = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          Focus Keywords {activeTab === 0 ? '🔴 (தமிழ்)' : '🔵 (English)'}
+                          Focus Keywords 🌐 (Dual Language / இரு மொழி)
                         </label>
-                        <input 
-                          type="text" 
-                          value={activeTab === 0 ? (form.focusKeywordsTa || '') : (form.focusKeywordsEn || form.focusKeywords || '')} 
+                        <AutoExpandTextarea 
+                          value={form.focusKeywords || [form.focusKeywordsTa, form.focusKeywordsEn].filter(Boolean).join(', ')} 
                           onChange={e => {
                             const val = e.target.value;
-                            if (activeTab === 0) setForm(f => ({ ...f, focusKeywordsTa: val, focusKeywords: val }));
-                            else setForm(f => ({ ...f, focusKeywordsEn: val, focusKeywords: f.focusKeywordsTa ? f.focusKeywords : val }));
+                            setForm(f => ({ ...f, focusKeywords: val, focusKeywordsTa: val, focusKeywordsEn: val }));
                           }} 
-                          placeholder={activeTab === 0 ? "தமிழ், முக்கிய, சொற்கள்" : "primary, focus, keywords"}
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
+                          placeholder="தமிழ், முக்கிய, சொற்கள், primary, focus, keywords"
+                          minHeight="42px"
+                          maxHeight="160px"
                         />
                       </div>
                       <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          News Tags {activeTab === 0 ? '🔴 (தமிழ்)' : '🔵 (English)'}
+                          News Tags 🌐 (Dual Language / இரு மொழி)
                         </label>
                         <AutoExpandTextarea 
-                          value={activeTab === 0 ? (form.metaKeywordsTa || '') : (form.metaKeywordsEn || form.metaKeywords || '')} 
+                          value={form.metaKeywords || [form.metaKeywordsTa, form.metaKeywordsEn].filter(Boolean).join(', ')} 
                           onChange={e => {
                             const val = e.target.value;
-                            if (activeTab === 0) setForm(f => ({ ...f, metaKeywordsTa: val, metaKeywords: val }));
-                            else setForm(f => ({ ...f, metaKeywordsEn: val, metaKeywords: f.metaKeywordsTa ? f.metaKeywords : val }));
+                            setForm(f => ({ ...f, metaKeywords: val, metaKeywordsTa: val, metaKeywordsEn: val }));
                           }} 
-                          placeholder={activeTab === 0 ? "செய்திகள், தமிழ்நாடு, சென்னை" : "news, breaking, tamil, india"}
+                          placeholder="செய்திகள், தமிழ்நாடு, சென்னை, news, breaking, tamil, india"
                         />
                       </div>
                     </div>
@@ -2463,17 +2543,16 @@ const NewsEditor = () => {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>
-                  News Tags (comma separated) {activeTab === 0 ? '🔴 (தமிழ்)' : '🔵 (English)'}
+                  News Tags (comma separated) 🌐 (Dual Language / இரு மொழி)
                 </label>
                 <AutoExpandTextarea 
-                  value={activeTab === 0 ? (form.metaKeywordsTa || '') : (form.metaKeywordsEn || form.metaKeywords || '')} 
+                  value={form.metaKeywords || [form.metaKeywordsTa, form.metaKeywordsEn].filter(Boolean).join(', ')} 
                   onChange={e => {
                     const val = e.target.value;
-                    if (activeTab === 0) setForm(f => ({ ...f, metaKeywordsTa: val, metaKeywords: val }));
-                    else setForm(f => ({ ...f, metaKeywordsEn: val, metaKeywords: f.metaKeywordsTa ? f.metaKeywords : val }));
+                    setForm(f => ({ ...f, metaKeywords: val, metaKeywordsTa: val, metaKeywordsEn: val }));
                   }} 
                   style={{ background: 'var(--bg-secondary)' }}
-                  placeholder={activeTab === 0 ? "செய்திகள், தமிழ்நாடு, சென்னை" : "e.g. TamilNadu, Politics, Breaking"} 
+                  placeholder="செய்திகள், தமிழ்நாடு, சென்னை, e.g. TamilNadu, Politics, Breaking" 
                 />
               </div>
             </div>
@@ -2482,6 +2561,12 @@ const NewsEditor = () => {
         </div>
       </div>
       
+      <MediaSelectModal
+        isOpen={mediaSelectModalOpen}
+        onClose={() => setMediaSelectModalOpen(false)}
+        onSelect={handleInsertFromLibrary}
+      />
+
       {/* Video Upload / Embed Modal */}
       {videoModalOpen && (
         <div style={{

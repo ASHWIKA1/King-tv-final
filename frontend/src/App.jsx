@@ -9,6 +9,7 @@ import SplashScreen from './components/SplashScreen';
 import MobileBottomNav from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider } from './context/AuthContext';
+import { DistrictProvider } from './context/DistrictContext';
 import DashboardLayout from './components/DashboardLayout';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -215,9 +216,11 @@ function getBasename() {
 function App() {
   return (
     <AuthProvider>
-      <Router basename={getBasename()}>
-        <AppContent />
-      </Router>
+      <DistrictProvider>
+        <Router basename={getBasename()}>
+          <AppContent />
+        </Router>
+      </DistrictProvider>
     </AuthProvider>
   );
 }
