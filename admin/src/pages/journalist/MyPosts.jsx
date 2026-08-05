@@ -12,16 +12,34 @@ const MyPosts = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/articles/getAll?authorId=${user.id || ""}&page=0&size=50`)
-      .then(r => setPosts(Array.isArray(r.data) ? r.data : (r.data?.content || [])))
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
+    setLoading(true);
+    const authorParam = user?.id || "";
+    Promise.all([
+      api.get(`/articles/getAll?authorId=${authorParam}&page=0&size=50`).catch(() => ({ data: { content: [] } })),
+      api.get(`/web-stories/getAll?authorId=${authorParam}&page=0&size=50`).catch(() => ({ data: { content: [] } }))
+    ]).then(([articlesRes, storiesRes]) => {
+      const articles = (Array.isArray(articlesRes.data) ? articlesRes.data : (articlesRes.data?.content || [])).map(a => ({ ...a, type: 'article' }));
+      const stories = (Array.isArray(storiesRes.data) ? storiesRes.data : (storiesRes.data?.content || [])).map(s => ({ ...s, type: 'story' }));
+      
+      const combined = [...articles, ...stories].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.publishedAt || 0);
+        const dateB = new Date(b.createdAt || b.publishedAt || 0);
+        return dateB - dateA;
+      });
+      setPosts(combined);
+    }).finally(() => setLoading(false));
   }, [user]);
 
-  const deletePost = async (id) => {
-    if (!window.confirm("Delete this draft?")) return;
-    try { await api.delete(`/articles/${id}`); setPosts(prev => prev.filter(p => p.id !== id)); }
-    catch (err) { console.error(err); }
+  const deletePost = async (id, type) => {
+    if (!window.confirm(`Delete this ${type}?`)) return;
+    try {
+      if (type === 'story') {
+        await api.delete(`/web-stories/${id}`);
+      } else {
+        await api.delete(`/articles/${id}`);
+      }
+      setPosts(prev => prev.filter(p => p.id !== id || p.type !== type));
+    } catch (err) { console.error(err); }
   };
 
   const totalViews = posts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
@@ -80,19 +98,28 @@ const MyPosts = () => {
           : posts.length === 0 ? <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>You haven't written any stories yet.</div>
           : <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {posts.map(post => (
-              <div key={post.id} style={{ padding: "1rem 1.25rem", background: "var(--bg-secondary)", borderRadius: "10px", display: "flex", alignItems: "center", gap: "1rem", borderLeft: `4px solid ${STATUS_COLORS[post.status] || "var(--border-color)"}` }}>
+              <div key={`${post.type}-${post.id}`} style={{ padding: "1rem 1.25rem", background: "var(--bg-secondary)", borderRadius: "10px", display: "flex", alignItems: "center", gap: "1rem", borderLeft: `4px solid ${STATUS_COLORS[post.status] || "var(--border-color)"}` }}>
                 {post.imageUrl && <img src={post.imageUrl} alt="" style={{ width: "60px", height: "60px", borderRadius: "8px", objectFit: "cover" }} />}
                 <div style={{ flex: 1 }}>
-                  <Link to={`/journalist/edit/${post.id}`} style={{ fontWeight: 700, color: "var(--text-primary)", textDecoration: "none", fontSize: "1.05rem" }}>{post.titleTa || post.titleEn}</Link>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "0.65rem", padding: "2px 6px", borderRadius: "4px", background: post.type === 'story' ? "var(--primary)" : "var(--border-color)", color: post.type === 'story' ? "#fff" : "var(--text-secondary)", textTransform: "uppercase", fontWeight: 700 }}>
+                      {post.type === 'story' ? 'Web Story' : 'Article'}
+                    </span>
+                    <Link to={post.type === 'story' ? '#' : `/journalist/edit/${post.id}`} style={{ fontWeight: 700, color: "var(--text-primary)", textDecoration: "none", fontSize: "1.05rem" }}>
+                      {post.titleTa || post.titleEn || post.title}
+                    </Link>
+                  </div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.25rem", display: "flex", gap: "1rem" }}>
                     <span>{new Date(post.createdAt || post.publishedAt || Date.now()).toLocaleDateString()}</span>
-                    {(post.viewsCount || 0) > 0 && <span style={{ color: "var(--primary)", fontWeight: 600 }}>??? {post.viewsCount} views</span>}
+                    {(post.viewsCount || 0) > 0 && <span style={{ color: "var(--primary)", fontWeight: 600 }}>👁 {post.viewsCount} views</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "4px 10px", borderRadius: "12px", background: `${STATUS_COLORS[post.status]}22`, color: STATUS_COLORS[post.status], textTransform: "capitalize" }}>{post.status}</span>
-                  <Link to={`/journalist/edit/${post.id}`} className="btn btn-secondary" style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", textDecoration: "none" }}>Edit</Link>
-                  <button onClick={() => deletePost(post.id)} style={{ padding: "0.4rem", borderRadius: "6px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
+                  {post.type === 'article' && (
+                    <Link to={`/journalist/edit/${post.id}`} className="btn btn-secondary" style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", textDecoration: "none" }}>Edit</Link>
+                  )}
+                  <button onClick={() => deletePost(post.id, post.type)} style={{ padding: "0.4rem", borderRadius: "6px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}
@@ -101,4 +128,5 @@ const MyPosts = () => {
     </div>
   );
 };
+
 export default MyPosts;

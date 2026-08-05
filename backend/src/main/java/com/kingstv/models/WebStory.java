@@ -41,6 +41,9 @@ public class WebStory {
     @Column(name = "slides_json", columnDefinition = "TEXT")
     private String slidesJson;
 
+    @Column(name = "author_name")
+    private String authorName;
+
     @Column(name = "published_at")
     private LocalDateTime publishedAt = LocalDateTime.now();
 
@@ -75,6 +78,8 @@ public class WebStory {
     public void setStatus(String status) { this.status = status; }
     public String getSlidesJson() { return slidesJson; }
     public void setSlidesJson(String slidesJson) { this.slidesJson = slidesJson; }
+    public String getAuthorName() { return authorName; }
+    public void setAuthorName(String authorName) { this.authorName = authorName; }
     public LocalDateTime getPublishedAt() { return publishedAt; }
     public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }

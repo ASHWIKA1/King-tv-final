@@ -247,13 +247,30 @@ public class ArticleController {
             article.setPublishedAt(LocalDateTime.now());
         }
 
+        // Automatically set authorName to the logged in user's full name to ensure consistency
+        var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        Long authorId = null;
+        String authorNameStr = "Unknown";
+        if (authCtx != null && authCtx.isAuthenticated() && !"anonymousUser".equals(authCtx.getPrincipal())) {
+            try {
+                authorId = Long.parseLong(String.valueOf(authCtx.getDetails()));
+                Optional<User> uOpt = userRepository.findById(authorId);
+                if (uOpt.isPresent()) {
+                    authorNameStr = uOpt.get().getFullName();
+                    // Only override if the client didn't explicitly send a custom author, or if it's the default
+                    if (article.getAuthorName() == null || article.getAuthorName().isEmpty() || "Kings TV News Desk".equals(article.getAuthorName())) {
+                        article.setAuthorName(authorNameStr);
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
         // Profanity Check
         if ("published".equalsIgnoreCase(article.getStatus()) || "pending".equalsIgnoreCase(article.getStatus())) {
-            var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            Long authorId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
-            String authorName = authCtx != null ? authCtx.getName() : "Unknown";
             com.kingstv.services.ProfanityService.ProfanityCheckResult check = profanityService.checkContent(
-                "ARTICLE", null, article.getTitleEn(), authorId, authorName, 
+                "ARTICLE", null, article.getTitleEn(), authorId, authorNameStr, 
                 article.getTitleTa(), article.getTitleEn(), article.getContentTa(), article.getContentEn()
             );
             if (!check.isClean()) {
@@ -300,6 +317,19 @@ public class ArticleController {
                 .findFirst().orElse("READER");
             if ("MOBILE_JOURNALIST".equals(role) || "INSTITUTION_LOGIN".equals(role)) {
                 authorId = String.valueOf(auth.getDetails());
+            }
+        }
+
+        // Map numeric authorId to fullName to match how it's stored in the database
+        if (authorId != null && !authorId.isEmpty()) {
+            try {
+                Long id = Long.parseLong(authorId);
+                Optional<com.kingstv.models.User> uOpt = userRepository.findById(id);
+                if (uOpt.isPresent()) {
+                    authorId = uOpt.get().getFullName();
+                }
+            } catch (NumberFormatException e) {
+                // If it's not a number, it might already be a name, so leave it as is
             }
         }
 
