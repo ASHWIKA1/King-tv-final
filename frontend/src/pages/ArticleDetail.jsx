@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { fetchApi, getImageUrl, API_BASE } from '../utils/api';
+import districtDummyNews from '../data/districtDummyNews';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -42,7 +43,7 @@ const ArticleDetail = () => {
 
   const [isBookmarkedOffline, setIsBookmarkedOffline] = useState(false);
 
-  const getCleanContentHtml = (htmlContent, heroImgUrl, articleObj) => {
+  const getCleanContentHtml = (htmlContent) => {
     if (!htmlContent) return '';
     try {
       const parser = new DOMParser();
@@ -52,82 +53,12 @@ const ArticleDetail = () => {
       const imgs = wrapper.querySelectorAll('img');
       if (imgs.length === 0) return htmlContent;
 
-      // Collect ALL possible featured/thumbnail image URLs from the article
-      const featuredUrls = [];
-      if (articleObj) {
-        [articleObj.imageUrl, articleObj.featuredImage, articleObj.ogImage, articleObj.image_url, articleObj.featured_image].forEach(u => {
-          if (u && typeof u === 'string' && u.trim()) featuredUrls.push(u.trim());
-        });
-      }
-      if (heroImgUrl && typeof heroImgUrl === 'string' && heroImgUrl.trim()) {
-        featuredUrls.push(heroImgUrl.trim());
-      }
-
-      // Build a set of basenames and path-segments for robust matching
-      const featuredBasenames = new Set();
-      const featuredPaths = new Set();
-      featuredUrls.forEach(url => {
-        const lowerUrl = url.toLowerCase();
-        featuredPaths.add(lowerUrl);
-        // Extract basename (filename) from URL
-        const basename = lowerUrl.split('/').pop().split('?')[0].split('#')[0].trim();
-        if (basename && basename.length >= 3) featuredBasenames.add(basename);
-        // Also extract the path portion (without domain) for cross-domain matching
-        try {
-          const urlObj = new URL(url, window.location.origin);
-          featuredPaths.add(urlObj.pathname.toLowerCase());
-        } catch(e) {
-          // If URL parsing fails, add the raw path
-          const pathMatch = url.match(/\/uploads\/[^\s?#]+/i);
-          if (pathMatch) featuredPaths.add(pathMatch[0].toLowerCase());
-        }
-      });
-
       imgs.forEach((img) => {
         const src = (img.getAttribute('src') || '').trim();
-        
-        let shouldRemove = false;
-
-        // Condition 1: It's an auto-embedded base64 image from a failed TinyMCE upload
+        // Remove only auto-embedded base64 images from failed TinyMCE uploads
         if (src.startsWith('data:image/')) {
-          shouldRemove = true;
-        }
-        
-        // Condition 2: Match against ANY featured image URL
-        if (!shouldRemove && featuredBasenames.size > 0 && !src.startsWith('data:')) {
-          const srcLower = src.toLowerCase();
-          const srcBasename = srcLower.split('/').pop().split('?')[0].split('#')[0].trim();
-          
-          // 2a: Exact basename match (e.g., same hash filename)
-          if (srcBasename && featuredBasenames.has(srcBasename)) {
-            shouldRemove = true;
-          }
-          
-          // 2b: Full URL or path match
-          if (!shouldRemove) {
-            for (const fp of featuredPaths) {
-              if (srcLower === fp || srcLower.endsWith(fp) || fp.endsWith(srcLower.replace(/^https?:\/\/[^/]+/, ''))) {
-                shouldRemove = true;
-                break;
-              }
-            }
-          }
-
-          // 2c: Path-segment match (handles different domains pointing to same file)
-          if (!shouldRemove) {
-            try {
-              const srcPath = new URL(src, window.location.origin).pathname.toLowerCase();
-              if (featuredPaths.has(srcPath)) {
-                shouldRemove = true;
-              }
-            } catch(e) {}
-          }
-        }
-
-        if (shouldRemove) {
           const parent = img.parentElement;
           img.remove();
-          // Cleanup empty parent tags like <p> or <figure>
           if (parent && parent !== wrapper && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
             parent.remove();
           }
@@ -311,6 +242,40 @@ const ArticleDetail = () => {
       .catch(() => setComments([]));
   };
 
+  const findDummyArticle = (artId) => {
+    if (!districtDummyNews) return null;
+    for (const key of Object.keys(districtDummyNews)) {
+      const found = districtDummyNews[key].find(item => String(item.id) === String(artId));
+      if (found) {
+        return {
+          id: found.id,
+          categoryId: 1,
+          titleTa: found.titleTa,
+          titleEn: found.titleEn,
+          descTa: found.shortDescTa,
+          descEn: found.shortDescEn,
+          contentTa: `<p style="font-size:17px; line-height:1.8;">${found.shortDescTa}</p><p style="font-size:17px; line-height:1.8;">இந்த செய்தி ${key} மாவட்டத்திற்கான சிறப்பு செய்தியாகும். மேலும் விவரங்கள் விரைவில் புதுப்பிக்கப்படும்.</p>`,
+          contentEn: `<p style="font-size:17px; line-height:1.8;">${found.shortDescEn}</p><p style="font-size:17px; line-height:1.8;">This is a special regional news report for ${key} district. Further updates will be published shortly.</p>`,
+          authorName: 'Kings TV News Desk',
+          authorNameEn: 'Kings TV News Desk',
+          authorRole: 'செய்தியாளர்',
+          authorRoleEn: 'News Reporter',
+          pubDate: new Date().toLocaleDateString(),
+          updDate: new Date().toLocaleDateString(),
+          readTime: '2 நிமிட வாசிப்பு',
+          readTimeEn: '2 Min Read',
+          categoryName: found.categoryTa || 'செய்திகள்',
+          categoryNameEn: found.categoryEn || 'News',
+          categorySlug: found.category || 'news',
+          tags: [key, found.categoryEn || 'News'],
+          imageUrl: found.featuredImage,
+          gradient: 'linear-gradient(135deg, #1E3A8A, #3B82F6)'
+        };
+      }
+    }
+    return null;
+  };
+
   const loadData = () => {
     const catLookup = {
       1: { slug: 'politics', name: 'Politics', nameTa: 'அரசியல்' },
@@ -386,12 +351,25 @@ const ArticleDetail = () => {
             })
             .catch(() => setRelated([]));
         } else {
-          setArticle(null);
-          setRelated([]);
+          const dummyFound = findDummyArticle(id);
+          if (dummyFound) {
+            setArticle(dummyFound);
+            setRelated([]);
+          } else {
+            setArticle(null);
+            setRelated([]);
+          }
         }
         fetchComments();
       })
       .catch(err => {
+        const dummyFound = findDummyArticle(id);
+        if (dummyFound) {
+          setArticle(dummyFound);
+          setRelated([]);
+          fetchComments();
+          return;
+        }
         try {
           const stored = localStorage.getItem('kings_offline_bookmarks');
           if (stored) {
@@ -772,7 +750,25 @@ const ArticleDetail = () => {
             </h1>
           </div>
 
-          {/* Featured Image is used as thumbnail externally only */}
+          {/* Featured Hero Photo (Thumbnail Photo visible inside Article) */}
+          {getImageUrl(article) && (
+            <div className="article-featured-hero" style={{ marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+              <img 
+                src={getImageUrl(article)} 
+                alt={lang === 'en' ? (article.titleEn || article.titleTa) : (article.titleTa || article.titleEn)} 
+                style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              {(article.imageCaption || (lang === 'en' ? article.shortDescEn : article.shortDescTa)) && (
+                <div style={{ padding: '8px 14px', background: 'var(--bg-light)', fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-color)' }}>
+                  <i className="fas fa-camera" style={{ marginRight: '6px', opacity: 0.7 }}></i>
+                  {article.imageCaption || (lang === 'en' ? article.shortDescEn : article.shortDescTa)}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Article Body */}
           <article 
@@ -781,9 +777,7 @@ const ArticleDetail = () => {
             style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text-dark)' }}
             dangerouslySetInnerHTML={{
               __html: getCleanContentHtml(
-                lang === 'en' ? (article.contentEn || article.contentTa) : (article.contentTa || article.contentEn),
-                getImageUrl(article),
-                article
+                lang === 'en' ? (article.contentEn || article.contentTa) : (article.contentTa || article.contentEn)
               )
             }}
           />
