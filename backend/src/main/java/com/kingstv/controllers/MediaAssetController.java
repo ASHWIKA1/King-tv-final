@@ -72,10 +72,21 @@ public class MediaAssetController {
             String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
             String category = "other";
             
-            if (contentType.startsWith("image/")) category = "image";
-            else if (contentType.startsWith("video/")) category = "video";
-            else if (contentType.startsWith("audio/")) category = "audio";
-            else if (fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx") || 
+            if (contentType.startsWith("image/") || 
+                fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") || 
+                fileName.endsWith(".gif") || fileName.endsWith(".webp") || fileName.endsWith(".bmp") || 
+                fileName.endsWith(".svg")) {
+                category = "image";
+            } else if (contentType.startsWith("video/") || 
+                       fileName.endsWith(".mp4") || fileName.endsWith(".mov") || fileName.endsWith(".avi") || 
+                       fileName.endsWith(".mkv") || fileName.endsWith(".webm") || fileName.endsWith(".3gp") || 
+                       fileName.endsWith(".mpeg")) {
+                category = "video";
+            } else if (contentType.startsWith("audio/") || 
+                       fileName.endsWith(".mp3") || fileName.endsWith(".wav") || fileName.endsWith(".ogg") || 
+                       fileName.endsWith(".m4a") || fileName.endsWith(".aac") || fileName.endsWith(".flac")) {
+                category = "audio";
+            } else if (fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx") || 
                      fileName.endsWith(".xls") || fileName.endsWith(".xlsx") || fileName.endsWith(".ppt") || 
                      fileName.endsWith(".pptx") || fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
                 category = "document";

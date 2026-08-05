@@ -5,10 +5,16 @@ import {
 import api from '../../api';
 
 const getFileCategory = (fileType = '', fileName = '') => {
-  if (fileType.startsWith('image/')) return 'image';
-  if (fileType.startsWith('video/')) return 'video';
-  if (fileType.startsWith('audio/')) return 'audio';
-  const ext = fileName.split('.').pop()?.toLowerCase();
+  const type = fileType || '';
+  const name = fileName || '';
+  if (type.startsWith('image/')) return 'image';
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+  
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+  if (['mp4','mov','avi','mkv','webm','3gp','mpeg'].includes(ext)) return 'video';
+  if (['mp3','wav','ogg','m4a','aac','flac'].includes(ext)) return 'audio';
   if (['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv'].includes(ext)) return 'document';
   return 'other';
 };
