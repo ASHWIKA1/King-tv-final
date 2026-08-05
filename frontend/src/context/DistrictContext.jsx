@@ -56,7 +56,12 @@ export const DistrictProvider = ({ children }) => {
               if (mappedTamilDistrict) {
                 setDistrict(mappedTamilDistrict);
               } else {
-                console.warn('Location detected but district not supported:', addressValues);
+                const fallbackLocation = data.city || data.locality || data.principalSubdivision;
+                if (fallbackLocation) {
+                  setDistrict(fallbackLocation);
+                } else {
+                  console.warn('Location detected but district could not be parsed:', addressValues);
+                }
               }
             }
           } catch (error) {
