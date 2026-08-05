@@ -210,11 +210,11 @@ public class ArticleController {
 
         return ResponseEntity.ok(article);
     }
-
     @PostMapping
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
     public ResponseEntity<?> createArticle(@RequestBody Article article, HttpServletRequest request) {
+        processAndRegisterArticleImages(article, request);
         if ((article.getTitleTa() == null || article.getTitleTa().trim().isEmpty()) && article.getTitleEn() != null) {
             article.setTitleTa(article.getTitleEn());
         }
@@ -391,6 +391,7 @@ public class ArticleController {
         if (entity.getId() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Id is required for update"));
         }
+        processAndRegisterArticleImages(entity, request);
         
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean isLimitedEditor = auth != null && auth.getAuthorities().stream().anyMatch(a -> 
@@ -963,5 +964,227 @@ public class ArticleController {
             .<ResponseEntity<?>>map(ResponseEntity::ok)
             .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Revision not found")));
     }
+
+    // --- Helper classes and methods for auto-uploading and registering article images ---
+
+    private static class BytesMultipartFile implements org.springframework.web.multipart.MultipartFile {
+        private final byte[] content;
+        private final String name;
+        private final String originalFilename;
+        private final String contentType;
+
+        public BytesMultipartFile(byte[] content, String name, String originalFilename, String contentType) {
+            this.content = content;
+            this.name = name;
+            this.originalFilename = originalFilename;
+            this.contentType = contentType;
+        }
+
+        @Override public String getName() { return name; }
+        @Override public String getOriginalFilename() { return originalFilename; }
+        @Override public String getContentType() { return contentType; }
+        @Override public boolean isEmpty() { return content == null || content.length == 0; }
+        @Override public long getSize() { return content.length; }
+        @Override public byte[] getBytes() { return content; }
+        @Override public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(content); }
+        @Override public void transferTo(java.io.File dest) throws java.io.IOException {
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
+                fos.write(content);
+            }
+        }
+    }
+
+    private String guessMimeType(String filename) {
+        if (filename == null) return "image/jpeg";
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".bmp")) return "image/bmp";
+        return "image/jpeg";
+    }
+
+    private void saveMediaAssetRecord(String filename, String url, String mimeType, long size, Long uploaderId) {
+        try {
+            MediaAsset asset = new MediaAsset();
+            asset.setFilename(filename);
+            asset.setUrl(url);
+            asset.setMimeType(mimeType);
+            asset.setFileSize(size);
+            asset.setCategory("image");
+            asset.setUploaderId(uploaderId);
+            mediaAssetRepository.save(asset);
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to save MediaAsset record: " + e.getMessage());
+        }
+    }
+
+    private String getBaseUrl(HttpServletRequest request) {
+        if (request == null) return "";
+        String scheme = request.getScheme();
+        String serverName = request.getServerName();
+        int serverPort = request.getServerPort();
+        
+        StringBuilder builder = new StringBuilder();
+        builder.append(scheme).append("://").append(serverName);
+        
+        if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
+            builder.append(":").append(serverPort);
+        }
+        
+        return builder.toString();
+    }
+
+    private String getFullUrlForFrontend(String path, HttpServletRequest request) {
+        if (path == null) return "";
+        if (path.startsWith("http://") || path.startsWith("https://")) return path;
+        String baseUrl = getBaseUrl(request);
+        return baseUrl + (path.startsWith("/") ? path : "/" + path);
+    }
+
+    private String registerSingleImageUrl(String src, Long uploaderId, HttpServletRequest request) {
+        if (src == null || src.trim().isEmpty()) {
+            return src;
+        }
+        src = src.trim();
+
+        // 1. Check if it's base64 data URL
+        if (src.startsWith("data:image/") && src.contains(";base64,")) {
+            try {
+                int mimeStart = 5; // length of "data:"
+                int mimeEnd = src.indexOf(";");
+                String mimeType = src.substring(mimeStart, mimeEnd);
+                String extension = mimeType.substring(mimeType.indexOf("/") + 1);
+                if (extension.contains("+")) {
+                    extension = extension.substring(0, extension.indexOf("+"));
+                }
+                
+                String base64Data = src.substring(src.indexOf("base64,") + 7);
+                byte[] bytes = java.util.Base64.getDecoder().decode(base64Data.trim());
+                
+                String filename = "image_" + java.util.UUID.randomUUID().toString() + "." + extension;
+                BytesMultipartFile file = new BytesMultipartFile(bytes, "file", filename, mimeType);
+                
+                String uploadedUrl = storageService.uploadFile(file, "articles");
+                
+                // Save to Media Asset Library
+                saveMediaAssetRecord(filename, uploadedUrl, mimeType, bytes.length, uploaderId);
+                
+                // Return public url
+                return getFullUrlForFrontend(uploadedUrl, request);
+            } catch (Exception e) {
+                System.err.println("Error processing base64 image: " + e.getMessage());
+                return src;
+            }
+        }
+
+        // 2. Check if it is an internal URL (contains "/uploads/")
+        int uploadsIdx = src.indexOf("/uploads/");
+        if (uploadsIdx != -1) {
+            String relPath = src.substring(uploadsIdx);
+            // Check if already registered
+            boolean exists = mediaAssetRepository.findByUrl(relPath).isPresent() || 
+                             mediaAssetRepository.findByUrl(src).isPresent();
+            if (!exists) {
+                // Register it!
+                String filename = relPath.substring(relPath.lastIndexOf("/") + 1);
+                String mimeType = guessMimeType(filename);
+                saveMediaAssetRecord(filename, relPath, mimeType, 500000L, uploaderId); // Guess size 500KB
+            }
+            return src;
+        }
+
+        // 3. It's an external image URL. Let's download and upload it!
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+            try {
+                java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(5))
+                    .build();
+                java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(src))
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .GET()
+                    .build();
+                
+                java.net.http.HttpResponse<byte[]> response = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() == 200) {
+                    byte[] bytes = response.body();
+                    String contentType = response.headers().firstValue("Content-Type").orElse("image/jpeg");
+                    String extension = contentType.substring(contentType.indexOf("/") + 1);
+                    if (extension.contains(";")) {
+                        extension = extension.substring(0, extension.indexOf(";"));
+                    }
+                    if (extension.contains("+")) {
+                        extension = extension.substring(0, extension.indexOf("+"));
+                    }
+                    
+                    String filename = "downloaded_" + java.util.UUID.randomUUID().toString() + "." + extension;
+                    BytesMultipartFile file = new BytesMultipartFile(bytes, "file", filename, contentType);
+                    
+                    String uploadedUrl = storageService.uploadFile(file, "articles");
+                    saveMediaAssetRecord(filename, uploadedUrl, contentType, bytes.length, uploaderId);
+                    
+                    return getFullUrlForFrontend(uploadedUrl, request);
+                }
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to download external image: " + src + ". Error: " + e.getMessage());
+            }
+        }
+
+        return src;
+    }
+
+    private String processHtmlContentForImages(String html, Long uploaderId, HttpServletRequest request) {
+        if (html == null || html.trim().isEmpty()) {
+            return html;
+        }
+        
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "(<img[^>]+src=[\"'])([^\"']+)([\"'][^>]*>)", 
+            java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(html);
+        StringBuilder sb = new StringBuilder();
+        
+        while (matcher.find()) {
+            String prefix = matcher.group(1);
+            String src = matcher.group(2);
+            String suffix = matcher.group(3);
+            
+            String newSrc = registerSingleImageUrl(src, uploaderId, request);
+            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(prefix + newSrc + suffix));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private void processAndRegisterArticleImages(Article article, HttpServletRequest request) {
+        var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        Long uploaderId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
+
+        if (article.getContentTa() != null) {
+            String processedTa = processHtmlContentForImages(article.getContentTa(), uploaderId, request);
+            article.setContentTa(processedTa);
+        }
+        if (article.getContentEn() != null) {
+            String processedEn = processHtmlContentForImages(article.getContentEn(), uploaderId, request);
+            article.setContentEn(processedEn);
+        }
+        if (article.getImageUrl() != null && !article.getImageUrl().trim().isEmpty()) {
+            String processedImg = registerSingleImageUrl(article.getImageUrl(), uploaderId, request);
+            article.setImageUrl(processedImg);
+            article.setFeaturedImage(processedImg);
+        }
+        if (article.getFeaturedImage() != null && !article.getFeaturedImage().trim().isEmpty()) {
+            String processedImg = registerSingleImageUrl(article.getFeaturedImage(), uploaderId, request);
+            article.setFeaturedImage(processedImg);
+            if (article.getImageUrl() == null || article.getImageUrl().trim().isEmpty()) {
+                article.setImageUrl(processedImg);
+            }
+        }
+    }
 }
+
+
 
