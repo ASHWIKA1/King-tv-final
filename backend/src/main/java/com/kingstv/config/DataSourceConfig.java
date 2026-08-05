@@ -87,7 +87,7 @@ public class DataSourceConfig {
         // Resilient Fallback: Embedded H2 database with full MySQL compatibility
         log.info("Initializing embedded H2 fallback database (MODE=MySQL)...");
         HikariConfig fallbackConfig = new HikariConfig();
-        fallbackConfig.setJdbcUrl("jdbc:h2:mem:kingstvdb;DB_CLOSE_DELAY=-1;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE");
+        fallbackConfig.setJdbcUrl("jdbc:h2:mem:kingstvdb;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=USER,ROLE,VALUE");
         fallbackConfig.setUsername("sa");
         fallbackConfig.setPassword("");
         fallbackConfig.setDriverClassName("org.h2.Driver");
