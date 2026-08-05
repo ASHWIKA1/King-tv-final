@@ -68,7 +68,7 @@ public class DataSourceConfig {
                 hikariConfig.setIdleTimeout(idleTimeout);
                 hikariConfig.setMaxLifetime(maxLifetime);
                 hikariConfig.setConnectionTimeout(connectionTimeout);
-                hikariConfig.setInitializationFailTimeout(5000); // 5s fast-fail to attempt fallback if unreachable
+                hikariConfig.setInitializationFailTimeout(connectionTimeout); // Full timeout for primary TiDB/MySQL connection
                 hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
 
                 HikariDataSource ds = new HikariDataSource(hikariConfig);
