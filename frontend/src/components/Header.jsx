@@ -452,13 +452,6 @@ const Header = () => {
         setAllArticles([]);
       });
 
-    fetchApi('/categories/nav')
-      .then(data => {
-        if (Array.isArray(data)) {
-          setNavCategories(data);
-        }
-      })
-      .catch(err => console.warn("Header failed to load categories", err));
 
     fetchApi('/public/menus')
       .then(data => {
@@ -950,7 +943,7 @@ const Header = () => {
 
     return (
       <div
-        className="header-top-slider-widget"
+        className="header-top-slider-widget desktop-only-top-slider"
         style={{
           background: 'rgba(255, 255, 255, 0.1)',
           border: '1px solid rgba(255, 255, 255, 0.22)',
@@ -961,7 +954,7 @@ const Header = () => {
           justifyContent: 'center',
           gap: '8px',
           marginRight: '14px',
-          minWidth: '420px',
+          minWidth: '280px',
           maxWidth: '520px',
           minHeight: '75px',
           boxShadow: '0 6px 16px rgba(0, 0, 0, 0.25)'
@@ -1512,7 +1505,6 @@ const Header = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {renderHeaderTopSlider()}
             <button
               onClick={() => setIsSearchOpen(true)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px' }}
