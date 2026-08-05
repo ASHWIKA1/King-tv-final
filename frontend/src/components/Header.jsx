@@ -704,25 +704,25 @@ const Header = () => {
         background: '#EF4444',
         border: '1px solid #B91C1C',
         color: '#FFFFFF',
-        padding: '3px 10px 3px 8px',
-        borderRadius: '6px',
-        fontSize: '10px',
+        padding: '4px 12px 4px 10px',
+        borderRadius: '8px',
+        fontSize: '13px',
         fontWeight: '800',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '8px',
         textDecoration: 'none',
-        height: '24px',
+        height: '32px',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
         boxShadow: 'inset 0 0 3px rgba(255,255,255,0.2)',
         animation: 'live-tv-blink 1s infinite alternate ease-in-out'
       }}>
-        <i className="fas fa-tv" style={{ fontSize: '10px', color: '#FFFFFF' }}></i>
+        <i className="fas fa-tv" style={{ fontSize: '14px', color: '#FFFFFF' }}></i>
         <span style={{
           display: 'inline-block',
-          width: '5px',
-          height: '5px',
+          width: '7px',
+          height: '7px',
           borderRadius: '50%',
           background: '#FFFFFF',
           animation: 'live-dot-white-pulse 0.5s infinite alternate ease-in-out'
@@ -735,7 +735,7 @@ const Header = () => {
     if (isAuthenticated && user) {
       return (
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          <UserAvatar user={user} size={30} onClick={() => setShowUserDropdown(!showUserDropdown)} />
+          <UserAvatar user={user} size={36} onClick={() => setShowUserDropdown(!showUserDropdown)} />
           <UserDropdown
             isOpen={showUserDropdown}
             onClose={() => setShowUserDropdown(false)}
@@ -749,7 +749,7 @@ const Header = () => {
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
         <button
           onClick={() => setShowUserDropdown(!showUserDropdown)}
-          style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '20px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', padding: '2px' }}
+          style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '26px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', padding: '2px' }}
           aria-label="User Account"
         >
           <i className="fas fa-user-circle"></i>
@@ -1496,10 +1496,10 @@ const Header = () => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                fontSize: '20px',
+                fontSize: '26px',
                 color: '#ffffff',
                 cursor: 'pointer',
-                paddingRight: '6px',
+                paddingRight: '8px',
                 display: 'flex',
                 alignItems: 'center'
               }}
@@ -1512,22 +1512,22 @@ const Header = () => {
               {renderDistrictSelector(true)}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
             {renderHeaderTopSlider()}
             <button
               onClick={() => setIsSearchOpen(true)}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px' }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: '#ffffff', padding: '6px', display: 'inline-flex', alignItems: 'center' }}
               aria-label="Search"
             >
               <i className="fas fa-search"></i>
             </button>
             <button
               onClick={() => setLang(lang === 'en' ? 'ta' : 'en')}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', display: 'inline-flex', alignItems: 'center' }}
               title={lang === 'en' ? 'Switch to Tamil' : 'தமிழுக்கு மாற்றவும்'}
               aria-label="Toggle Language"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
                 {/* Top Left Circle */}
                 <circle cx="9.5" cy="9.5" r="6.5" fill="#ffffff" stroke="#ffffff" strokeWidth="1" />
                 <text x="9.5" y="12.5" fontSize="9.5" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fill="#000000" textAnchor="middle">A</text>
@@ -1547,7 +1547,7 @@ const Header = () => {
             </button>
             <button
               onClick={toggleTheme}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: '#ffffff', padding: '6px', display: 'inline-flex', alignItems: 'center' }}
               aria-label="Toggle Theme"
             >
               <i className={theme === 'light' ? 'fas fa-moon' : 'fas fa-sun'} style={{ color: '#ffffff' }}></i>
