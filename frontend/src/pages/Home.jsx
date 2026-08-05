@@ -802,57 +802,34 @@ const Home = () => {
 
 
     return (
-      <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
+      <section className="hero-section" id="section-hero" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '20px', alignItems: 'stretch' }}>
+          <div className="hero-lead-card-grid">
             
             {/* Main Big Featured News Card (Left) */}
             <div 
               className="hero-lead-card"
               style={{ 
-                position: 'relative', 
-                borderRadius: '16px', 
-                overflow: 'hidden', 
-                minHeight: '440px', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'flex-end',
                 background: getImageUrl(heroFeatured) 
                   ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured)}) center/cover`
-                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`,
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                padding: '30px'
+                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`
               }}
             >
-              <span 
-                style={{ 
-                  position: 'absolute', 
-                  top: '20px', 
-                  left: '20px', 
-                  background: '#EF4444', 
-                  color: '#FFFFFF', 
-                  padding: '6px 14px', 
-                  borderRadius: '20px', 
-                  fontSize: '12px', 
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}
-              >
+              <span className="hero-lead-badge">
                 {lang === 'en' ? heroCat.en : heroCat.ta}
               </span>
 
-              <h1 style={{ color: '#FFFFFF', fontSize: '26px', fontWeight: 800, lineHeight: 1.4, margin: '0 0 12px 0', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`} style={{ color: '#FFFFFF', textDecoration: 'none' }}>
+              <h1 className="hero-lead-title">
+                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`}>
                   {lang === 'en' ? (heroFeatured.titleEn || heroFeatured.titleTa) : (heroFeatured.titleTa || heroFeatured.titleEn)}
                 </Link>
               </h1>
 
-              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: 1.5, margin: '0 0 16px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <p className="hero-lead-desc">
                 {lang === 'en' ? (heroFeatured.shortDescEn || heroFeatured.shortDescTa) : (heroFeatured.shortDescTa || heroFeatured.shortDescEn)}
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: 600 }}>
+              <div className="hero-lead-meta">
                 <span><i className="far fa-user" style={{ marginRight: '6px' }}></i> {heroFeatured.authorName || (lang === 'en' ? 'Selvakumar' : 'செல்வகுமார்')}</span>
                 <span><i className="far fa-clock" style={{ marginRight: '6px' }}></i> {lang === 'en' ? '2 hours ago' : '2 மணி நேரத்திற்கு முன்'}</span>
                 <span><i className="far fa-eye" style={{ marginRight: '6px' }}></i> {heroFeatured.viewsCount ? `${(heroFeatured.viewsCount / 1000).toFixed(1)}K` : '12.5K'}</span>

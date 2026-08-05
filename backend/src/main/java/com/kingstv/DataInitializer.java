@@ -95,7 +95,8 @@ public class DataInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void initDatabase() {
-        // Ensure database tables use UTF-8 character encoding (utf8mb4) to prevent ???? for Tamil characters
+        // Ensure database tables use UTF-8 character encoding (utf8mb4) - skipped on startup to prevent TiDB DDL latency
+        /*
         String[] tables = {
             "articles", "categories", "comments", "video_contents", "web_stories", 
             "local_business_directory", "jobs", "classified_listings", "local_obituaries", 
@@ -108,6 +109,7 @@ public class DataInitializer {
                 System.out.println("Could not alter table " + table + " charset: " + e.getMessage());
             }
         }
+        */
         // Synchronize standard web categories & subcategories matching website navigation & header
         syncStandardWebCategories();
 
