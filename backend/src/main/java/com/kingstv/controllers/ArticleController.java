@@ -10,6 +10,8 @@ import com.kingstv.repository.CategoryRepository;
 import com.kingstv.repository.CommentRepository;
 import com.kingstv.repository.SubCategoryRepository;
 import com.kingstv.repository.UserRepository;
+import com.kingstv.models.MediaAsset;
+import com.kingstv.repository.MediaAssetRepository;
 import com.kingstv.services.SlugService;
 import com.kingstv.services.StorageService;
 import com.kingstv.services.SeoGeneratorService;
@@ -87,6 +89,9 @@ public class ArticleController {
 
     @Autowired
     private ArticleRevisionRepository articleRevisionRepository;
+
+    @Autowired
+    private MediaAssetRepository mediaAssetRepository;
 
     // --- KEEP Existing Front-End Endpoint Map ---
     @GetMapping
@@ -709,6 +714,51 @@ public class ArticleController {
         }
         try {
             String url = storageService.uploadFile(file, "articles");
+
+            // Save to Media Library (MediaAsset) automatically
+            try {
+                MediaAsset asset = new MediaAsset();
+                asset.setFilename(file.getOriginalFilename());
+                asset.setUrl(url);
+                asset.setMimeType(file.getContentType());
+                asset.setFileSize(file.getSize());
+
+                String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+                String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+                String category = "other";
+
+                if (contentType.startsWith("image/") || 
+                    fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") || 
+                    fileName.endsWith(".gif") || fileName.endsWith(".webp") || fileName.endsWith(".bmp") || 
+                    fileName.endsWith(".svg")) {
+                    category = "image";
+                } else if (contentType.startsWith("video/") || 
+                           fileName.endsWith(".mp4") || fileName.endsWith(".mov") || fileName.endsWith(".avi") || 
+                           fileName.endsWith(".mkv") || fileName.endsWith(".webm") || fileName.endsWith(".3gp") || 
+                           fileName.endsWith(".mpeg")) {
+                    category = "video";
+                } else if (contentType.startsWith("audio/") || 
+                           fileName.endsWith(".mp3") || fileName.endsWith(".wav") || fileName.endsWith(".ogg") || 
+                           fileName.endsWith(".m4a") || fileName.endsWith(".aac") || fileName.endsWith(".flac")) {
+                    category = "audio";
+                } else if (fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx") || 
+                         fileName.endsWith(".xls") || fileName.endsWith(".xlsx") || fileName.endsWith(".ppt") || 
+                         fileName.endsWith(".pptx") || fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
+                    category = "document";
+                }
+                asset.setCategory(category);
+
+                // Get uploader ID if available
+                org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.getDetails() instanceof Long) {
+                    asset.setUploaderId((Long) auth.getDetails());
+                }
+
+                mediaAssetRepository.save(asset);
+            } catch (Exception ex) {
+                System.err.println("Warning: Failed to save uploaded article file to Media Library: " + ex.getMessage());
+            }
+
             return ResponseEntity.ok(Map.of("url", url));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw, FolderOpen } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
 import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
+import MediaSelectModal from '../../components/common/MediaSelectModal';
 
 // ── Gemini AI helper ─────────────────────────────────────────────────────────
 const DEFAULT_GEMINI_KEY = '';
@@ -291,6 +292,7 @@ const NewsEditor = () => {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [videoUrlInput, setVideoUrlInput] = useState('');
   const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaSelectModalOpen, setMediaSelectModalOpen] = useState(false);
   const [isCustomAuthor, setIsCustomAuthor] = useState(false);
   const [aiProofreading, setAiProofreading] = useState(false);
 
@@ -420,6 +422,33 @@ const NewsEditor = () => {
       return res.data.url.startsWith('http') ? res.data.url : serverBase + res.data.url;
     }
     throw new Error('Upload failed');
+  };
+
+  const getPreviewUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const serverBase = (api.defaults.baseURL || 'http://localhost:8080/api/v1')
+      .replace(/\/api\/v1\/?$/, '')
+      .replace(/\/api\/?$/, '');
+    return serverBase + (url.startsWith('/') ? url : '/' + url);
+  };
+
+  const handleInsertFromLibrary = (selectedItems) => {
+    selectedItems.forEach(item => {
+      let html = '';
+      const finalUrl = getPreviewUrl(item.url);
+      if (item.category === 'image') {
+        html = `<p><img src="${finalUrl}" alt="${item.name}" style="width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 12px 0; display: block;" /></p><p>&nbsp;</p>`;
+      } else if (item.category === 'video') {
+        html = `<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${finalUrl}"><source src="${finalUrl}" type="video/mp4"></video></p><p>&nbsp;</p>`;
+      } else if (item.category === 'audio') {
+        html = `<p><audio controls style="width: 100%; margin: 12px 0;" src="${finalUrl}"></audio></p><p>&nbsp;</p>`;
+      } else {
+        html = `<p><a href="${finalUrl}" target="_blank" rel="noopener noreferrer">${item.name}</a></p><p>&nbsp;</p>`;
+      }
+      insertIntoActiveContent(html);
+    });
+    showMsg('Media inserted from library successfully!');
   };
 
   // 1. Add Media (Images)
@@ -1891,6 +1920,20 @@ const NewsEditor = () => {
                       >
                         <LayoutTemplate size={15} color="#10B981" /> Create Gallery
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMediaSelectModalOpen(true)}
+                        disabled={mediaUploading}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
+                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <FolderOpen size={15} color="#4F46E5" /> Choose from Library
+                      </button>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '14px' }}>
@@ -2430,6 +2473,12 @@ const NewsEditor = () => {
         </div>
       </div>
       
+      <MediaSelectModal
+        isOpen={mediaSelectModalOpen}
+        onClose={() => setMediaSelectModalOpen(false)}
+        onSelect={handleInsertFromLibrary}
+      />
+
       {/* Video Upload / Embed Modal */}
       {videoModalOpen && (
         <div style={{

@@ -1697,8 +1697,8 @@ const Header = () => {
       <div 
         className="header-breaking-news-banner"
         style={{ 
-          background: '#DC2626', 
-          color: '#ffffff', 
+          background: '#FACC15', 
+          color: '#000000', 
           padding: '6px 0', 
           fontSize: '13px', 
           fontWeight: '700', 
@@ -1724,16 +1724,16 @@ const Header = () => {
             <i className="fas fa-bolt" style={{ color: '#FACC15' }}></i> {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்திகள்'}
           </span>
           <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0, color: '#ffffff' }}>
+            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0, color: '#000000' }}>
               {breakingNewsList && breakingNewsList.length > 0 ? (
                 breakingNewsList.map((item, idx) => {
                   const title = lang === 'en' ? (item.titleEn || item.title || item.titleTa) : (item.titleTa || item.title || item.titleEn);
                   const articleId = item.id || item.article_id;
                   return (
                     <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: '#FACC15', fontWeight: '900' }}>•</span>
+                      <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
                       {articleId ? (
-                        <Link to={`/article/${articleId}`} style={{ color: '#ffffff', textDecoration: 'none' }}>
+                        <Link to={`/article/${articleId}`} style={{ color: '#000000', textDecoration: 'none' }}>
                           {title}
                         </Link>
                       ) : (
@@ -1745,7 +1745,7 @@ const Header = () => {
               ) : (
                 fallbackBreakingNews.map((text, idx) => (
                   <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#FACC15', fontWeight: '900' }}>•</span>
+                    <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
                     <span>{text}</span>
                   </span>
                 ))

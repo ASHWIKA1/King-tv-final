@@ -60,20 +60,9 @@ const SplashScreen = ({ onComplete }) => {
             width: '160px', 
             height: 'auto', 
             objectFit: 'contain',
-            marginBottom: '15px'
+            marginBottom: '20px'
           }} 
         />
-        
-        <div style={{ 
-          color: '#ffffff', 
-          fontSize: '28px', 
-          fontWeight: '700', 
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          marginBottom: '16px',
-          letterSpacing: '0.5px'
-        }}>
-          24x7 Multiform TV
-        </div>
 
         <div style={{ 
           color: '#B3732A', 
