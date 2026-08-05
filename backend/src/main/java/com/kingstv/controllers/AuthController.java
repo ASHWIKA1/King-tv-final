@@ -206,8 +206,9 @@ public class AuthController {
                     .body(Map.of("message", "Your account has been deactivated. Please contact administrator."));
         }
 
-        if (!user.getProvider().equals("LOCAL")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Please log in using your " + user.getProvider() + " account"));
+        String provider = user.getProvider() != null ? user.getProvider() : "LOCAL";
+        if (!"LOCAL".equalsIgnoreCase(provider)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Please log in using your " + provider + " account"));
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
