@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 
 @Configuration
 public class DataSourceConfig {
@@ -57,6 +56,7 @@ public class DataSourceConfig {
 
         if (!cleanUrl.isEmpty() && !cleanUsername.isEmpty()) {
             log.info("Initializing HikariCP connection pool for primary database at: {}", cleanUrl);
+            HikariDataSource ds = null;
             try {
                 HikariConfig hikariConfig = new HikariConfig();
                 hikariConfig.setJdbcUrl(cleanUrl);
@@ -70,20 +70,18 @@ public class DataSourceConfig {
                 hikariConfig.setConnectionTimeout(connectionTimeout);
                 hikariConfig.setInitializationFailTimeout(2000); // Fast fail after 2 seconds if primary DB fails
 
-                HikariDataSource ds = null;
-                try {
-                    ds = new HikariDataSource(hikariConfig);
-                    try (Connection conn = ds.getConnection()) {
-                        log.info("HikariCP connection pool initialized successfully! Primary TiDB/MySQL database connection active.");
-                        return ds;
-                    }
-                } catch (Exception e) {
-                    if (ds != null) {
-                        try { ds.close(); } catch (Exception ignored) {}
-                    }
-                    log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
-                    log.warn("Falling back to embedded H2 database for resilient application startup.");
+                ds = new HikariDataSource(hikariConfig);
+                try (Connection conn = ds.getConnection()) {
+                    log.info("HikariCP connection pool initialized successfully! Primary TiDB/MySQL database connection active.");
+                    return ds;
                 }
+            } catch (Exception e) {
+                if (ds != null) {
+                    try { ds.close(); } catch (Exception ignored) {}
+                }
+                log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
+                log.warn("Falling back to embedded H2 database for resilient application startup.");
+            }
         } else {
             log.warn("Primary database credentials or URL incomplete. Falling back to embedded H2 database.");
         }
