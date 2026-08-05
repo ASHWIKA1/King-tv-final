@@ -77,16 +77,17 @@ public class DataSourceConfig {
                     return ds;
                 }
             } catch (Exception e) {
-                log.warn("WARNING: Unable to connect to primary database at {} (Error: {}). Falling back to embedded H2 database for resilient application startup.", cleanUrl, e.getMessage());
+                log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
+                log.warn("Falling back to embedded H2 database for resilient application startup.");
             }
         } else {
             log.warn("Primary database credentials or URL incomplete. Falling back to embedded H2 database.");
         }
 
-        // Resilient Fallback: Embedded H2 database
+        // Resilient Fallback: Embedded H2 database with full MySQL compatibility
         log.info("Initializing embedded H2 fallback database (MODE=MySQL)...");
         HikariConfig fallbackConfig = new HikariConfig();
-        fallbackConfig.setJdbcUrl("jdbc:h2:mem:kingstvdb;DB_CLOSE_DELAY=-1;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE");
+        fallbackConfig.setJdbcUrl("jdbc:h2:mem:kingstvdb;DB_CLOSE_DELAY=-1;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE");
         fallbackConfig.setUsername("sa");
         fallbackConfig.setPassword("");
         fallbackConfig.setDriverClassName("org.h2.Driver");
