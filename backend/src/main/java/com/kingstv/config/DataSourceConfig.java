@@ -68,18 +68,22 @@ public class DataSourceConfig {
                 hikariConfig.setIdleTimeout(idleTimeout);
                 hikariConfig.setMaxLifetime(maxLifetime);
                 hikariConfig.setConnectionTimeout(connectionTimeout);
-                hikariConfig.setInitializationFailTimeout(connectionTimeout); // Full timeout for primary TiDB/MySQL connection
-                hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
+                hikariConfig.setInitializationFailTimeout(2000); // Fast fail after 2 seconds if primary DB fails
 
-                HikariDataSource ds = new HikariDataSource(hikariConfig);
-                try (Connection conn = ds.getConnection()) {
-                    log.info("HikariCP connection pool initialized successfully! Primary TiDB/MySQL database connection active.");
-                    return ds;
+                HikariDataSource ds = null;
+                try {
+                    ds = new HikariDataSource(hikariConfig);
+                    try (Connection conn = ds.getConnection()) {
+                        log.info("HikariCP connection pool initialized successfully! Primary TiDB/MySQL database connection active.");
+                        return ds;
+                    }
+                } catch (Exception e) {
+                    if (ds != null) {
+                        try { ds.close(); } catch (Exception ignored) {}
+                    }
+                    log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
+                    log.warn("Falling back to embedded H2 database for resilient application startup.");
                 }
-            } catch (Exception e) {
-                log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
-                log.warn("Falling back to embedded H2 database for resilient application startup.");
-            }
         } else {
             log.warn("Primary database credentials or URL incomplete. Falling back to embedded H2 database.");
         }
