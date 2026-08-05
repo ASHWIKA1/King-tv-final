@@ -31,6 +31,27 @@ const AdManagement = () => {
   const [filterPosition, setFilterPosition] = useState("ALL");
   const [recentArticles, setRecentArticles] = useState([]);
 
+  // Classifieds Approval States
+  const [activeMainTab, setActiveMainTab] = useState("banners");
+  const [pendingClassifieds, setPendingClassifieds] = useState([]);
+
+  // Preview State
+  const [previewData, setPreviewData] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  const openPreview = async (id) => {
+    setLoadingPreview(true);
+    setPreviewData({ id, loading: true });
+    try {
+      const res = await api.get(`/classifieds/${id}`);
+      setPreviewData(res.data);
+    } catch (err) {
+      alert("Failed to load preview");
+      setPreviewData(null);
+    }
+    setLoadingPreview(false);
+  };
+
   const showMsg = (text, isError = false) => { setMsg({ text, isError }); setTimeout(() => setMsg(null), 4000); };
 
   useEffect(() => {
@@ -42,6 +63,11 @@ const AdManagement = () => {
     api.get("/articles?status=published")
       .then(r => setRecentArticles(r.data.slice(0, 30) || []))
       .catch(err => console.warn("Failed to load articles for ad targeting", err));
+
+    // Fetch pending classifieds
+    api.get("/classifieds/admin/pending")
+      .then(r => setPendingClassifieds(r.data || []))
+      .catch(err => console.warn("Failed to load pending classifieds", err));
   }, []);
 
   const openEdit = (ad) => {
@@ -101,6 +127,27 @@ const AdManagement = () => {
     catch { showMsg("Failed to delete.", true); }
   };
 
+  const handleApproveClassified = async (id) => {
+    try {
+      await api.put(`/classifieds/admin/${id}/approve`);
+      showMsg('Classified approved and is now live');
+      setPendingClassifieds(prev => prev.filter(c => c.id !== id));
+    } catch {
+      showMsg('Failed to approve classified', true);
+    }
+  };
+
+  const handleRejectClassified = async (id) => {
+    if (!window.confirm("Reject and delete this classified ad?")) return;
+    try {
+      await api.delete(`/classifieds/${id}`);
+      showMsg('Classified rejected');
+      setPendingClassifieds(prev => prev.filter(c => c.id !== id));
+    } catch {
+      showMsg('Failed to reject classified', true);
+    }
+  };
+
   const filteredAds = filterPosition === "ALL" ? ads : ads.filter(a => a.position === filterPosition);
   const activeCount = ads.filter(a => a.status === "active" || a.isActive !== false).length;
   const positionStats = {};
@@ -119,6 +166,24 @@ const AdManagement = () => {
           <Plus size={16} /> {showForm && !editingAd ? "Cancel" : "New Ad"}
         </button>
       </div>
+
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '2rem' }}>
+        <button 
+          onClick={() => setActiveMainTab("banners")} 
+          style={{ background: 'none', border: 'none', borderBottom: activeMainTab === "banners" ? `2px solid var(--primary)` : 'none', color: activeMainTab === "banners" ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600, paddingBottom: '0.5rem', cursor: 'pointer' }}
+        >
+          Banner Ads
+        </button>
+        <button 
+          onClick={() => setActiveMainTab("classifieds")} 
+          style={{ background: 'none', border: 'none', borderBottom: activeMainTab === "classifieds" ? `2px solid var(--primary)` : 'none', color: activeMainTab === "classifieds" ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 600, paddingBottom: '0.5rem', cursor: 'pointer' }}
+        >
+          Pending Classifieds ({pendingClassifieds.length})
+        </button>
+      </div>
+
+      {activeMainTab === "banners" ? (
+        <>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1rem", marginBottom: "2rem" }}>
@@ -297,6 +362,139 @@ const AdManagement = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+        </>
+      ) : (
+        <div>
+          <div className="table-responsive" style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '1rem' }}>
+            <table className="table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '0.75rem' }}>ID</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem' }}>Title</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem' }}>Price</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submitted At</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingClassifieds.length === 0 && (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                      No classifieds pending approval.
+                    </td>
+                  </tr>
+                )}
+                {pendingClassifieds.map(ad => (
+                  <tr key={ad.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '0.75rem' }}>#{ad.id}</td>
+                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{ad.title}</td>
+                    <td style={{ padding: '0.75rem' }}>₹{ad.price}</td>
+                    <td style={{ padding: '0.75rem' }}>{ad.createdAt ? ad.createdAt.slice(0, 10) : ''}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => openPreview(ad.id)}
+                          style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+                        >
+                          <Eye size={14} style={{ display: 'inline', marginRight: '4px' }} /> Preview
+                        </button>
+                        <button 
+                          onClick={() => handleApproveClassified(ad.id)}
+                          style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleRejectClassified(ad.id)}
+                          className="btn btn-danger"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {/* Preview Modal */}
+      {previewData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+            {previewData.loading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                Loading preview...
+              </div>
+            ) : (
+              <>
+                {/* Header - Fixed */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>{previewData.listing?.title}</h2>
+                  <button onClick={() => setPreviewData(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#64748b', lineHeight: 1 }}>&times;</button>
+                </div>
+                
+                {/* Body - Scrollable */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  
+                  {/* Two column layout for premium feel */}
+                  <div style={{ display: 'grid', gridTemplateColumns: previewData.images?.length > 0 ? '1.2fr 1fr' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
+                    
+                    {/* Left: Image */}
+                    {previewData.images && previewData.images.length > 0 && (
+                      <div style={{ background: '#f1f5f9', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+                        <img 
+                          src={previewData.images[0].imageUrl.startsWith('http') ? previewData.images[0].imageUrl : `${api.defaults.baseURL.replace('/api/v1', '')}${previewData.images[0].imageUrl.startsWith('/') ? '' : '/'}${previewData.images[0].imageUrl}`} 
+                          alt="Ad Preview" 
+                          style={{ width: '100%', maxHeight: '350px', objectFit: 'contain', borderRadius: '8px' }} 
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Right: Details */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.85rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}><span style={{ color: '#64748b', fontWeight: 600 }}>Price</span> <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{previewData.listing?.priceDetail}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}><span style={{ color: '#64748b', fontWeight: 600 }}>Location</span> <span style={{ fontWeight: 600, color: '#334155' }}>{previewData.listing?.location}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}><span style={{ color: '#64748b', fontWeight: 600 }}>Contact</span> <span style={{ fontWeight: 600, color: '#334155' }}>{previewData.listing?.contactPhone}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748b', fontWeight: 600 }}>Negotiable</span> <span style={{ fontWeight: 600, color: '#334155' }}>{previewData.listing?.negotiable ? 'Yes' : 'No'}</span></div>
+                        </div>
+                      </div>
+
+                      <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <strong style={{ color: '#0f172a', display: 'block', marginBottom: '0.75rem', fontSize: '1rem' }}>Description</strong>
+                        <p style={{ whiteSpace: 'pre-wrap', margin: 0, lineHeight: 1.6, color: '#475569', fontSize: '0.9rem' }}>{previewData.listing?.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer - Fixed */}
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', padding: '1.25rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                  <button 
+                    onClick={() => setPreviewData(null)} 
+                    style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600, color: '#475569' }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleApproveClassified(previewData.listing.id);
+                      setPreviewData(null);
+                    }} 
+                    style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
+                  >
+                    Approve Ad
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

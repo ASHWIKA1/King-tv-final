@@ -216,7 +216,7 @@ const Classifieds = () => {
       email: newEmail,
       latitude: newLatitude,
       longitude: newLongitude,
-      status: 'active'
+      status: 'pending'
     };
 
     fetchApi(`/classifieds?images=${encodeURIComponent(uploadedUrls.join(','))}`, {
@@ -225,7 +225,7 @@ const Classifieds = () => {
       body: JSON.stringify(payload)
     })
       .then(() => {
-        alert(lang === 'en' ? 'Advertisement posted successfully!' : 'விளம்பரம் வெற்றிகரமாக பதிவிடப்பட்டது!');
+        alert(lang === 'en' ? 'Advertisement submitted successfully! It is pending approval by an admin and will appear on the site once approved.' : 'விளம்பரம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! இது நிர்வாகியின் ஒப்புதலுக்காக காத்திருக்கிறது, ஒப்புதல் பெற்றவுடன் தளத்தில் தோன்றும்.');
         setShowPostModal(false);
         setPostStep(1);
         // Reset states
