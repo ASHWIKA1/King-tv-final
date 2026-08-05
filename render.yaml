@@ -6,8 +6,6 @@ services:
     plan: free
     region: singapore
     envVars:
-      - key: PORT
-        value: 8080
       - key: SPRING_JPA_DDL_AUTO
         value: update
       - key: SPRING_DATASOURCE_URL

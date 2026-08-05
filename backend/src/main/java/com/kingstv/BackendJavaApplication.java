@@ -35,7 +35,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration.class
+})
 @EnableCaching
 @EnableScheduling
 public class BackendJavaApplication implements CommandLineRunner {
