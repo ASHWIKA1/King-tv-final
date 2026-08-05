@@ -57,7 +57,7 @@ const Header = () => {
   const isRegionalPage = regionalPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   const [timeStr, setTimeStr] = useState('');
-  const { district, setDistrict } = useContext(DistrictContext);
+  const { district, setDistrict, autoDetectLocation } = useContext(DistrictContext);
   const [weatherTemp, setWeatherTemp] = useState('32°C');
 
   useEffect(() => {
@@ -867,7 +867,8 @@ const Header = () => {
             { key: 'ஈரோடு', en: 'Erode', ta: 'ஈரோடு' },
             { key: 'தஞ்சாவூர்', en: 'Tanjore', ta: 'தஞ்சாவூர்' },
             { key: 'கன்னியாகுமரி', en: 'Kanyakumari', ta: 'கன்னியாகுமரி' },
-            { key: 'நாமக்கல்', en: 'Namakkal', ta: 'நாமக்கல்' }
+            { key: 'நாமக்கல்', en: 'Namakkal', ta: 'நாமக்கல்' },
+            { key: 'புதுச்சேரி', en: 'Puducherry', ta: 'புதுச்சேரி' }
           ].map(item => (
             <button
               key={item.key}
