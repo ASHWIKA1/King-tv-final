@@ -83,6 +83,18 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Invalid token format");
       }
     } catch (error) {
+      if (!error.response) {
+        return {
+          success: false,
+          message: 'Unable to connect to backend server. Please verify backend server is running.'
+        };
+      }
+      if (error.response.status >= 500) {
+        return {
+          success: false,
+          message: `Backend server error (${error.response.status}). Please check backend deployment.`
+        };
+      }
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed. Please check credentials.'
