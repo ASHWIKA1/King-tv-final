@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: king-tv-backend
+    name: kings-tv
     env: docker
     dockerfilePath: Dockerfile
     plan: free
