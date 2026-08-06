@@ -101,38 +101,24 @@ def main():
     ROOT_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv"
     ADMIN_REMOTE_DIR = "/home/u841409365/domains/test-technoprint.online/public_html/king-tv/admin"
 
-    # 1. Upload root static files (index.html, all html, js/, css/, assets/)
-    print("Uploading root static web files (index.html, js, css, assets)...")
-    sftp = get_sftp()
-    create_remote_dir(sftp, ROOT_REMOTE_DIR)
+    # 1. Upload React Frontend dist to REMOTE king-tv root
+    local_frontend_dist = os.path.join(local_root, "frontend", "dist")
+    upload_dir_contents(get_sftp, local_frontend_dist, ROOT_REMOTE_DIR)
 
-    # Root HTML and config files
-    for item in os.listdir(local_root):
-        local_path = os.path.join(local_root, item)
-        if os.path.isfile(local_path) and (item.endswith(".html") or item.endswith(".json") or item.endswith(".js") or item == ".htaccess"):
-            remote_path = f"{ROOT_REMOTE_DIR}/{item}"
-            print(f" -> Uploading {item} ...", end=" ", flush=True)
-            if upload_file_with_retry(get_sftp, local_path, remote_path):
-                print("SUCCESS")
-            else:
-                print("FAILED")
-
-    # Upload directories: js, css, assets
-    for folder in ["js", "css", "assets"]:
-        local_folder = os.path.join(local_root, folder)
-        if os.path.exists(local_folder):
-            upload_dir_contents(get_sftp, local_folder, f"{ROOT_REMOTE_DIR}/{folder}")
-
-    # 2. Upload React Admin Dashboard dist to REMOTE king-tv/admin if admin/dist exists
+    # 2. Upload React Admin Dashboard dist to REMOTE king-tv/admin
     local_admin_dist = os.path.join(local_root, "admin", "dist")
-    if os.path.exists(local_admin_dist):
-        upload_dir_contents(get_sftp, local_admin_dist, ADMIN_REMOTE_DIR)
-    else:
-        # Upload admin directory contents if dist not built
-        upload_dir_contents(get_sftp, os.path.join(local_root, "admin"), ADMIN_REMOTE_DIR)
+    upload_dir_contents(get_sftp, local_admin_dist, ADMIN_REMOTE_DIR)
 
-    print("\n[SUCCESS] Deployment to Hostinger subdomain king-tv finished successfully!")
+    # 3. Upload .htaccess
+    try:
+        ht = os.path.join(local_root, ".htaccess")
+        if os.path.exists(ht):
+            get_sftp().put(ht, ROOT_REMOTE_DIR + "/.htaccess")
+            print("\nUploaded .htaccess successfully")
+    except Exception as e:
+        print("\nFailed to upload .htaccess:", e)
+
+    print("\n[SUCCESS] Deployment to Hostinger subdomain https://king-tv.test-technoprint.online/ finished successfully!")
 
 if __name__ == "__main__":
     main()
-
