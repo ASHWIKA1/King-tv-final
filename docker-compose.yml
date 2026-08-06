@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Spring Boot Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kingstv-backend
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      # Override DB & Secret credentials via environment or .env file
+      - DB_URL=${DB_URL:-jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/kings_tv_db?sslMode=PREFERRED&useSSL=true}
+      - DB_USERNAME=${DB_USERNAME:-39nIe05iWwP9nUv.root}
+      - DB_PASSWORD=${DB_PASSWORD:-0XvNvh7Xo2hJ8KjA}
+      - JWT_SECRET=${JWT_SECRET:-9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || curl -f http://localhost:8080/api/v1/public/categories/nav || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy & Static Asset Server
+  nginx:
+    image: nginx:alpine
+    container_name: kingstv-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html/frontend:ro
+      - ./admin/dist:/usr/share/nginx/html/admin:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
