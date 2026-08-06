@@ -11,3 +11,9 @@ target/
 backend/uploads/backups/
 *.log
 backend/*.log
+hs_err_pid*
+replay_pid*
+*.zip
+*.bak
+backend/uploads/temp/*
+!backend/uploads/temp/.gitkeep
