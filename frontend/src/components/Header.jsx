@@ -1690,6 +1690,7 @@ const Header = () => {
       <div 
         className="header-breaking-news-banner"
         style={{ 
+          display: 'none',
           background: '#FACC15', 
           color: '#000000', 
           padding: '6px 0', 
