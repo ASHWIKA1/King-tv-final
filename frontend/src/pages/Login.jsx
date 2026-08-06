@@ -272,7 +272,7 @@ const Login = () => {
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3001/admin/dashboard';
+            return 'http://localhost:3000/admin/dashboard';
           }
           return `${window.location.origin}/admin/dashboard`;
         };
@@ -307,7 +307,7 @@ const Login = () => {
           if (res.user && adminRoles.includes(res.user.role)) {
             const getAdminPortalUrl = () => {
               if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                return 'http://localhost:3001/admin/dashboard';
+                return 'http://localhost:3000/admin/dashboard';
               }
               return `${window.location.origin}/admin/dashboard`;
             };
@@ -352,7 +352,7 @@ const Login = () => {
       if (res.user && adminRoles.includes(res.user.role)) {
         const getAdminPortalUrl = () => {
           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3001/admin/dashboard';
+            return 'http://localhost:3000/admin/dashboard';
           }
           return `${window.location.origin}/admin/dashboard`;
         };
