@@ -115,6 +115,13 @@ public class ArticleController {
         return articleRepository.findByAuthorNameInAndStatusOrderByPublishedAtDesc(names, "published");
     }
 
+    /**
+     * Retrieves an article by numeric ID or slug and enriches it with view, author, category, subcategory, and structured-data information.
+     *
+     * @param idOrSlug the article ID or slug used for lookup
+     * @param request  the HTTP request used to obtain request-specific metadata
+     * @return the article when found; otherwise, a 404 response
+     */
     @GetMapping("/{idOrSlug}")
     public ResponseEntity<?> getArticleById(@PathVariable String idOrSlug, HttpServletRequest request) {
         Optional<Article> artOpt = Optional.empty();
@@ -210,6 +217,14 @@ public class ArticleController {
 
         return ResponseEntity.ok(article);
     }
+    /**
+     * Creates an article after processing its images, validating required content, populating SEO data,
+     * checking applicable content for profanity, and saving it.
+     *
+     * @param article the article to create
+     * @param request the HTTP request used to derive SEO data
+     * @return a created article, or an error response when required content is missing or profanity is detected
+     */
     @PostMapping
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
@@ -384,6 +399,13 @@ public class ArticleController {
     @Autowired
     private com.kingstv.services.ContentEditService contentEditService;
 
+    /**
+     * Updates an existing article, including its content, media, metadata, publication fields, and revision history.
+     *
+     * @param entity  the article data to apply to the existing article
+     * @param request the HTTP request used to populate SEO information
+     * @return the updated article, or an error response when the ID is missing, the article is unavailable, editing limits are exceeded, or the content fails the profanity check
+     */
     @PutMapping("/saveUpdate")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
@@ -955,6 +977,13 @@ public class ArticleController {
         return ResponseEntity.ok(articleRevisionRepository.findByArticleIdOrderByRevisionNumberDesc(id));
     }
 
+    /**
+     * Retrieves a specific revision of an article.
+     *
+     * @param id     the article identifier
+     * @param revNum the revision number
+     * @return the requested revision, or a not-found response when it does not exist
+     */
     @GetMapping("/{id}/revisions/{revNum}")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR})
     public ResponseEntity<?> getRevision(@PathVariable Long id, @PathVariable Integer revNum) {
@@ -973,6 +1002,14 @@ public class ArticleController {
         private final String originalFilename;
         private final String contentType;
 
+        /**
+         * Creates a multipart file backed by the specified byte content.
+         *
+         * @param content the file content
+         * @param name the multipart field name
+         * @param originalFilename the original client-side filename
+         * @param contentType the file's MIME type
+         */
         public BytesMultipartFile(byte[] content, String name, String originalFilename, String contentType) {
             this.content = content;
             this.name = name;
@@ -983,10 +1020,21 @@ public class ArticleController {
         @Override public String getName() { return name; }
         @Override public String getOriginalFilename() { return originalFilename; }
         @Override public String getContentType() { return contentType; }
-        @Override public boolean isEmpty() { return content == null || content.length == 0; }
+        /**
+ * Determines whether the multipart content is empty.
+ *
+ * @return {@code true} if the content is null or has zero length, {@code false} otherwise
+ */
+@Override public boolean isEmpty() { return content == null || content.length == 0; }
         @Override public long getSize() { return content.length; }
         @Override public byte[] getBytes() { return content; }
         @Override public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(content); }
+        /**
+         * Writes the file content to the specified destination.
+         *
+         * @param dest the destination file
+         * @throws java.io.IOException if the destination cannot be written
+         */
         @Override public void transferTo(java.io.File dest) throws java.io.IOException {
             try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
                 fos.write(content);
@@ -994,6 +1042,12 @@ public class ArticleController {
         }
     }
 
+    /**
+     * Determines the MIME type associated with an image filename.
+     *
+     * @param filename the image filename, or {@code null}
+     * @return the matching image MIME type, defaulting to {@code image/jpeg}
+     */
     private String guessMimeType(String filename) {
         if (filename == null) return "image/jpeg";
         String lower = filename.toLowerCase();
@@ -1020,6 +1074,12 @@ public class ArticleController {
         }
     }
 
+    /**
+     * Builds the request's base URL from its scheme, host, and non-default port.
+     *
+     * @param request the HTTP request providing the URL components
+     * @return the base URL, or an empty string when the request is {@code null}
+     */
     private String getBaseUrl(HttpServletRequest request) {
         if (request == null) return "";
         String scheme = request.getScheme();
@@ -1036,6 +1096,12 @@ public class ArticleController {
         return builder.toString();
     }
 
+    /**
+     * Builds an absolute frontend URL from a relative path.
+     *
+     * @param path the URL path or absolute URL
+     * @return the original absolute URL or a URL resolved against the request's base URL; an empty string when {@code path} is {@code null}
+     */
     private String getFullUrlForFrontend(String path, HttpServletRequest request) {
         if (path == null) return "";
         if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -1043,6 +1109,14 @@ public class ArticleController {
         return baseUrl + (path.startsWith("/") ? path : "/" + path);
     }
 
+    /**
+     * Processes an image source and registers or uploads it when applicable.
+     *
+     * @param src        the image source URL or base64 data URL
+     * @param uploaderId the ID of the user associated with the media asset
+     * @param request    the request used to construct a frontend-accessible URL
+     * @return the processed public URL, or the original source when processing is unnecessary or fails
+     */
     private String registerSingleImageUrl(String src, Long uploaderId, HttpServletRequest request) {
         if (src == null || src.trim().isEmpty()) {
             return src;
@@ -1135,6 +1209,14 @@ public class ArticleController {
         return src;
     }
 
+    /**
+     * Processes image sources in HTML content and returns the content with registered URLs.
+     *
+     * @param html       the HTML content containing image elements
+     * @param uploaderId the identifier of the user associated with image registration
+     * @param request    the current HTTP request used to construct public URLs
+     * @return the HTML content with each image source replaced by its registered URL
+     */
     private String processHtmlContentForImages(String html, Long uploaderId, HttpServletRequest request) {
         if (html == null || html.trim().isEmpty()) {
             return html;
@@ -1159,6 +1241,12 @@ public class ArticleController {
         return sb.toString();
     }
 
+    /**
+     * Processes and registers images referenced by an article's content and image fields.
+     *
+     * @param article the article whose image references are processed and updated
+     * @param request the request context used to construct public image URLs
+     */
     private void processAndRegisterArticleImages(Article article, HttpServletRequest request) {
         var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         Long uploaderId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
