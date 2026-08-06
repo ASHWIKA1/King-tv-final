@@ -870,52 +870,7 @@ const Home = () => {
     'buy-sell': 'fas fa-shopping-cart'
   };
 
-  const renderQuickAccess = () => {
-    let items = quickAccessMenus;
-    if (!items || items.length === 0) {
-      items = [
-        { slug: 'regional', linkUrl: '/directory', titleEn: 'Regional', titleTa: 'நம்ம ஊர்', name: 'Regional', nameTa: 'நம்ம ஊர்' },
-        { slug: 'business', linkUrl: '/category/business', titleEn: 'Business', titleTa: 'வணிகம்', name: 'Business', nameTa: 'வணிகம்' },
-        { slug: 'politics', linkUrl: '/category/politics', titleEn: 'Politics', titleTa: 'அரசியல்', name: 'Politics', nameTa: 'அரசியல்' },
-        { slug: 'tech', linkUrl: '/category/tech', titleEn: 'Technology', titleTa: 'தொழில்நுட்பம்', name: 'Technology', nameTa: 'தொழில்நுட்பம்' },
-        { slug: 'sports', linkUrl: '/category/sports', titleEn: 'Sports', titleTa: 'விளையாட்டு', name: 'Sports', nameTa: 'விளையாட்டு' },
-        { slug: 'cinema', linkUrl: '/category/cinema', titleEn: 'Cinema', titleTa: 'பொழுதுபோக்கு', name: 'Cinema', nameTa: 'பொழுதுபோக்கு' },
-        { slug: 'international', linkUrl: '/category/international', titleEn: 'International', titleTa: 'சர்வதேசம்', name: 'International', nameTa: 'சர்வதேசம்' }
-      ];
-    }
-
-    return (
-      <section className="quick-access">
-        <div className="container">
-          <div className="quick-grid">
-            {items.map((item, idx) => {
-              let slug = item.slug || (item.linkUrl ? item.linkUrl.replace('/category/', '').replace('/', '') : '');
-              if (!slug) slug = 'news';
-              let path = item.linkUrl || item.path;
-              if (!path || path === '#') {
-                if (slug === 'regional') path = '/directory';
-                else if (slug === 'videos' || slug === 'video') path = '/videos';
-                else if (slug === 'web-stories') path = '/web-stories';
-                else path = `/category/${slug}`;
-              }
-
-              const iconClass = categoryIconMap[slug.toLowerCase()] || 'fas fa-folder';
-              const label = lang === 'en'
-                ? (item.titleEn || item.name || item.label || item.titleTa)
-                : (item.titleTa || item.nameTa || item.label || item.titleEn);
-
-              return (
-                <Link key={item.id || idx} to={path} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className={`icon cat-${slug}`}><i className={iconClass}></i></div>
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-    );
-  };
+  const renderQuickAccess = () => null;
 
   const renderLatestNews = (config = {}, customLabel = null) => {
     const filterCatId = config.categoryId ? parseInt(config.categoryId) : null;
