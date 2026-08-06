@@ -302,7 +302,6 @@ public class DataInitializer {
             jdbcTemplate.execute("TRUNCATE TABLE classified_listings;");
             jdbcTemplate.execute("TRUNCATE TABLE local_obituaries;");
             jdbcTemplate.execute("TRUNCATE TABLE video_contents;");
-            jdbcTemplate.execute("TRUNCATE TABLE articles;");
             jdbcTemplate.execute("TRUNCATE TABLE districts;");
             jdbcTemplate.execute("TRUNCATE TABLE sub_categories;");
             jdbcTemplate.execute("TRUNCATE TABLE categories;");

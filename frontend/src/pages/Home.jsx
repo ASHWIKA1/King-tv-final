@@ -2,10 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
-import { DistrictContext } from '../context/DistrictContext';
-import districtDummyNews from '../data/districtDummyNews';
 import { fetchApi, getImageUrl } from '../utils/api';
-import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -14,7 +11,6 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
   const { widgetWidth, slideSpeed, sections } = useContext(ThemeContext);
-  const { district } = useContext(DistrictContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [articles, setArticles] = useState([]);
@@ -24,7 +20,6 @@ const Home = () => {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [topSliderIndex, setTopSliderIndex] = useState(0);
   const [categoriesMap, setCategoriesMap] = useState({});
-  const [quickAccessMenus, setQuickAccessMenus] = useState([]);
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
   const [institutionNews, setInstitutionNews] = useState([]);
@@ -75,14 +70,6 @@ const Home = () => {
 
   useEffect(() => {
     // Primary fetches wrapped in promises for loading state coordination
-    fetchApi('/public/menus')
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setQuickAccessMenus(data.filter(i => (i.slug || i.linkUrl) !== 'home' && i.linkUrl !== '/'));
-        }
-      })
-      .catch(() => {});
-
     const pCategories = fetchApi('/categories')
       .then(data => {
         if (Array.isArray(data)) {
@@ -99,7 +86,7 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load categories", err));
 
-    const pArticles = fetchApi('/articles/getAll?size=50&sortBy=publishedAt&direction=desc')
+    const pArticles = fetchApi('/articles/getAllWeb?size=50&sortBy=publishedAt&direction=desc')
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.content || []);
         setArticles(list);
@@ -113,13 +100,7 @@ const Home = () => {
       .then(data => {
         const list = data && Array.isArray(data.content) ? data.content : [];
         if (list.length > 0) {
-          const formatted = list.map(item => {
-            if (lang === 'en') {
-              return item.titleEn || item.title || item.titleTa;
-            } else {
-              return item.titleTa || item.title || item.titleEn;
-            }
-          });
+          const formatted = list.map(item => (lang === 'en' ? item.title : item.titleTa) || item.title);
           setTickers(formatted);
         } else {
           setTickers([]);
@@ -152,9 +133,6 @@ const Home = () => {
         console.warn("Could not load web stories from API, using fallback", err);
         setStories(storiesList);
       });
-
-    Promise.allSettled([pCategories, pArticles, pBreakingNews, pWebStories])
-      .finally(() => setLoading(false));
 
     const categorizeVideo = (title = '', description = '') => {
       const text = `${title} ${description}`.toLowerCase();
@@ -205,16 +183,9 @@ const Home = () => {
       }
     })();
 
-    const DEFAULT_LIVE_VIDEO = {
-      title: lang === 'en' ? 'KINGS 24x7 Live TV News Stream' : 'கிங்ஸ் 24x7 நேரலை செய்தி',
-      description: lang === 'en' ? 'Watch continuous Tamil and English live news coverage, debates and special updates.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
-      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
-      isLiveTv: 1
-    };
-
     const pLiveVideo = fetchApi('/videos/live')
       .then(data => {
-        if (data && (data.youtubeUrl || data.videoUrl)) {
+        if (data && data.youtubeUrl) {
           let titleVal = data.title;
           let descVal = data.description;
           if (lang === 'en') {
@@ -222,57 +193,43 @@ const Home = () => {
             descVal = 'Watch continuous Tamil and English live news coverage, debates and special updates.';
           }
           setLiveVideo({ ...data, title: titleVal, description: descVal });
-        } else {
-          setLiveVideo(DEFAULT_LIVE_VIDEO);
         }
       })
-      .catch(err => {
-        console.warn("Could not load live video from API, using default stream", err);
-        setLiveVideo(DEFAULT_LIVE_VIDEO);
-      });
+      .catch(err => console.warn("Could not load live video from API", err));
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
-        // Check localStorage first — ONLY if explicitly in preview mode via ?preview=true
-        const searchParams = new URLSearchParams(window.location.search);
-        const isExplicitPreview = searchParams.get('preview') === 'true';
-
-        if (isExplicitPreview) {
-          try {
-            const previewData = localStorage.getItem('dummy_layout_config');
-            if (previewData) {
-              const parsed = JSON.parse(previewData);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setLayoutSections(parsed.filter(s => s.isVisible !== false));
-                setIsPreviewMode(true);
-                return;
-              }
+        // Check localStorage first — admin builder preview overrides API
+        try {
+          const previewData = localStorage.getItem('dummy_layout_config');
+          if (previewData) {
+            const parsed = JSON.parse(previewData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLayoutSections(parsed.filter(s => s.isVisible !== false));
+              setIsPreviewMode(true);
+              return;
             }
-          } catch (e) { /* ignore */ }
-        }
-
-        // Production mode — filter out dummy navigation test sections and use live API layout
+          }
+        } catch (e) { /* ignore */ }
+        // No preview config — use API data
         if (Array.isArray(data)) {
-          const cleanSections = data.filter(s => s.sectionKey !== 'website_navigation' && s.titleEn !== 'Website Navigation');
-          setLayoutSections(cleanSections);
+          setLayoutSections(data);
           setIsPreviewMode(false);
         }
       })
+
       .catch(() => {
-        const searchParams = new URLSearchParams(window.location.search);
-        const isExplicitPreview = searchParams.get('preview') === 'true';
-        if (isExplicitPreview) {
-          try {
-            const previewData = localStorage.getItem('dummy_layout_config');
-            if (previewData) {
-              const parsed = JSON.parse(previewData);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setLayoutSections(parsed.filter(s => s.isVisible !== false));
-                setIsPreviewMode(true);
-              }
+        // Even if API fails, try localStorage
+        try {
+          const previewData = localStorage.getItem('dummy_layout_config');
+          if (previewData) {
+            const parsed = JSON.parse(previewData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLayoutSections(parsed.filter(s => s.isVisible !== false));
+              setIsPreviewMode(true);
             }
-          } catch (e) { /* ignore */ }
-        }
+          }
+        } catch (e) { /* ignore */ }
       });
 
     // Listen for localStorage changes from the admin builder (real-time preview)
@@ -303,7 +260,7 @@ const Home = () => {
       })
       .catch(() => {});
 
-    const pRss = fetchApi('/rss-aggregator')
+    const pRss = fetchApi('/rss-aggregator/latest?page=0&size=5')
       .then(data => {
         if (data && Array.isArray(data.content)) {
           setAggregatedNews(data.content);
@@ -575,8 +532,7 @@ const Home = () => {
     });
   };
 
-  const districtNewsPool = districtDummyNews[district] || districtDummyNews['சென்னை'] || [];
-  const displayArticles = districtNewsPool.length > 0 ? [...districtNewsPool, ...articles] : (articles || []);
+  const displayArticles = articles || [];
   const displayVideos = videos || [];
   const displayCrowd = crowdReports || [];
   const displayInstitution = institutionNews || [];
@@ -739,28 +695,23 @@ const Home = () => {
   };
 
   const renderNewsTicker = () => {
-    const activeTickers = tickers.length > 0 ? tickers : (lang === 'en' ? [
-      "Heavy rain warning in Tamil Nadu starting tomorrow - Meteorological Department",
-      "India vs Pakistan Cricket Match begins today at 3 PM",
-      "Gold price per sovereign reduced by Rs. 400 - Today's rates",
-      "Chennai Super Kings qualifies for playoff round with a grand victory"
-    ] : [
+    const activeTickers = tickers.length > 0 ? tickers : [
       "தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு",
       "இந்தியா - பாகிஸ்தான் கிரிக்கெட் போட்டி இன்று மாலை 3 மணிக்கு தொடக்கம்",
       "ஆபரணத் தங்கத்தின் விலை சவரனுக்கு ரூ.400 குறைந்தது - இன்றைய நிலவரம்",
       "சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றியுடன் பிளே-ஆஃப் சுற்றுக்கு தகுதி"
-    ]);
+    ];
 
     return (
-      <div className="breaking-news-wrapper" style={{ background: '#FACC15', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+      <div className="breaking-news-wrapper" style={{ background: '#FFFBEB', borderTop: '1px solid #FDE68A', borderBottom: '1px solid #FCD34D' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: '42px', overflow: 'hidden' }}>
-          <div style={{ background: '#000000', color: '#FACC15', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
-            <span style={{ width: '8px', height: '8px', background: '#FACC15', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
+          <div style={{ background: '#EF4444', color: '#FFFFFF', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
+            <span style={{ width: '8px', height: '8px', background: '#FFFFFF', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
             {lang === 'en' ? 'BREAKING' : 'முக்கிய செய்தி'}
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden', padding: '0 16px', whiteSpace: 'nowrap' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#000000' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#1F2937' }}>
               <span style={{ color: '#DC2626' }}>⚡</span>
               <span>{activeTickers[tickerIndex % activeTickers.length]}</span>
             </div>
@@ -769,14 +720,14 @@ const Home = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '10px', flexShrink: 0 }}>
             <button 
               onClick={() => setTickerIndex(prev => (prev - 1 + activeTickers.length) % activeTickers.length)}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
               title="Previous"
             >
               <i className="fas fa-chevron-left"></i>
             </button>
             <button 
               onClick={() => setTickerIndex(prev => (prev + 1) % activeTickers.length)}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E0F2FE', border: 'none', color: '#0369A1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
               title="Next"
             >
               <i className="fas fa-chevron-right"></i>
@@ -802,34 +753,57 @@ const Home = () => {
 
 
     return (
-      <section className="hero-section" id="section-hero" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+      <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
         <div className="container">
-          <div className="hero-lead-card-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '20px', alignItems: 'stretch' }}>
             
             {/* Main Big Featured News Card (Left) */}
             <div 
               className="hero-lead-card"
               style={{ 
-                background: getImageUrl(heroFeatured) 
-                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured)}) center/cover`
-                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`
+                position: 'relative', 
+                borderRadius: '16px', 
+                overflow: 'hidden', 
+                minHeight: '440px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'flex-end',
+                background: heroFeatured.imageUrl 
+                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured.imageUrl)}) center/cover`
+                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`,
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                padding: '30px'
               }}
             >
-              <span className="hero-lead-badge">
+              <span 
+                style={{ 
+                  position: 'absolute', 
+                  top: '20px', 
+                  left: '20px', 
+                  background: '#EF4444', 
+                  color: '#FFFFFF', 
+                  padding: '6px 14px', 
+                  borderRadius: '20px', 
+                  fontSize: '12px', 
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}
+              >
                 {lang === 'en' ? heroCat.en : heroCat.ta}
               </span>
 
-              <h1 className="hero-lead-title">
-                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`}>
+              <h1 style={{ color: '#FFFFFF', fontSize: '26px', fontWeight: 800, lineHeight: 1.4, margin: '0 0 12px 0', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`} style={{ color: '#FFFFFF', textDecoration: 'none' }}>
                   {lang === 'en' ? (heroFeatured.titleEn || heroFeatured.titleTa) : (heroFeatured.titleTa || heroFeatured.titleEn)}
                 </Link>
               </h1>
 
-              <p className="hero-lead-desc">
+              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: 1.5, margin: '0 0 16px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {lang === 'en' ? (heroFeatured.shortDescEn || heroFeatured.shortDescTa) : (heroFeatured.shortDescTa || heroFeatured.shortDescEn)}
               </p>
 
-              <div className="hero-lead-meta">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: 600 }}>
                 <span><i className="far fa-user" style={{ marginRight: '6px' }}></i> {heroFeatured.authorName || (lang === 'en' ? 'Selvakumar' : 'செல்வகுமார்')}</span>
                 <span><i className="far fa-clock" style={{ marginRight: '6px' }}></i> {lang === 'en' ? '2 hours ago' : '2 மணி நேரத்திற்கு முன்'}</span>
                 <span><i className="far fa-eye" style={{ marginRight: '6px' }}></i> {heroFeatured.viewsCount ? `${(heroFeatured.viewsCount / 1000).toFixed(1)}K` : '12.5K'}</span>
@@ -867,7 +841,7 @@ const Home = () => {
                         height: '70px', 
                         borderRadius: '10px', 
                         flexShrink: 0,
-                        background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length]
+                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length]
                       }}
                     ></div>
 
@@ -895,69 +869,39 @@ const Home = () => {
     );
   };
 
-  const categoryIconMap = {
-    politics: 'fas fa-landmark',
-    business: 'fas fa-chart-line',
-    sports: 'fas fa-trophy',
-    cinema: 'fas fa-film',
-    tech: 'fas fa-microchip',
-    technology: 'fas fa-microchip',
-    regional: 'fas fa-map-marker-alt',
-    directory: 'fas fa-map-marker-alt',
-    international: 'fas fa-globe',
-    world: 'fas fa-globe',
-    videos: 'fas fa-video',
-    video: 'fas fa-video',
-    'web-stories': 'fas fa-sticky-note',
-    news: 'fas fa-newspaper',
-    wishes: 'fas fa-heart',
-    obituaries: 'fas fa-ribbon',
-    jobs: 'fas fa-briefcase',
-    classifieds: 'fas fa-tags',
-    'buy-sell': 'fas fa-shopping-cart'
-  };
-
   const renderQuickAccess = () => {
-    let items = quickAccessMenus;
-    if (!items || items.length === 0) {
-      items = [
-        { slug: 'regional', linkUrl: '/directory', titleEn: 'Regional', titleTa: 'நம்ம ஊர்', name: 'Regional', nameTa: 'நம்ம ஊர்' },
-        { slug: 'business', linkUrl: '/category/business', titleEn: 'Business', titleTa: 'வணிகம்', name: 'Business', nameTa: 'வணிகம்' },
-        { slug: 'politics', linkUrl: '/category/politics', titleEn: 'Politics', titleTa: 'அரசியல்', name: 'Politics', nameTa: 'அரசியல்' },
-        { slug: 'tech', linkUrl: '/category/tech', titleEn: 'Technology', titleTa: 'தொழில்நுட்பம்', name: 'Technology', nameTa: 'தொழில்நுட்பம்' },
-        { slug: 'sports', linkUrl: '/category/sports', titleEn: 'Sports', titleTa: 'விளையாட்டு', name: 'Sports', nameTa: 'விளையாட்டு' },
-        { slug: 'cinema', linkUrl: '/category/cinema', titleEn: 'Cinema', titleTa: 'பொழுதுபோக்கு', name: 'Cinema', nameTa: 'பொழுதுபோக்கு' },
-        { slug: 'international', linkUrl: '/category/international', titleEn: 'International', titleTa: 'சர்வதேசம்', name: 'International', nameTa: 'சர்வதேசம்' }
-      ];
-    }
-
     return (
       <section className="quick-access">
         <div className="container">
           <div className="quick-grid">
-            {items.map((item, idx) => {
-              let slug = item.slug || (item.linkUrl ? item.linkUrl.replace('/category/', '').replace('/', '') : '');
-              if (!slug) slug = 'news';
-              let path = item.linkUrl || item.path;
-              if (!path || path === '#') {
-                if (slug === 'regional') path = '/directory';
-                else if (slug === 'videos' || slug === 'video') path = '/videos';
-                else if (slug === 'web-stories') path = '/web-stories';
-                else path = `/category/${slug}`;
-              }
-
-              const iconClass = categoryIconMap[slug.toLowerCase()] || 'fas fa-folder';
-              const label = lang === 'en'
-                ? (item.titleEn || item.name || item.label || item.titleTa)
-                : (item.titleTa || item.nameTa || item.label || item.titleEn);
-
-              return (
-                <Link key={item.id || idx} to={path} className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className={`icon cat-${slug}`}><i className={iconClass}></i></div>
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
+            <Link to="/category/politics" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-politics"><i className="fas fa-landmark"></i></div>
+              <span>{lang === 'en' ? 'Politics' : 'அரசியல்'}</span>
+            </Link>
+            <Link to="/category/business" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-business"><i className="fas fa-chart-line"></i></div>
+              <span>{lang === 'en' ? 'Business' : 'வணிகம்'}</span>
+            </Link>
+            <Link to="/category/sports" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-sports"><i className="fas fa-trophy"></i></div>
+              <span>{lang === 'en' ? 'Sports' : 'விளையாட்டு'}</span>
+            </Link>
+            <Link to="/category/cinema" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-cinema"><i className="fas fa-film"></i></div>
+              <span>{lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு'}</span>
+            </Link>
+            <Link to="/category/tech" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-technology"><i className="fas fa-microchip"></i></div>
+              <span>{lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்'}</span>
+            </Link>
+            <Link to="/directory" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-education"><i className="fas fa-map-marker-alt"></i></div>
+              <span>{lang === 'en' ? 'Regional' : 'நம்ம ஊர்'}</span>
+            </Link>
+            <Link to="/category/international" className="quick-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="icon cat-weather"><i className="fas fa-globe"></i></div>
+              <span>{lang === 'en' ? 'International' : 'சர்வதேசம்'}</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -986,7 +930,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length] 
+                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length] 
                   }}
                 >
                   <span className="cat-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
@@ -1239,17 +1183,8 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    const activeVideo = liveVideo || {
-      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U'
-    };
-    const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
-    let embedUrl = liveStreamUrl;
-    if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
-      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
-      if (videoIdMatch && videoIdMatch[1]) {
-        embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
-      }
-    }
+    if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
+    const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
 
     return (
       <div className="weather-widget" style={{ marginTop: '20px' }}>
@@ -1259,7 +1194,7 @@ const Home = () => {
         </h4>
         <div style={{ width: '100%', height: '210px', background: '#000000', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
           <iframe 
-            src={embedUrl} 
+            src={liveStreamUrl} 
             title="Live Stream" 
             style={{ width: '100%', height: '100%', border: 'none' }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1315,7 +1250,7 @@ const Home = () => {
               <div 
                 className="card-img" 
                 style={{ 
-                  background: getImageUrl(report) ? `url(${getImageUrl(report)}) center/cover` : gradients[idx % gradients.length]
+                  background: report.imageUrl ? `url(${getImageUrl(report.imageUrl)}) center/cover` : gradients[idx % gradients.length]
                 }}
               >
                 <span className="cat-badge" style={{ background: '#F59E0B' }}>
@@ -1358,7 +1293,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[(idx + 4) % gradients.length]
+                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 4) % gradients.length]
                   }}
                 >
                   <span className="cat-badge" style={{ background: '#1E40AF' }}>
@@ -1524,8 +1459,6 @@ const Home = () => {
 
     const renderContent = () => {
       switch (key) {
-        case 'website_navigation':
-          return null;
         case 'news_ticker':
           return (
             <>

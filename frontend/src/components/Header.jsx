@@ -1183,27 +1183,40 @@ const Header = () => {
                       left: 100%;
                       background: ${theme === 'dark' ? '#1E293B' : '#ffffff'};
                       border: ${theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'};
-                      border-radius: 8px;
-                      boxShadow: 0 8px 24px rgba(0,0,0,0.15);
+                      border-radius: 10px;
+                      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
                       padding: 6px 0;
                       min-width: 180px;
                       margin-left: 2px;
                       display: none;
+                      flex-direction: column;
+                      gap: 2px;
                       z-index: 10001;
                     }
+                    .nested-dropdown::before {
+                      content: '';
+                      position: absolute;
+                      top: 0;
+                      bottom: 0;
+                      left: -10px;
+                      width: 10px;
+                    }
                     .dropdown-sub-container:hover .nested-dropdown {
-                      display: block;
+                      display: flex;
                     }
                     .dropdown-nested-link {
-                      display: block;
-                      padding: 8px 16px;
-                      color: ${theme === 'dark' ? '#e2e8f0' : '#334155'};
+                      display: flex;
+                      align-items: center;
+                      padding: 9px 16px;
+                      color: ${theme === 'dark' ? '#cbd5e1' : '#334155'};
                       text-decoration: none;
                       font-size: 13px;
                       font-weight: 600;
                       transition: all 0.2s ease;
                       white-space: nowrap;
                       text-align: left;
+                      border-radius: 4px;
+                      margin: 0 4px;
                     }
                     .dropdown-nested-link:hover {
                       background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
@@ -1351,16 +1364,44 @@ const Header = () => {
                     right: 100%;
                     background: ${theme === 'dark' ? '#1E293B' : '#ffffff'};
                     border: ${theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0'};
-                    border-radius: 8px;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                    border-radius: 10px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
                     padding: 6px 0;
                     min-width: 180px;
                     margin-right: 2px;
                     display: none;
+                    flex-direction: column;
+                    gap: 2px;
                     z-index: 10001;
                   }
+                  .more-nested-dropdown::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    right: -10px;
+                    width: 10px;
+                  }
                   .more-dropdown-sub-container:hover .more-nested-dropdown {
-                    display: block;
+                    display: flex;
+                  }
+                  .more-nested-dropdown .dropdown-nested-link {
+                    display: flex;
+                    align-items: center;
+                    padding: 9px 16px;
+                    color: ${theme === 'dark' ? '#cbd5e1' : '#334155'};
+                    text-decoration: none;
+                    font-size: 13px;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                    white-space: nowrap;
+                    text-align: left;
+                    border-radius: 4px;
+                    margin: 0 4px;
+                  }
+                  .more-nested-dropdown .dropdown-nested-link:hover {
+                    background: ${theme === 'dark' ? '#334155' : '#EFF6FF'};
+                    color: var(--primary, #B3732A);
                   }
                 `}</style>
                 {moreItems.map(mItem => (

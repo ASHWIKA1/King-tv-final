@@ -63,9 +63,11 @@ public class ArticleSchedulerService {
             List<Article> expired = articleRepository
                 .findByStatusAndExpiresAtBefore("published", LocalDateTime.now());
             for (Article article : expired) {
-                article.setStatus("archived");
-                articleRepository.save(article);
-                System.out.println("[ArticleScheduler] Auto-archived article #" + article.getId());
+                if (article.getExpiresAt() != null && article.getExpiresAt().isBefore(LocalDateTime.now())) {
+                    article.setStatus("archived");
+                    articleRepository.save(article);
+                    System.out.println("[ArticleScheduler] Auto-archived expired article #" + article.getId());
+                }
             }
         } catch (Exception e) {
             System.err.println("[ArticleScheduler] archiveExpiredArticles error: " + e.getMessage());
