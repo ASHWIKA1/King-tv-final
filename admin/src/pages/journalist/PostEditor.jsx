@@ -1331,8 +1331,10 @@ const PostEditor = () => {
       .then(res => {
         if (res.data && res.data.url) {
           let imgUrl = res.data.url;
-          if (imgUrl.startsWith('http://localhost:8080')) {
-            imgUrl = imgUrl.replace('http://localhost:8080', '');
+          const apiBase = api.defaults.baseURL || '';
+          const serverBase = apiBase.replace('/api/v1', '');
+          if (imgUrl.startsWith('/uploads')) {
+            imgUrl = `${serverBase}${imgUrl}`;
           }
           resolve(imgUrl);
         } else {
