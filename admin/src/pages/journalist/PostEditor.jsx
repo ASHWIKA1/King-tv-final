@@ -811,7 +811,56 @@ const PostEditor = () => {
       metaTitleTa = `${metaTitleTa || titleEn || 'செய்திகள்'} | கிங்ஸ் 24x7 தமிழ் செய்திகள்`.slice(0, 68);
     }
 
-    const wordsTaRaw = `${titleTa} ${cleanTa}`.split(/\s+/).filter(w => w.length > 3 && !/^[\x00-\x7F]+$/.test(w));
+    // Helper function to extract meaningful terms by sorting by frequency & filtering stop words
+    const extractKeywords = (title, content, isTamil = false) => {
+      const stopWordsEn = new Set([
+        'the', 'and', 'for', 'with', 'that', 'this', 'from', 'about', 'which', 'their', 'there',
+        'would', 'could', 'should', 'have', 'been', 'has', 'had', 'here', 'were', 'they', 'them',
+        'your', 'some', 'more', 'then', 'than', 'also', 'only', 'will', 'into', 'other', 'these',
+        'those', 'after', 'before', 'says', 'said', 'when', 'where', 'who', 'what', 'how', 'been'
+      ]);
+      const stopWordsTa = new Set([
+        'மற்றும்', 'மேலும்', 'எனவே', 'ஆனால்', 'அங்கு', 'இங்கு', 'இருந்து', 'என்று', 'ஒரு', 'பல',
+        'சில', 'அவர்', 'அவர்கள்', 'அது', 'அவை', 'இந்த', 'அந்த', 'இருந்த', 'செய்து', 'கொண்டு',
+        'உள்ள', 'எனவும்', 'உள்ளது', 'ஆகிய', 'மூலம்', 'வழியாக', 'தொடர்பான', 'விவரங்கள்', 'குறித்து',
+        'வழங்கப்பட்டது', 'கொண்டுள்ளது', 'செய்யும்', 'செய்த', 'கூறியதாவது'
+      ]);
+
+      const stopWords = isTamil ? stopWordsTa : stopWordsEn;
+      const freq = {};
+
+      const addWords = (text, weight = 1) => {
+        if (!text) return;
+        const clean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"' \t]/g, ' ');
+        const words = clean.split(/\s+/);
+        words.forEach(w => {
+          let word = w.trim();
+          if (!isTamil) {
+            word = word.toLowerCase();
+          }
+          if (word.length > 3 && !stopWords.has(word)) {
+            if (isTamil && /^[\x00-\x7F]+$/.test(word)) return;
+            if (!isTamil && !/^[a-zA-Z0-9]+$/.test(word)) return;
+            freq[word] = (freq[word] || 0) + weight;
+          }
+        });
+      };
+
+      // Add words from title with high priority (weight 3)
+      addWords(title, 3);
+      // Add words from content upload (weight 1)
+      addWords(content, 1);
+
+      const sorted = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+      return sorted.map(w => {
+        if (!isTamil) {
+          return w.charAt(0).toUpperCase() + w.slice(1);
+        }
+        return w;
+      });
+    };
+
+    const wordsTaRaw = extractKeywords(titleTa, cleanTa, true);
     const setTa = new Set(wordsTaRaw);
     if (catTa) setTa.add(catTa);
     if (distTa) setTa.add(distTa);
@@ -820,8 +869,8 @@ const PostEditor = () => {
     setTa.add('தமிழ்நாடு');
 
     const keywordsTaArr = Array.from(setTa).filter(Boolean);
-    const keywordsTa = keywordsTaArr.slice(0, 8).join(', ');
-    const focusTa = keywordsTaArr.slice(0, 3).join(', ');
+    const keywordsTa = keywordsTaArr.slice(0, 10).join(', ');
+    const focusTa = keywordsTaArr.slice(0, 4).join(', ');
 
     // 2. English SEO Generation
     let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : (titleTa ? `${titleTa} - Kings 24x7 Latest News` : ''));
@@ -834,7 +883,7 @@ const PostEditor = () => {
       metaTitleEn = `${metaTitleEn || 'Kings 24x7 News'} | Kings 24x7 Breaking Updates`.slice(0, 68);
     }
 
-    const wordsEnRaw = `${titleEn} ${cleanEn}`.split(/\s+/).filter(w => w.length > 3 && /^[a-zA-Z0-9]+$/.test(w) && !/^(the|and|for|with|that|this|from|about|which|their|there|would|could|should|have|been|has|had)$/i.test(w));
+    const wordsEnRaw = extractKeywords(titleEn, cleanEn, false);
     const setEn = new Set(wordsEnRaw);
     if (catEn) setEn.add(catEn);
     if (distEn) setEn.add(distEn);
@@ -849,8 +898,8 @@ const PostEditor = () => {
     setEn.add('Latest Updates');
 
     const keywordsEnArr = Array.from(setEn).filter(Boolean);
-    const keywordsEn = keywordsEnArr.slice(0, 8).join(', ');
-    const focusEn = keywordsEnArr.slice(0, 3).join(', ');
+    const keywordsEn = keywordsEnArr.slice(0, 10).join(', ');
+    const focusEn = keywordsEnArr.slice(0, 4).join(', ');
 
     // 3. Search Slug Generation & Dual-Language Combining
     const generatedSlug = form.slug ? slugify(form.slug) : slugify(titleEn || titleTa);
