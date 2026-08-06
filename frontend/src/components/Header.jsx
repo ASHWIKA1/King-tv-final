@@ -20,6 +20,17 @@ const Header = () => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const unauthDropdownRef = useRef(null);
   const [headerSliderIndex, setHeaderSliderIndex] = useState(0);
+  const [liveMarketData, setLiveMarketData] = useState(null);
+
+  useEffect(() => {
+    fetchApi('/market/live-rates')
+      .then(data => {
+        if (data) {
+          setLiveMarketData(data);
+        }
+      })
+      .catch(err => console.error("Error fetching live market data:", err));
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -902,7 +913,11 @@ const Header = () => {
       {
         titleTa: '🪙 சென்னை தங்கம் விலை',
         titleEn: '🪙 Chennai Gold Rate',
-        items: [
+        items: liveMarketData && liveMarketData.gold ? [
+          { labelTa: '22K:', labelEn: '22K:', val: liveMarketData.gold.gold22k || '₹8,950/g', color: '#22C55E' },
+          { labelTa: '24K:', labelEn: '24K:', val: liveMarketData.gold.gold24k || '₹9,760/g', color: '#22C55E' },
+          { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: liveMarketData.gold.silver || '₹118/g', color: '#FFFFFF' }
+        ] : [
           { labelTa: '22K:', labelEn: '22K:', val: '₹8,950/g', color: '#22C55E' },
           { labelTa: '24K:', labelEn: '24K:', val: '₹9,760/g', color: '#22C55E' },
           { labelTa: 'வெள்ளி:', labelEn: 'Silver:', val: '₹118/g', color: '#FFFFFF' },
