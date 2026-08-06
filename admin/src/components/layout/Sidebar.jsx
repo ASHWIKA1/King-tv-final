@@ -169,6 +169,8 @@ const Sidebar = () => {
             <SidebarNavLink to="/admin/navbar" icon={Menu} label={t('navbar')} />
             <SidebarNavLink to="/admin/community" icon={Building2} label="Community Modules" />
             <SidebarNavLink to="/admin/surveys" icon={HelpCircle} label={t('surveys')} />
+            <SidebarNavLink to="/admin/market-rates" icon={DollarSign} label="Market Rates" />
+            <SidebarNavLink to="/admin/election-center" icon={Activity} label="Election Center 2026" />
           </SidebarSection>
         )}
 

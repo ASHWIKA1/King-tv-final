@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ta" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KING 24x7 - தமிழ் செய்திகள் | Tamil News Portal</title>
+  <meta name="description"
+    content="KING 24x7 - உண்மை. புரிதல். தமிழில். தமிழ்நாடு, இந்தியா, உலக செய்திகள், அரசியல், விளையாட்டு, சினிமா, விவசாயம், வணிகம், கல்வி செய்திகள்">
+  <meta name="keywords"
+    content="tamil news, tamil nadu news, king 24x7, today tamil news, breaking news tamil, political news tamil">
+  <link rel="canonical" href="https://king24x7.com/">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="KING 24x7 - தமிழ் செய்திகள்">
+  <meta property="og:description" content="உண்மை. புரிதல். தமிழில். முழுமையான தமிழ் செய்திகள் போர்டல்">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://king24x7.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="KING 24x7 - தமிழ் செய்திகள்">
+  <meta name="theme-color" content="#0057FF">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-light.png" id="favicon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css?v=9">
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "NewsMediaOrganization",
+        "@id": "https://king24x7.com/#organization",
+        "name": "KING 24x7",
+        "url": "https://king24x7.com/",
+        "logo": {
+          "@type": "ImageObject",
+          "@id": "https://king24x7.com/#logo",
+          "url": "https://king24x7.com/logo.png",
+          "caption": "KING 24x7 Logo"
+        },
+        "sameAs": [
+          "https://www.facebook.com/king24x7",
+          "https://twitter.com/king24x7",
+          "https://www.instagram.com/king24x7",
+          "https://www.youtube.com/@king24x7"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://king24x7.com/#website",
+        "url": "https://king24x7.com/",
+        "name": "KING 24x7",
+        "alternateName": "கிங் 24x7",
+        "description": "உண்மை. புரிதல். தமிழில். தமிழ் செய்திகள் | Tamil News Portal",
+        "publisher": {
+          "@id": "https://king24x7.com/#organization"
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://king24x7.com/?s={search_term_string}",
+          "query-input": "required name=search_term_string"
+        },
+        "inLanguage": "ta"
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+
+  <!-- MAIN TOP HEADER BAR (Black Bar matching requested screenshot) -->
+  <header class="custom-top-header">
+    <div class="container custom-header-container">
+      
+      <!-- Left side: Hamburger, Logo, District location selector -->
+      <div class="custom-header-left">
+        <button class="header-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <a href="index.html" class="custom-logo">
+          <span class="logo-king">KiNG</span>
+          <span class="logo-sub">24x7 Multiform TV</span>
+        </a>
+        <div class="custom-district-tag">
+          <span id="districtNameTag">Chennai 24×7</span>
+          <i class="fas fa-pencil-alt district-pencil" id="editDistrictBtn" title="Change Location"></i>
+          <select id="districtSelector" class="district-select-hidden" aria-label="Select District">
+            <option value="Chennai" selected>Chennai</option>
+            <option value="Coimbatore">Coimbatore</option>
+            <option value="Madurai">Madurai</option>
+            <option value="Salem">Salem</option>
+            <option value="Trichy">Trichy</option>
+            <option value="Tirunelveli">Tirunelveli</option>
+            <option value="Vellore">Vellore</option>
+            <option value="Erode">Erode</option>
+            <option value="Thanjavur">Thanjavur</option>
+            <option value="Kanyakumari">Kanyakumari</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Center: Gold/Commodity Rates Pill Box -->
+      <div class="custom-header-center">
+        <div class="gold-rate-widget">
+          <div class="gold-header">
+            <span><i class="fas fa-circle" style="font-size:7px;color:#94A3B8;"></i> <span id="goldLocationLabel">Chennai Gold Rate</span></span>
+            <span class="widget-dots">•••••</span>
+          </div>
+          <div class="gold-rates-row">
+            <span>22K: <strong style="color:#22C55E;" id="gold22kVal">₹8,950/g</strong></span>
+            <span>24K: <strong style="color:#22C55E;" id="gold24kVal">₹9,760/g</strong></span>
+          </div>
+          <div class="gold-rates-row secondary-rates">
+            <span>Silver: <strong style="color:#FFF;" id="silverVal">₹118/g</strong></span>
+            <span>Platinum: <strong style="color:#EF4444;" id="platVal">₹3,420/g</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Controls (Search, Language, Theme, Live TV, User) -->
+      <div class="custom-header-right">
+        <button class="icon-btn" id="searchToggle" title="Search"><i class="fas fa-search"></i></button>
+
+        <div class="lang-dropdown-wrapper">
+          <button class="icon-btn" id="langToggleBtn" title="Language">
+            <i class="fas fa-language"></i>
+          </button>
+          <select class="lang-switcher" id="langSelectHeader" aria-label="Language">
+            <option value="ta" selected>TA</option>
+            <option value="en">EN</option>
+          </select>
+        </div>
+
+        <button class="icon-btn" id="darkToggle" title="Toggle Dark Mode">
+          <i class="fas fa-moon"></i>
+        </button>
+
+        <a href="index.html#section-livetv" class="header-glowing-livetv" title="Watch Live TV">
+          <i class="fas fa-tv"></i>
+          <span class="live-dot"></span>
+        </a>
+
+        <div id="topBarUserBlock">
+          <a href="login.html" class="icon-btn user-btn" title="Account Login">
+            <i class="fas fa-user-circle"></i>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- NAVIGATION MEGA MENU -->
+  <nav class="main-nav" id="mainNav">
+    <div class="container">
+      <ul class="nav-menu" id="navMenu">
+        <li class="nav-item active" id="nav-home"><a href="index.html" class="nav-link">முகப்பு</a></li>
+        <li class="nav-item" id="nav-our-town"><a href="category.html?cat=our-town" class="nav-link">நம்ம ஊர்</a></li>
+        <li class="nav-item" id="nav-news"><a href="category.html?cat=news" class="nav-link">செய்திகள்</a></li>
+        <li class="nav-item" id="nav-wishes"><a href="category.html?cat=wishes" class="nav-link">வாழ்த்து</a></li>
+        <li class="nav-item" id="nav-condolences"><a href="category.html?cat=condolences" class="nav-link">இரங்கல்</a></li>
+        <li class="nav-item" id="nav-business"><a href="category.html?cat=business" class="nav-link">வணிகம்</a></li>
+        <li class="nav-item" id="nav-jobs"><a href="category.html?cat=jobs" class="nav-link">வேலை</a></li>
+        <li class="nav-item" id="nav-classifieds"><a href="category.html?cat=classifieds" class="nav-link">தள்ளுபடி</a></li>
+        <li class="nav-item" id="nav-buysell"><a href="category.html?cat=buy-sell" class="nav-link">வாங்க விற்க/&lt;&lt;</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <!-- YELLOW BREAKING NEWS BAR (Matching Screenshot) -->
+  <div class="yellow-breaking-bar">
+    <div class="container yellow-breaking-container">
+      <div class="yellow-breaking-badge">
+        <i class="fas fa-bolt"></i> BREAKING NEWS
+      </div>
+      <div class="yellow-breaking-ticker">
+        <div class="breaking-track" id="breakTrack">
+          <!-- Populated dynamically by main.js -->
+          <a href="#">🔴 செய்திகள் ஏற்றுகிறது...</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section" id="section-hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="featured-card">
+          <div class="card-img" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);"></div>
+          <div class="card-overlay">
+            <span class="category-badge cat-politics">அரசியல்</span>
+            <h2>தமிழகத்தில் விரைவில் சட்டமன்ற கூட்டத்தொடர் – முதலமைச்சர் அறிவிப்பு</h2>
+            <p>தமிழக சட்டமன்றக் கூட்டத்தொடர் விரைவில் தொடங்க உள்ளது. இக்கூட்டத்தொடரில் பல்வேறு முக்கிய மசோதாக்கள் விவாதத்திற்கு வர உள்ளன என முதலமைச்சர் அறிவித்துள்ளார்.</p>
+            <div class="meta">
+              <span><i class="far fa-calendar-alt"></i> 20 மே 2025</span>
+              <span><i class="far fa-clock"></i> 5 நிமிட வாசிப்பு</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-stack">
+          <div class="hero-stack-card">
+            <div class="info">
+              <span class="category-badge cat-business">வணிகம்</span>
+              <h4>பங்குச்சந்தை உயர்வு – முதலீட்டாளர்கள் மகிழ்ச்சி</h4>
+              <div class="meta"><span><i class="far fa-calendar-alt"></i> 20 மே 2025</span></div>
+            </div>
+            <div class="thumb" style="background: linear-gradient(135deg, #F59E0B, #D97706);"></div>
+          </div>
+          <div class="hero-stack-card">
+            <div class="info">
+              <span class="category-badge cat-sports">விளையாட்டு</span>
+              <h4>IPL 2025: சென்னை அணி அபார வெற்றி</h4>
+              <div class="meta"><span><i class="far fa-calendar-alt"></i> 20 மே 2025</span></div>
+            </div>
+            <div class="thumb" style="background: linear-gradient(135deg, #10B981, #059669);"></div>
+          </div>
+          <div class="hero-stack-card">
+            <div class="info">
+              <span class="category-badge cat-technology">தொழில்நுட்பம்</span>
+              <h4>இந்தியா விண்வெளியில் புதிய சாதனை</h4>
+              <div class="meta"><span><i class="far fa-calendar-alt"></i> 20 மே 2025</span></div>
+            </div>
+            <div class="thumb" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK ACCESS ICONS (CATEGORY TAB ROW) -->
+  <section class="quick-access">
+    <div class="container">
+      <div class="quick-grid">
+        <div class="quick-card">
+          <div class="icon cat-home"><i class="fas fa-home"></i></div><span>முகப்பு</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-our-town"><i class="fas fa-map-marker-alt"></i></div><span>நம்ம ஊர்</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-news"><i class="fas fa-newspaper"></i></div><span>செய்திகள்</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-wishes"><i class="fas fa-gift"></i></div><span>வாழ்த்து</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-condolences"><i class="fas fa-praying-hands"></i></div><span>இரங்கல்</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-business"><i class="fas fa-chart-line"></i></div><span>வணிகம்</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-jobs"><i class="fas fa-briefcase"></i></div><span>வேலை</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-classifieds"><i class="fas fa-tags"></i></div><span>தள்ளுபடி</span>
+        </div>
+        <div class="quick-card">
+          <div class="icon cat-buysell"><i class="fas fa-shopping-cart"></i></div><span>வாங்க விற்க/&lt;&lt;</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN LAYOUT CONTAINER (LEFT COLUMN AND RIGHT SIDEBAR) -->
+  <div class="container main-layout-container">
+    <div class="left-content-column">
+      <!-- LATEST NEWS -->
+      <section class="news-section">
+        <div class="section-title">
+          <h2><i class="fas fa-newspaper"></i> சமீபத்திய செய்திகள்</h2>
+          <a href="#" class="view-all">அனைத்தும் காண <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="news-grid-3" id="newsGrid">
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);">
+              <span class="cat-badge cat-politics">அரசியல்</span>
+            </div>
+            <div class="card-body">
+              <h3>   தமிழக சட்டப்பேரவையில் புதிய மசோதா தாக்கல் - எதிர்க்கட்சிகள் எதிர்ப்பு</h3>
+              <p>சட்டப்பேரவையில் இன்று தாக்கல் செய்யப்பட்ட புதிய மசோதாவுக்கு எதிர்க்கட்சிகள் கடும் எதிர்ப்பு
+                தெரிவித்துள்ளனர். இந்த மசோதா மக்கள் நலனுக்கு பாதகமானது என கூறியுள்ளனர்.</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 1 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 4.5K</span><span><i class="far fa-clock"></i> 3 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #DC2626, #F97316);">
+              <span class="cat-badge cat-sports">விளையாட்டு</span>
+            </div>
+            <div class="card-body">
+              <h3>இந்திய கிரிக்கெட் அணி ஆஸ்திரேலியாவை வீழ்த்தியது - 3-0 அபாரம்</h3>
+              <p>ஆஸ்திரேலியாவுக்கு எதிரான டி20 தொடரை 3-0 என்ற கணக்கில் இந்திய அணி முழுமையாக வென்றது. விராட் கோலி அபார
+                ஆட்டம்.</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 2 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 18.2K</span><span><i class="far fa-clock"></i> 4 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #059669, #22C55E);">
+              <span class="cat-badge cat-business">வணிகம்</span>
+            </div>
+            <div class="card-body">
+              <h3>பங்குச் சந்தை புதிய உச்சம் - முதலீட்டாளர்களுக்கு வார இறுதி பரிசு</h3>
+              <p>சென்செக்ஸ் 82,000 புள்ளிகளை தாண்டி புதிய சாதனை படைத்தது. ஐடி, பேங்கிங் பங்குகள் முன்னணி.</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 3 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 7.8K</span><span><i class="far fa-clock"></i> 2 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #7C3AED, #A855F7);">
+              <span class="cat-badge cat-technology">தொழில்நுட்பம்</span>
+            </div>
+            <div class="card-body">
+              <h3>செயற்கை நுண்ணறிவில் தமிழக இளைஞர்கள் சாதனை - சர்வதேச அங்கீகாரம்</h3>
+              <p>செயற்கை நுண்ணறிவில் தமிழக இளைஞர்கள் சாதனை - சர்வதேச அங்கீகாரம்</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 4 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 6.1K</span><span><i class="far fa-clock"></i> 3 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #D946EF, #EC4899);">
+              <span class="cat-badge cat-cinema">சினிமா</span>
+            </div>
+            <div class="card-body">
+              <h3>தளபதி விஜய்யின் அடுத்த படம் குறித்த முக்கிய அறிவிப்பு வெளியானது</h3>
+              <p>இயக்குனர் வெங்கட் பிரபு இயக்கத்தில் விஜய் நடிக்கும் 69-வது படம் குறித்த அதிகாரப்பூர்வ தகவல்
+                வெளியாகியுள்ளது.</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 5 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 32.5K</span><span><i class="far fa-clock"></i> 2 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="card-img" style="background: linear-gradient(135deg, #16A34A, #4ADE80);">
+              <span class="cat-badge cat-agriculture">விவசாயம்</span>
+            </div>
+            <div class="card-body">
+              <h3>நெல் கொள்முதல் விலை உயர்வு - விவசாயிகள் சங்கம் வரவேற்பு</h3>
+              <p>நெல்லுக்கான குறைந்தபட்ச ஆதரவு விலையை மத்திய அரசு உயர்த்தியுள்ள நிலையில் விவசாயிகள் மகிழ்ச்சி
+                தெரிவித்துள்ளனர்.</p>
+              <div class="card-meta"><span><i class="far fa-clock"></i> 6 மணி நேரம்</span><span><i
+                    class="far fa-eye"></i> 5.3K</span><span><i class="far fa-clock"></i> 3 நிமிட வாசிப்பு</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Load More -->
+        <div id="loadMore" style="display:none;padding:20px;text-align:center;"><i class="fas fa-spinner fa-pulse fa-2x"
+            style="color:var(--primary)"></i></div>
+      </section>
+
+      <!-- VIDEO NEWS SECTION -->
+      <section class="video-section" id="section-video">
+        <div class="section-title">
+          <h2><i class="fas fa-video" style="color:#EF4444"></i> வீடியோ செய்திகள்</h2>
+          <a href="#" class="view-all">மேலும் வீடியோக்கள் <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="video-categories">
+          <button class="video-cat-btn active">அனைத்தும்</button>
+          <button class="video-cat-btn">அரசியல்</button>
+          <button class="video-cat-btn">விளையாட்டு</button>
+          <button class="video-cat-btn">விவசாயம்</button>
+          <button class="video-cat-btn">தொழில்நுட்பம்</button>
+          <button class="video-cat-btn">விளக்கங்கள்</button>
+        </div>
+        <div class="video-grid-4">
+          <div class="video-card">
+            <div class="thumb-area">
+              <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACAA==" style="background: linear-gradient(135deg, #1E40AF, #3B82F6); width: 100%; height: 100%;" alt="">
+              <div class="play-overlay"><i class="fas fa-play"></i></div>
+              <span class="duration">4:32</span>
+            </div>
+            <div class="body">
+              <h5>தமிழக பட்ஜெட் 2026 - முக்கிய அம்சங்கள் விளக்கம்</h5>
+              <div class="meta"><span><i class="far fa-eye"></i> 45K பார்வைகள்</span></div>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="thumb-area">
+              <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACAA==" style="background: linear-gradient(135deg, #DC2626, #F97316); width: 100%; height: 100%;" alt="">
+              <div class="play-overlay"><i class="fas fa-play"></i></div>
+              <span class="duration">2:18</span>
+            </div>
+            <div class="body">
+              <h5>கிரிக்கெட் போட்டி சிறப்பம்சங்கள் - இந்தியா vs ஆஸ்திரேலியா</h5>
+              <div class="meta"><span><i class="far fa-eye"></i> 18.2K பார்வைகள்</span></div>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="thumb-area">
+              <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACAA==" style="background: linear-gradient(135deg, #16A34A, #4ADE80); width: 100%; height: 100%;" alt="">
+              <div class="play-overlay"><i class="fas fa-play"></i></div>
+              <span class="duration">6:45</span>
+            </div>
+            <div class="body">
+              <h5>விவசாயிகளுக்கான புதிய திட்டங்கள் - நேரடி அறிக்கை</h5>
+              <div class="meta"><span><i class="far fa-eye"></i> 8.5K பார்வைகள்</span></div>
+            </div>
+          </div>
+          <div class="video-card">
+            <div class="thumb-area">
+              <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACAA==" style="background: linear-gradient(135deg, #059669, #22C55E); width: 100%; height: 100%;" alt="">
+              <div class="play-overlay"><i class="fas fa-play"></i></div>
+              <span class="duration">8:10</span>
+            </div>
+            <div class="body">
+              <h5>பங்குச் சந்தை ஆய்வு - நிபுணர்களின் முக்கிய ஆலோசனை</h5>
+              <div class="meta"><span><i class="far fa-eye"></i> 12.1K பார்வைகள்</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STORIES SECTION -->
+      <section class="stories-section" id="section-stories">
+        <div class="section-title">
+          <h2><i class="fas fa-sticky-note"></i> வெப் ஸ்டோரிஸ்</h2>
+          <a href="#" class="view-all">அனைத்தும் காண <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="stories-track">
+          <div class="story-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <span class="badge-tag" style="background:#EF4444">NEW</span>
+            <div class="story-overlay"><span class="story-cat cat-sports">விளையாட்டு</span>
+              <h5>உலக கோப்பை கிரிக்கெட் 2027 அட்டவணை</h5>
+              <span class="views"><i class="far fa-eye"></i> 12.4K</span>
+            </div>
+          </div>
+          <div class="story-card" style="background: linear-gradient(135deg, #D946EF, #EC4899);">
+            <span class="badge-tag" style="background:#F97316">HOT</span>
+            <div class="story-overlay"><span class="story-cat cat-cinema">சினிமா</span>
+              <h5>ரஜினி அடுத்த படம் - முதல் பார்வை</h5>
+              <span class="views"><i class="far fa-eye"></i> 18.2K</span>
+            </div>
+          </div>
+          <div class="story-card" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);">
+            <span class="badge-tag" style="background:#3B82F6">TREND</span>
+            <div class="story-overlay"><span class="story-cat cat-politics">அரசியல்</span>
+              <h5>பாராளுமன்ற தேர்தல் 2029 - முன்னோட்டம்</h5>
+              <span class="views"><i class="far fa-eye"></i> 9.5K</span>
+            </div>
+          </div>
+          <div class="story-card" style="background: linear-gradient(135deg, #7C3AED, #A855F7);">
+            <span class="badge-tag" style="background:#10B981">NEW</span>
+            <div class="story-overlay"><span class="story-cat cat-technology">தொழில்நுட்பம்</span>
+              <h5>AI மூலம் மருத்துவ துறையில் புரட்சி</h5>
+              <span class="views"><i class="far fa-eye"></i> 15K</span>
+            </div>
+          </div>
+          <div class="story-card" style="background: linear-gradient(135deg, #16A34A, #4ADE80);">
+            <span class="badge-tag" style="background:#8B5CF6">NEW</span>
+            <div class="story-overlay"><span class="story-cat cat-agriculture">விவசாயம்</span>
+              <h5>கரிம வேளாண்மை - விவசாயிகள் வருமானம்</h5>
+              <span class="views"><i class="far fa-eye"></i> 8.4K</span>
+            </div>
+          </div>
+          <div class="story-card" style="background: linear-gradient(135deg, #059669, #22C55E);">
+            <span class="badge-tag" style="background:#EC4899">TREND</span>
+            <div class="story-overlay"><span class="story-cat cat-business">வணிகம்</span>
+              <h5>புதிய முதலீட்டு வாய்ப்பப்புகள் 2026</h5>
+              <span class="views"><i class="far fa-eye"></i> 11.2K</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AGRICULTURE & MARKET RATES SECTION -->
+      <section class="agri-market-section" id="section-agri" style="margin-top: 32px;">
+        <div class="section-title">
+          <h2><i class="fas fa-leaf" style="color:#16A34A"></i> விவசாயம் &amp; சந்தை விலை</h2>
+          <a href="category.html?cat=agriculture" class="view-all">மேலும் காண <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div id="agriNewsGrid" class="news-grid-3" style="margin-bottom:16px;">
+          <!-- Article cards populated by loadAgriNews() -->
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+        </div>
+        <!-- Market Rates Widget -->
+        <div id="marketRatesWidget" style="background:var(--white);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;"><i class="fas fa-chart-line" style="color:#16A34A"></i> இன்றைய சந்தை விலை</h4>
+            <span id="marketLastUpdated" style="font-size:11px;color:var(--text-muted);">புதுப்பிக்கிறது...</span>
+          </div>
+          <div id="marketRatesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
+            <!-- Market rate items populated by loadMarketRates() -->
+            <div style="padding:10px;background:var(--bg-light);border-radius:8px;">
+              <span style="font-size:13px;">🌾 நெல் (பொது)</span>
+              <div style="font-size:16px;font-weight:700;color:var(--primary);">ஏற்றுகிறது...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BUSINESS DASHBOARD SECTION -->
+      <section class="business-section" id="section-business" style="margin-top: 32px;">
+        <div class="section-title">
+          <h2><i class="fas fa-chart-bar" style="color:#0057FF"></i> வணிக டாஷ்போர்டு</h2>
+          <a href="category.html?cat=business" class="view-all">முழு விபரம் <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div id="businessNewsGrid" class="news-grid-3">
+          <!-- Populated by loadBusinessNews() -->
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+        </div>
+      </section>
+
+      <!-- DISTRICT NEWS SECTION -->
+      <section class="district-section" id="section-district" style="margin-top: 32px;">
+        <div class="section-title">
+          <h2><i class="fas fa-map-marker-alt" style="color:#7C3AED"></i> மாவட்ட செய்திகள்</h2>
+          <a href="directory.html" class="view-all">அனைத்து மாவட்டங்கள் <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div id="districtFilterBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <!-- Populated by loadDistrictButtons() -->
+          <button class="district-btn active" data-district-id="" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--primary);background:var(--primary);color:white;cursor:pointer;">அனைத்தும்</button>
+        </div>
+        <div id="districtNewsGrid" class="news-grid-3">
+          <!-- Populated by loadDistrictNews() -->
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div></div>
+        </div>
+      </section>
+
+      <!-- ELECTION CENTER 2026 SECTION -->
+      <section class="election-section" id="section-election" style="margin-top: 32px;">
+        <div class="section-title">
+          <h2><i class="fas fa-vote-yea" style="color:#EF4444"></i> தேர்தல் மையம் 2026</h2>
+          <a href="category.html?cat=election" class="view-all">முழு முடிவுகள் <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div id="electionScoreboard" style="background:var(--white);border-radius:var(--radius-md);padding:20px;box-shadow:var(--shadow-sm);border:1px solid var(--border);">
+          <!-- Populated by loadElectionData() -->
+          <div id="electionPartyList" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> தேர்தல் தரவு ஏற்றுகிறது...</div>
+          </div>
+          <div id="electionNewsGrid" class="news-grid-3" style="margin-top:20px;">
+            <!-- Election-category articles -->
+          </div>
+        </div>
+      </section>
+
+      <!-- OPINION POLL SECTION -->
+      <section class="poll-section" id="section-poll" style="margin-top: 32px;">
+        <div class="section-title">
+          <h2><i class="fas fa-poll-h" style="color:#F59E0B"></i> இன்றைய கருத்துக் கணிப்பு</h2>
+        </div>
+        <div id="pollContainer" style="background:var(--white);border-radius:var(--radius-md);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border);">
+          <!-- Populated by loadActivePoll() -->
+          <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> கருத்துக் கணிப்பு ஏற்றுகிறது...</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR COLUMN -->
+    <aside class="trending-sidebar">
+      <!-- 1. Trending List (Numbered 1-5) -->
+      <div class="trending-list" style="margin-bottom: 20px;">
+        <h4 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i
+            class="fas fa-fire" style="color:#EF4444"></i> ட்ரெண்டிங் செய்திகள்</h4>
+        <div class="trending-item">
+          <span class="rank top3">1</span>
+          <div class="info">
+            <h5>சென்னை பெருநகரில் புதிய மெட்ரோ ரயில் திட்டம் அறிவிப்பு</h5>
+            <div class="meta"><span><i class="far fa-eye"></i> 45.2K</span><span class="trend-score">+2.4K/hr</span></div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <span class="rank top3">2</span>
+          <div class="info">
+            <h5>காவிரி நீர் மேலாண்மை குறித்த உச்சநீதிமன்றம் முக்கிய உத்தரவு</h5>
+            <div class="meta"><span><i class="far fa-eye"></i> 38.7K</span><span class="trend-score">+1.8K/hr</span></div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <span class="rank top3">3</span>
+          <div class="info">
+            <h5>இந்திய பொருளாதாரம் 8% வளர்ச்சி - உலக வங்கி அறிக்கை</h5>
+            <div class="meta"><span><i class="far fa-eye"></i> 32.1K</span><span class="trend-score">+1.5K/hr</span></div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <span class="rank">4</span>
+          <div class="info">
+            <h5>தமிழ் சினிமாவில் புதிய படங்களின் அணிவகுப்பு</h5>
+            <div class="meta"><span><i class="far fa-eye"></i> 28.5K</span><span class="trend-score">+1.2K/hr</span></div>
+          </div>
+        </div>
+        <div class="trending-item">
+          <span class="rank">5</span>
+          <div class="info">
+            <h5>பள்ளி மாணவர்களுக்கு காலை உணவு திட்டம் விரிவாக்கம்</h5>
+            <div class="meta"><span><i class="far fa-eye"></i> 24.3K</span><span class="trend-score">+980/hr</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Weather Widget -->
+      <div class="weather-widget">
+        <h4 style="font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px"><i
+            class="fas fa-cloud-sun" style="color:var(--primary)"></i> சென்னை வானிலை</h4>
+        <div class="weather-current">
+          <div class="temp" id="weatherTemp">32°C</div>
+          <div class="details">
+            <strong>மேகமூட்டம்</strong>
+            <span>ஈரப்பதம்: 72%</span>
+            <span>காற்று: 18 km/h</span>
+          </div>
+        </div>
+        <div class="weather-forecast-grid">
+          <div class="weather-forecast-col">
+            <div class="day">தி</div>
+            <div class="icon">☀️</div>
+            <div class="temp">32°</div>
+          </div>
+          <div class="weather-forecast-col">
+            <div class="day">செ</div>
+            <div class="icon">⛅</div>
+            <div class="temp">31°</div>
+          </div>
+          <div class="weather-forecast-col">
+            <div class="day">பு</div>
+            <div class="icon">🌤️</div>
+            <div class="temp">33°</div>
+          </div>
+          <div class="weather-forecast-col">
+            <div class="day">வி</div>
+            <div class="icon">🌧️</div>
+            <div class="temp">29°</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Newsletter Signup Widget -->
+      <div class="sidebar-newsletter">
+        <h4>செய்திமடல் சந்தா</h4>
+        <p>முக்கிய செய்திகள் உங்கள் இமெயிலில் பெறுங்கள்</p>
+        <form onsubmit="event.preventDefault(); alert('நன்றி! செய்திமடலில் இணைந்தமைக்கு.');">
+          <input type="email" placeholder="உங்கள் இமெயில் முகவரி" required>
+          <button type="submit">சந்தா சேர்க்கவும்</button>
+        </form>
+        <p style="font-size: 11px; opacity: 0.7; margin-top: 6px; text-align: center;">நாங்கள் உங்களை spam செய்யமாட்டோம்.</p>
+      </div>
+
+      <!-- 4. Business Case Studies Widget (Horizontal Grid Layout) -->
+      <div class="case-studies-widget">
+        <div class="case-studies-header">
+          <h4><i class="fas fa-briefcase" style="color:#0057FF"></i> வணிகக் கேஸ் ஸ்டடிஸ்</h4>
+          <a href="business-studies.html" class="view-all">அனைத்தையும் பார்க்க <i class="fas fa-chevron-right" style="font-size:8px;"></i></a>
+        </div>
+        <div class="case-studies-grid">
+          <div class="case-study-col">
+            <div class="company-logo"><i class="fas fa-building" style="color:#0057FF"></i> Infosys</div>
+            <span class="tag">தொழில்நுட்பம்</span>
+            <h5>Infosys: டிஜிட்டல் மாற்றுப் பயணம்</h5>
+            <a href="#" class="pdf-btn"><i class="fas fa-file-pdf"></i> PDF</a>
+          </div>
+          <div class="case-study-col">
+            <div class="company-logo"><i class="fas fa-car" style="color:#EF4444"></i> TVS</div>
+            <span class="tag">ஆட்டோமொபைல்</span>
+            <h5>TVS Motor: நிலையான வளர்ச்சி</h5>
+            <a href="#" class="pdf-btn"><i class="fas fa-file-pdf"></i> PDF</a>
+          </div>
+          <div class="case-study-col">
+            <div class="company-logo"><i class="fas fa-store" style="color:#F59E0B"></i> Khadi</div>
+            <span class="tag">MSME</span>
+            <h5>Khadi India: பாரம்பரியத்தின் புதுமை</h5>
+            <a href="#" class="pdf-btn"><i class="fas fa-file-pdf"></i> PDF</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Crowd Reporter Highlight Widget -->
+      <div class="crowd-reporter-widget">
+        <h4><i class="fas fa-bullhorn"></i> மக்கள் செய்தியாளர்</h4>
+        <p>உங்கள் பகுதியில் நடக்கும் நிகழ்வுகளை எங்களோடு பகிர்ந்து கொள்ளுங்கள்! உங்கள் குரல் நாடாகட்டும்.</p>
+        <a href="#" class="report-btn"><i class="fas fa-pen-fancy"></i> செய்தி அனுப்பவும்</a>
+      </div>
+    </aside>
+  </div>
+  <section class="digest-section" id="section-digest">
+    <div class="container">
+      <div class="section-title">
+        <h2><i class="fas fa-rss" style="color:#F97316"></i> தமிழ் செய்தி சுருக்கம் (இதர ஊடகங்கள்)</h2>
+        <a href="#" class="view-all">அனைத்தும் காண <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="digest-row">
+        <div class="digest-card" style="border-left: 3px solid #EF4444; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+          <div class="logo" style="color:#EF4444; font-weight: 800; font-size: 15px;"><i class="fas fa-newspaper"></i> தினமலர்</div>
+          <h4 style="font-size: 13px; margin: 8px 0; font-weight: 700;">தமிழக பட்ஜெட் 2026 முக்கிய சிறப்பம்சங்கள் முழு தொகுப்பு</h4>
+          <span style="font-size:11px;color:var(--text-muted)">1 மணி நேரத்திற்கு முன்</span>
+        </div>
+        <div class="digest-card" style="border-left: 3px solid #F59E0B; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+          <div class="logo" style="color:#F59E0B; font-weight: 800; font-size: 15px;"><i class="fas fa-newspaper"></i> தினத்தந்தி</div>
+          <h4 style="font-size: 13px; margin: 8px 0; font-weight: 700;">நெல் கொள்முதல் விலையை உயர்த்திய அரசு: விவசாயிகள் வரவேற்பு</h4>
+          <span style="font-size:11px;color:var(--text-muted)">2 மணி நேரத்திற்கு முன்</span>
+        </div>
+        <div class="digest-card" style="border-left: 3px solid #3B82F6; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+          <div class="logo" style="color:#3B82F6; font-weight: 800; font-size: 15px;"><i class="fas fa-tv"></i> புதியதலைமுறை</div>
+          <h4 style="font-size: 13px; margin: 8px 0; font-weight: 700;">சட்டமன்றத்தில் இன்று முக்கிய விவாதம் – நேரடித் தகவல்கள்</h4>
+          <span style="font-size:11px;color:var(--text-muted)">3 மணி நேரத்திற்கு முன்</span>
+        </div>
+        <div class="digest-card" style="border-left: 3px solid #10B981; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+          <div class="logo" style="color:#10B981; font-weight: 800; font-size: 15px;"><i class="fas fa-globe"></i> ஒன்இந்தியா</div>
+          <h4 style="font-size: 13px; margin: 8px 0; font-weight: 700;">உலகளாவிய பங்குச்சந்தை சரிவு: இந்திய முதலீட்டாளர்களுக்கு பாதிப்பா?</h4>
+          <span style="font-size:11px;color:var(--text-muted)">4 மணி நேரத்திற்கு முன்</span>
+        </div>
+        <div class="digest-card" style="border-left: 3px solid #8B5CF6; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+          <div class="logo" style="color:#8B5CF6; font-weight: 800; font-size: 15px;"><i class="fas fa-bolt"></i> News18 தமிழ்</div>
+          <h4 style="font-size: 13px; margin: 8px 0; font-weight: 700;">சென்னையில் புதிய மேம்பாலங்கள் கட்ட ஒப்புதல்</h4>
+          <span style="font-size:11px;color:var(--text-muted)">5 மணி நேரத்திற்கு முன்</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter-section" id="section-newsletter">
+    <div class="container">
+      <div class="newsletter-text">
+        <h3>📬 செய்தி மடல்</h3>
+        <p>தினசரி முக்கிய செய்திகள் உங்கள் மின்னஞ்சலில் நேரடியாக!</p>
+      </div>
+      <form class="newsletter-form" id="newsletterForm">
+        <input type="email" id="newsletterEmail" placeholder="உங்கள் மின்னஞ்சல் முகவரி" required>
+        <button type="submit" id="newsletterSubmitBtn">பதிவு செய்க</button>
+      </form>
+      <p id="newsletterMsg" style="display:none;font-size:13px;margin-top:8px;color:var(--white);"></p>
+    </div>
+  </section>
+
+  <!-- CUSTOMIZATION PANEL -->
+  <div class="panel-backdrop" id="panelBackdrop"></div>
+  <button class="customize-toggle" id="customizeToggle" aria-label="Customize"><i class="fas fa-sliders-h"></i></button>
+  <div class="customize-panel" id="customizePanel">
+    <div class="panel-header">
+      <h3><i class="fas fa-palette"></i> தனிப்பயனாக்கு</h3>
+      <button class="close-panel" id="closePanel" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="customize-group">
+        <h4>⭐ தீம்</h4>
+        <div class="customize-row">
+          <div><label>இருண்ட பயன்முறை</label>
+            <div class="custom-desc">இருண்ட தீமுக்கு மாற்றவும்</div>
+          </div>
+          <label class="custom-switch"><input type="checkbox" id="ctrlDarkMode"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🎨 முதன்மை நிறம்</h4>
+        <div class="color-picker-row">
+          <span class="color-swatch active" data-color="#0057FF" style="background:#0057FF"
+            title="நீலம் (இயல்புநிலை)"><input type="color" value="#0057FF"></span>
+          <span class="color-swatch" data-color="#DC2626" style="background:#DC2626" title="சிவப்பு"><input type="color"
+              value="#DC2626"></span>
+          <span class="color-swatch" data-color="#059669" style="background:#059669" title="பச்சை"><input type="color"
+              value="#059669"></span>
+          <span class="color-swatch" data-color="#7C3AED" style="background:#7C3AED" title="ஊதா"><input type="color"
+              value="#7C3AED"></span>
+          <span class="color-swatch" data-color="#D97706" style="background:#D97706" title="ஆரஞ்சு"><input type="color"
+              value="#D97706"></span>
+          <span class="color-swatch" data-color="#EC4899" style="background:#EC4899" title="இளஞ்சிவப்பு"><input
+              type="color" value="#EC4899"></span>
+          <span class="color-swatch" data-color="#06B6D4" style="background:#06B6D4" title="சியான்"><input type="color"
+              value="#06B6D4"></span>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🔤 எழுத்து அளவு</h4>
+        <div class="customize-row">
+          <button class="font-size-btn" data-size="small">சிறியது</button>
+          <button class="font-size-btn active" data-size="medium">நடுத்தரம்</button>
+          <button class="font-size-btn" data-size="large">பெரியது</button>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>👁️ பகுதிகளை மறை/காட்டு</h4>
+        <div class="section-visibility">
+          <div class="customize-row"><label>சிறப்புச் செய்திகள்</label><label class="custom-switch"><input
+                type="checkbox" checked data-section="hero"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>வீடியோ செய்திகள்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="video"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>வெப் ஸ்டோரிஸ்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="stories"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>விவசாயம் & சந்தை</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="agri"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>தேர்தல் மையம்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="election"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>லைவ் டிவி</label><label class="custom-switch"><input type="checkbox" checked
+                data-section="livetv"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>கருத்துக் கணிப்பு</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="poll"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>செய்தி சுருக்கம்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="digest"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>செய்தி மடல்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="newsletter"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>மாவட்ட செய்திகள்</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="district"><span class="slider"></span></label></div>
+          <div class="customize-row"><label>வணிக டாஷ்போர்டு</label><label class="custom-switch"><input type="checkbox"
+                checked data-section="business"><span class="slider"></span></label></div>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>📊 விட்ஜெட் அமைப்புகள்</h4>
+        <div class="customize-row">
+          <div><label>விலைப் பெட்டி அகலம்</label>
+            <div class="custom-desc">மேலே உள்ள விலைப் பெட்டியின் அகலம்</div>
+          </div>
+          <select id="ctrlWidgetWidth"
+            style="padding:4px 8px;border-radius:6px;border:1px solid #E2E8F0;font-size:13px;background:var(--bg-light);color:var(--text-dark)">
+            <option value="520">சாதாரணம்</option>
+            <option value="640" selected="selected">நீளம் (பரிந்துரைக்கப்படுகிறது)</option>
+            <option value="780">மிக நீளம்</option>
+          </select>
+        </div>
+        <div class="customize-row">
+          <div><label>விழும் ஸ்லைடு வேகம்</label>
+            <div class="custom-desc">விலைப் பெட்டி மாறும் நேரம் (வினாடிகள்)</div>
+          </div>
+          <select id="ctrlSlideSpeed"
+            style="padding:4px 8px;border-radius:6px;border:1px solid #E2E8F0;font-size:13px;background:var(--bg-light);color:var(--text-dark)">
+            <option value="4">4 வினாடிகள்</option>
+            <option value="6">6 வினாடிகள்</option>
+            <option value="8" selected="selected">8 வினாடிகள்</option>
+            <option value="12">12 வினாடிகள்</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <button class="reset-btn" id="resetCustomize">மீட்டமை</button>
+      <button class="apply-btn" id="applyCustomize">பயன்படுத்து</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="assets/icons/logo-icon-light.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-light-only">
+            <img src="assets/icons/logo-icon-dark.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-dark-only">
+            <span style="font-size:24px; font-weight:800; color:white;">KING 24x7</span>
+          </div>
+          <div class="tagline" style="color:rgba(255,255,255,0.5); margin-top:8px;">உண்மை. பொறுப்புடன். தமிழ்.</div>
+          <p>KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி,
+            நம்பகமான செய்திகளை வழங்குகிறோம்.</p>
+        </div>
+<div class="footer-col">
+          <h5>செய்திகள்</h5>
+          <a href="#">அரசியல்</a>
+          <a href="#">தமிழ்நாடு</a>
+          <a href="#">இந்தியா</a>
+          <a href="#">உலகம்</a>
+          <a href="#">வணிகம்</a>
+          <a href="#">விளையாட்டு</a>
+          <a href="#">சினிமா</a>
+        </div>
+        <div class="footer-col">
+          <h5>கூடுதல்</h5>
+          <a href="#">வீடியோக்கள்</a>
+          <a href="#">லைவ் டிவி</a>
+          <a href="#">பாட்காஸ்ட்கள்</a>
+          <a href="#">வெப் ஸ்டோரிஸ்</a>
+          <a href="#">வானிலை</a>
+          <a href="#">தேர்தல் மையம்</a>
+          <a href="#">சந்தை விலை</a>
+        </div>
+        <div class="footer-col">
+          <h5>தகவல்</h5>
+          <a href="#">எங்களைப் பற்றி</a>
+          <a href="#">தொடர்புக்கு</a>
+          <a href="#">விளம்பரம்</a>
+          <a href="#">வேலைவாய்ப்பு</a>
+          <a href="#">தனியுரிமைக் கொள்கை</a>
+          <a href="#">பயன்பாட்டு விதிமுறைகள்</a>
+        </div>
+        <div class="footer-col">
+          <h5>பதிவிறக்கம்</h5>
+          <a href="#"><i class="fab fa-google-play"></i> Google Play</a>
+          <a href="#"><i class="fab fa-apple"></i> App Store</a>
+          <div style="margin-top:12px">
+            <h5 style="margin-bottom:8px">பின்தொடர</h5>
+            <div class="footer-social">
+              <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+              <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+              <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+              <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+              <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+              <a href="#" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2025 <strong>KING 24x7</strong> - All Rights Reserved.</div>
+        <div>
+          <a href="#">RSS Feeds</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Sitemap</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Accessibility</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BACK TO TOP -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top"><i class="fas fa-arrow-up"></i></button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+  <script src="js/main.js?v=5" charset="UTF-8"></script>
+</body>
+
+</html>

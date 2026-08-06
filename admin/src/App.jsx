@@ -43,6 +43,8 @@ const CommunityModules = lazy(() => import('./pages/admin/CommunityModules'));
 const LanguageFontSettings = lazy(() => import('./pages/admin/LanguageFontSettings'));
 const EmployersManagement = lazy(() => import('./pages/admin/EmployersManagement'));
 const CandidatesManagement = lazy(() => import('./pages/admin/CandidatesManagement'));
+const MarketRatesManager = lazy(() => import('./pages/admin/MarketRatesManager'));
+const ElectionCenter = lazy(() => import('./pages/admin/ElectionCenter'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: 'var(--text-muted)' }}>
@@ -298,6 +300,18 @@ function App() {
           <Route path="/admin/surveys" element={
             <ProtectedLayout allowedRoles={['SUPER_ADMIN']}>
               <SurveyBuilder />
+            </ProtectedLayout>
+          } />
+
+          <Route path="/admin/market-rates" element={
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+              <MarketRatesManager />
+            </ProtectedLayout>
+          } />
+
+          <Route path="/admin/election-center" element={
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+              <ElectionCenter />
             </ProtectedLayout>
           } />
 
