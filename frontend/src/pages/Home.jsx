@@ -1184,7 +1184,20 @@ const Home = () => {
 
   const renderLiveTv = () => {
     if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
-    const liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
+    let liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
+    
+    // Intercept dead dummy video from DB
+    if (liveStreamUrl && liveStreamUrl.includes('2g811Eo7K8U')) {
+       liveStreamUrl = 'https://www.youtube.com/embed/hw7Fjh6mncQ';
+    }
+
+    // Convert standard watch links to embed format
+    if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
+      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+      if (videoIdMatch && videoIdMatch[1]) {
+        liveStreamUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+      }
+    }
 
     return (
       <div className="weather-widget" style={{ marginTop: '20px' }}>
