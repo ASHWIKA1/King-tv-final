@@ -284,9 +284,13 @@ public class ArticleController {
         populateSeoFields(article, request);
         Article saved = articleRepository.save(article);
         if ("published".equals(saved.getStatus()) && !saved.getTelegramSent()) {
-            telegramBotService.pushArticleToChannel(saved);
-            saved.setTelegramSent(true);
-            saved = articleRepository.save(saved);
+            try {
+                telegramBotService.pushArticleToChannel(saved);
+                saved.setTelegramSent(true);
+                saved = articleRepository.save(saved);
+            } catch (Exception e) {
+                System.err.println("Warning: Telegram push failed for article " + saved.getId() + ": " + e.getMessage());
+            }
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -562,9 +566,13 @@ public class ArticleController {
         populateSeoFields(article, request);
         Article updated = articleRepository.save(article);
         if ("published".equals(updated.getStatus()) && !updated.getTelegramSent()) {
-            telegramBotService.pushArticleToChannel(updated);
-            updated.setTelegramSent(true);
-            updated = articleRepository.save(updated);
+            try {
+                telegramBotService.pushArticleToChannel(updated);
+                updated.setTelegramSent(true);
+                updated = articleRepository.save(updated);
+            } catch (Exception e) {
+                System.err.println("Warning: Telegram push failed for article " + updated.getId() + ": " + e.getMessage());
+            }
         }
         return ResponseEntity.ok(updated);
     }
