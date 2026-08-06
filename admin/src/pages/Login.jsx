@@ -62,12 +62,14 @@ const Login = () => {
             src="/assets/logo-banner-light.png" 
             alt="KING24X7 Logo" 
             className="logo-light-only" 
+            onError={(e) => { e.target.style.display = 'none'; }}
             style={{ maxHeight: '55px', width: 'auto', marginBottom: '0.5rem' }} 
           />
           <img 
             src="/assets/logo-banner-dark.png" 
             alt="KING24X7 Logo" 
             className="logo-dark-only" 
+            onError={(e) => { e.target.style.display = 'none'; }}
             style={{ maxHeight: '55px', width: 'auto', marginBottom: '0.5rem' }} 
           />
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, fontWeight: 600 }}>Admin Portal Login</p>
