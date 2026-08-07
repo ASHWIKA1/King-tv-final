@@ -908,13 +908,70 @@ const Home = () => {
     );
   };
 
-  const renderLatestNews = (config = {}, customLabel = null) => {
-    const filterCatId = config.categoryId ? parseInt(config.categoryId) : null;
-    const filtered = filterCatId
-      ? displayArticles.filter(a => String(a.categoryId) === String(filterCatId))
-      : displayArticles;
+  const getArticlesForSection = (config = {}, customLabel = null, sectionKey = '') => {
+    const keyLower = (sectionKey || '').toLowerCase();
+    const labelLower = (customLabel || '').toLowerCase();
+
+    // 1. Direct config categoryId
+    let targetCatId = config.categoryId ? String(config.categoryId) : null;
+
+    // 2. Map section key or section label to Category ID
+    if (!targetCatId) {
+      if (keyLower.includes('politi') || labelLower.includes('அரசியல்') || keyLower.includes('election') || labelLower.includes('தேர்தல்') || labelLower.includes('election center') || labelLower.includes('opinion poll') || labelLower.includes('கருத்துக் கணிப்பு')) {
+        targetCatId = '1';
+      } else if (keyLower.includes('agri') || labelLower.includes('agriculture') || labelLower.includes('விவசாயம்') || labelLower.includes('market rates') || labelLower.includes('சந்தை')) {
+        targetCatId = '2';
+      } else if (keyLower.includes('busine') || labelLower.includes('business') || labelLower.includes('வணிகம்')) {
+        targetCatId = '2';
+      } else if (keyLower.includes('sport') || labelLower.includes('விளையாட்டு') || labelLower.includes('sports')) {
+        targetCatId = '3';
+      } else if (keyLower.includes('cinema') || labelLower.includes('சினிமா') || labelLower.includes('பொழுதுபோக்கு') || labelLower.includes('cinema')) {
+        targetCatId = '4';
+      } else if (keyLower.includes('tech') || labelLower.includes('தொழில்நுட்பம்') || labelLower.includes('technology')) {
+        targetCatId = '5';
+      } else if (keyLower.includes('inter') || labelLower.includes('சர்வதேசம்') || labelLower.includes('international')) {
+        targetCatId = '6';
+      } else if (keyLower.includes('distr') || keyLower.includes('regio') || labelLower.includes('நம்ம ஊர்') || labelLower.includes('மாவட்ட') || labelLower.includes('மண்டலம்') || labelLower.includes('district news')) {
+        targetCatId = '7';
+      }
+    }
+
+    let categoryMatches = [];
+    if (targetCatId) {
+      categoryMatches = displayArticles.filter(a => String(a.categoryId) === targetCatId);
+    }
+
+    // 3. Keyword / Topic Filtering for precise title matching
+    if (labelLower || keyLower) {
+      const topicMatches = displayArticles.filter(a => {
+        const text = ((a.titleEn || '') + ' ' + (a.titleTa || '') + ' ' + (a.shortDescEn || '') + ' ' + (a.shortDescTa || '')).toLowerCase();
+        if (labelLower.includes('agriculture') || labelLower.includes('விவசாயம்') || labelLower.includes('market rates')) {
+          return text.includes('agri') || text.includes('farmer') || text.includes('budget') || text.includes('பட்ஜெட்') || text.includes('விவசாயி') || text.includes('நெல்') || text.includes('விலை') || text.includes('சந்தை') || String(a.categoryId) === '2';
+        }
+        if (labelLower.includes('election') || labelLower.includes('தேர்தல்') || labelLower.includes('poll') || labelLower.includes('opinion')) {
+          return text.includes('election') || text.includes('voter') || text.includes('vote') || text.includes('தேர்தல்') || text.includes('வாக்காளர்') || text.includes('கட்சி') || text.includes('அரசியல்') || String(a.categoryId) === '1';
+        }
+        if (labelLower.includes('district') || labelLower.includes('மாவட்ட') || labelLower.includes('நம்ம ஊர்')) {
+          return text.includes('district') || text.includes('chennai') || text.includes('tn') || text.includes('சென்னை') || text.includes('மாவட்டம்') || text.includes('தமிழகம்') || String(a.categoryId) === '7';
+        }
+        if (labelLower.includes('business') || labelLower.includes('வணிகம்')) {
+          return text.includes('stock') || text.includes('market') || text.includes('gold') || text.includes('sensex') || text.includes('பங்கு') || text.includes('தங்கம்') || text.includes('வணிகம்') || String(a.categoryId) === '2';
+        }
+        return false;
+      });
+      if (topicMatches.length > 0) return topicMatches;
+    }
+
+    if (categoryMatches.length > 0) return categoryMatches;
+
+    // 4. Default for general sections (Latest News, Hero)
+    return displayArticles;
+  };
+
+  const renderLatestNews = (config = {}, customLabel = null, sectionKey = '') => {
+    const activeArticles = getArticlesForSection(config, customLabel, sectionKey);
     const limit = config.limit ? parseInt(config.limit) : 6;
-    const activeGrid = (filtered && filtered.length > 0 ? filtered : displayArticles).slice(0, limit);
+    const activeGrid = activeArticles.slice(0, limit);
     const titleText = customLabel || (lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்');
 
     return (
@@ -1484,7 +1541,7 @@ const Home = () => {
         case 'quick_access':
           return renderQuickAccess();
         case 'latest_news':
-          return renderLatestNews(config, customLabel);
+          return renderLatestNews(config, customLabel, key);
         case 'video_news':
           return renderVideoNews(config, customLabel);
         case 'web_stories':
@@ -1509,7 +1566,7 @@ const Home = () => {
         case 'newsletter':
           return renderNewsletterStrip();
         default:
-          return renderLatestNews(config, customLabel);
+          return renderLatestNews(config, customLabel, key);
       }
     };
 
