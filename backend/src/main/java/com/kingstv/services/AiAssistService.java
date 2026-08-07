@@ -163,19 +163,13 @@ public class AiAssistService {
             case "translate" -> {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
-                        You are a professional news translator for KINGS 24x7. Translate the following news content from %s.
-                        Maintain the exact format structure with TITLE:, EXCERPT:, and CONTENT: headers as shown below:
+                        You are a professional news translator for KINGS 24x7. Translate the following text from %s.
+                        If the input contains section headers (like TITLE:, EXCERPT:, CONTENT:), translate each section and preserve the corresponding headers (TITLE:, EXCERPT:, CONTENT:).
+                        If a section is empty or missing in the input, omit that section header from your response.
+                        If no section headers are present, return ONLY the direct translation of the text.
+                        Do NOT include any extra notes, explanations, or placeholder text.
 
-                        TITLE:
-                        [Translated Title]
-
-                        EXCERPT:
-                        [Translated Excerpt]
-
-                        CONTENT:
-                        [Translated HTML Content]
-
-                        Content to Translate:
+                        Text to Translate:
                         """.formatted(direction) + text;
             }
 

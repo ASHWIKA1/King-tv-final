@@ -1203,19 +1203,24 @@ const PostEditor = () => {
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
   const handleAutoTranslate = async (direction) => {
     setIsTranslating(true);
-    showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
     try {
       const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
       const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
       const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
 
-      const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
-      if (!baseRaw || baseRaw.length < 5) {
-        showMsg('Please write some content to translate first.', true);
+      const parts = [];
+      if (sourceTitle && sourceTitle.trim()) parts.push(`TITLE:\n${sourceTitle.trim()}`);
+      if (sourceExcerpt && sourceExcerpt.trim()) parts.push(`EXCERPT:\n${sourceExcerpt.trim()}`);
+      if (sourceContent && sourceContent.trim()) parts.push(`CONTENT:\n${sourceContent.trim()}`);
+
+      const baseRaw = parts.length > 0 ? parts.join('\n\n') : (sourceTitle || sourceExcerpt || sourceContent || '').trim();
+      if (!baseRaw || baseRaw.length < 2) {
+        showMsg('Please write some title or content to translate first.', true);
         setIsTranslating(false);
         return;
       }
 
+      showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
       let translatedText = '';
       try {
         const res = await api.post('/articles/ai-assist', {
@@ -1231,7 +1236,7 @@ const PostEditor = () => {
       }
 
       if (!translatedText) {
-        const prompt = `Translate the following news content into ${direction === 'ta2en' ? 'English' : 'Tamil'}.\n\nFormat your response as:\nTITLE:\n(translated title)\n\nEXCERPT:\n(translated short description)\n\nCONTENT:\n(translated full text in HTML <p> tags)\n\nOriginal Text:\n${baseRaw}`;
+        const prompt = `Translate the following text into ${direction === 'ta2en' ? 'English' : 'Tamil'}.\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
       
@@ -1239,7 +1244,7 @@ const PostEditor = () => {
       let newExcerpt = '';
       let newContent = '';
 
-      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
+      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|\n\nCONTENT:|$)/i);
       const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
       const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
 
@@ -1248,7 +1253,11 @@ const PostEditor = () => {
       if (contentMatch) newContent = contentMatch[1].trim();
 
       if (!newTitle && !newExcerpt && !newContent) {
-        newContent = translatedText.trim();
+        if (sourceTitle && !sourceExcerpt && !sourceContent) {
+          newTitle = translatedText.trim();
+        } else {
+          newContent = translatedText.trim();
+        }
       }
 
       if (direction === 'ta2en') {
