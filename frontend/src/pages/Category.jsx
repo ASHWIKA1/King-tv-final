@@ -453,17 +453,18 @@ const Category = () => {
     setSelectedSubcat('அனைத்தும்');
     setSelectedFilter('all');
 
-    // Fetch dynamic database articles from backend
-    fetchApi('/articles/getAllWeb?size=200')
+    const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, regional: 6, international: 7, world: 7 };
+    const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
+
+    // Fetch dynamic database articles from backend filtered by categoryId
+    fetchApi(`/articles/getAllWeb?categoryId=${targetId}&size=200`)
       .then(res => {
         const data = res?.content || (Array.isArray(res) ? res : []);
-        const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, regional: 6, international: 7, world: 7 };
-        const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
 
         const filtered = data.filter(item => {
           if (item.categoryId) return String(item.categoryId) === String(targetId);
           if (item.categorySlug) return item.categorySlug.toLowerCase() === catKey.toLowerCase();
-          return false;
+          return true;
         });
 
         // Helper to find subcategory names from navCategories

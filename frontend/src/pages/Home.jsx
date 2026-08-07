@@ -86,7 +86,7 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load categories", err));
 
-    const pArticles = fetchApi('/articles/getAllWeb?size=50&sortBy=publishedAt&direction=desc')
+    const pArticles = fetchApi('/articles/getAllWeb?size=200&sortBy=publishedAt&direction=desc')
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.content || []);
         setArticles(list);
