@@ -1309,32 +1309,21 @@ const NewsEditor = () => {
       }
 
       let translatedText = '';
-      let isFallback = false;
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
           context: direction,
           text: baseRaw
         });
-        if (res.data && !res.data.error && res.data.result && !res.data.isFallback) {
-          const resStr = res.data.result;
-          if (direction === 'en2ta' && !/[\u0B80-\u0BFF]/.test(resStr)) {
-            isFallback = true;
-          } else if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
-            isFallback = true;
-          } else {
-            translatedText = resStr;
-          }
-        } else {
-          isFallback = true;
+        if (res.data && !res.data.error && res.data.result) {
+          translatedText = res.data.result;
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
-        isFallback = true;
+        console.warn('Backend translation API failed, attempting direct fallback...', backendErr);
       }
 
-      if (isFallback || !translatedText) {
-        const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
+      if (!translatedText) {
+        const prompt = `Translate the following news content into ${direction === 'ta2en' ? 'English' : 'Tamil'}.\n\nFormat your response as:\nTITLE:\n(translated title)\n\nEXCERPT:\n(translated short description)\n\nCONTENT:\n(translated full text in HTML <p> tags)\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
       
