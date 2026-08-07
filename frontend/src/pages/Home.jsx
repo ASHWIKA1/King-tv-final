@@ -356,40 +356,49 @@ const Home = () => {
         }
       }, 3000);
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            if (resolved) return;
-            const { latitude, longitude } = pos.coords;
-            fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
-              .then(data => {
-                const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                if (list.length > 0) setArticles(list);
-                safeResolve();
-              })
-              .catch(() => { safeResolve(); });
-          },
-          () => {
-            if (resolved) return;
-            fetchApi(newsUrl)
-              .then(data => {
-                const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                if (list.length > 0) setArticles(list);
-                safeResolve();
-              })
-              .catch(() => { safeResolve(); });
-          },
-          { timeout: 5000 }
-        );
-      } else {
-        if (resolved) return;
+      try {
+        if (navigator.geolocation && window.isSecureContext) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (resolved) return;
+              const { latitude, longitude } = pos.coords;
+              fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
+                .then(data => {
+                  const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                  if (list.length > 0) setArticles(list);
+                  safeResolve();
+                })
+                .catch(() => { safeResolve(); });
+            },
+            () => {
+              if (resolved) return;
+              fetchApi(newsUrl)
+                .then(data => {
+                  const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                  if (list.length > 0) setArticles(list);
+                  safeResolve();
+                })
+                .catch(() => safeResolve());
+            },
+            { timeout: 3000 }
+          );
+        } else {
+          fetchApi(newsUrl)
+            .then(data => {
+              const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+              if (list.length > 0) setArticles(list);
+              safeResolve();
+            })
+            .catch(() => safeResolve());
+        }
+      } catch (geoErr) {
         fetchApi(newsUrl)
           .then(data => {
             const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
             if (list.length > 0) setArticles(list);
             safeResolve();
           })
-          .catch(() => { safeResolve(); });
+          .catch(() => safeResolve());
       }
     });
 

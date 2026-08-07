@@ -164,7 +164,7 @@ const Classifieds = () => {
   };
 
   const handleGeolocation = () => {
-    if (navigator.geolocation) {
+    if (navigator.geolocation && window.isSecureContext) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setNewLatitude(pos.coords.latitude);
@@ -173,6 +173,8 @@ const Classifieds = () => {
         },
         () => alert(lang === 'en' ? 'Unable to retrieve your location.' : 'உங்கள் இருப்பிடத்தை மீட்டெடுக்க முடியவில்லை.')
       );
+    } else {
+      alert(lang === 'en' ? 'Geolocation requires HTTPS connection.' : 'புவிஇருப்பிடம் HTTPS இணைப்பை கோருகிறது.');
     }
   };
 

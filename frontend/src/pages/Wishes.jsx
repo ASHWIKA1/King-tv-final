@@ -104,7 +104,7 @@ const Wishes = () => {
   // Geolocation watch
   useEffect(() => {
     if (selectedSort === 'nearby') {
-      if (navigator.geolocation) {
+      if (navigator.geolocation && window.isSecureContext) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             setCoords(position.coords);

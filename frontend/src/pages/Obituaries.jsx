@@ -124,7 +124,7 @@ const Obituaries = () => {
   // Geolocation watch
   useEffect(() => {
     if (selectedCat === 'nearby') {
-      if (navigator.geolocation) {
+      if (navigator.geolocation && window.isSecureContext) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             setCoords(position.coords);
