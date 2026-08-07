@@ -7,7 +7,7 @@ const PROVIDER_PRESETS = {
     label: 'Google Gemini',
     defaultUrl: 'https://generativelanguage.googleapis.com/v1beta',
     defaultModel: 'gemini-2.0-flash',
-    models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp']
+    models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-exp']
   },
   openai: {
     label: 'OpenAI GPT',

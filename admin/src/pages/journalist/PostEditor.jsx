@@ -42,12 +42,10 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
-    configuredModel,
     'gemini-2.0-flash',
     'gemini-1.5-flash',
-    'gemini-1.5-pro'
+    'gemini-2.0-flash-exp'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
