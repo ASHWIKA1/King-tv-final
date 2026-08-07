@@ -636,9 +636,14 @@ public class ArticleController {
         }
         Article existing = opt.get();
         existing.setStatus(status);
-        if ("published".equals(status) && !existing.getTelegramSent()) {
-            telegramBotService.pushArticleToChannel(existing);
-            existing.setTelegramSent(true);
+        if ("published".equals(status)) {
+            if (existing.getPublishedAt() == null) {
+                existing.setPublishedAt(LocalDateTime.now());
+            }
+            if (!existing.getTelegramSent()) {
+                telegramBotService.pushArticleToChannel(existing);
+                existing.setTelegramSent(true);
+            }
         }
         articleRepository.save(existing);
         return ResponseEntity.ok(Map.of("message", "Status updated successfully", "id", id, "status", status));

@@ -53,7 +53,7 @@ const NewsManagement = () => {
       const params = new URLSearchParams({
         page,
         size: 12,
-        sortBy: 'publishedAt',
+        sortBy: 'id',
         direction: 'desc',
       });
       if (search) params.set('search', search);
@@ -326,9 +326,9 @@ const NewsManagement = () => {
                           <Edit3 size={13} />
                         </button>
                         
-                        {/* View Live Article on Reader App */}
+                        {/* View Live Article on Reader App - always points to frontend root */}
                         <a 
-                          href={`${window.location.origin}/article/${art.id}`}
+                          href={`${window.location.protocol}//${window.location.hostname}/article/${art.id}`}
                           target="_blank" 
                           rel="noreferrer"
                           title="View Live Reader Page"
