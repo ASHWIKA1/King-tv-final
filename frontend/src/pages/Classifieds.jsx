@@ -218,7 +218,7 @@ const Classifieds = () => {
       email: newEmail,
       latitude: newLatitude,
       longitude: newLongitude,
-      status: 'active'
+      status: 'pending'
     };
 
     fetchApi(`/classifieds?images=${encodeURIComponent(uploadedUrls.join(','))}`, {
@@ -227,7 +227,7 @@ const Classifieds = () => {
       body: JSON.stringify(payload)
     })
       .then(() => {
-        alert(lang === 'en' ? 'Advertisement posted successfully!' : 'விளம்பரம் வெற்றிகரமாக பதிவிடப்பட்டது!');
+        alert(lang === 'en' ? 'Advertisement submitted successfully! It is pending approval by an admin and will appear on the site once approved.' : 'விளம்பரம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! இது நிர்வாகியின் ஒப்புதலுக்காக காத்திருக்கிறது, ஒப்புதல் பெற்றவுடன் தளத்தில் தோன்றும்.');
         setShowPostModal(false);
         setPostStep(1);
         // Reset states
@@ -639,229 +639,204 @@ const Classifieds = () => {
       {/* POST AD WIZARD MODAL */}
       {showPostModal && (
         <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1000' }}>
-          <div className="modal-content" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
-            <div className="modal-header" style={{ paddingBottom: '12px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0 }}>Post Your Ad (Step {postStep} of 3)</h3>
-              <button className="modal-close" onClick={() => { setShowPostModal(false); setPostStep(1); }}>&times;</button>
+          <div className="modal-content" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '8px' }}>
+            <div className="modal-header" style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#e83e8c', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>{lang === 'en' ? 'Post New Ad' : 'புதிய விளம்பரம் பதியவும்'}</h3>
+              <button className="modal-close" onClick={() => { setShowPostModal(false); }} style={{ color: 'white', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
             </div>
 
-            <div className="modal-body" style={{ padding: '0' }}>
-              <form onSubmit={handlePostAdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="modal-body" style={{ padding: '24px' }}>
+              <form onSubmit={handlePostAdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
-                {postStep === 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div className="form-group">
-                      <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Product Title *</label>
-                      <input 
-                        type="text" 
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        required 
-                        placeholder="e.g. iPhone 14 Pro Max"
-                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                      />
-                    </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                    {lang === 'en' ? 'Product Title *' : 'பொருள் தலைப்பு *'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    required 
+                    placeholder={lang === 'en' ? 'e.g. iPhone 14 Pro Max' : 'எ.கா: Splendor பைக் விற்பனைக்கு'}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                  />
+                </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Category *</label>
-                        <select 
-                          value={newCatId}
-                          onChange={handleCategoryChange}
-                          required
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        >
-                          <option value="">-- Choose Category --</option>
-                          {categories.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Subcategory</label>
-                        <select 
-                          value={newSubcatId}
-                          onChange={(e) => setNewSubcatId(e.target.value)}
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        >
-                          <option value="">-- Choose Subcategory --</option>
-                          {formSubcategories.map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                          Price (INR) *
-                          <label style={{ fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} /> Free
-                          </label>
-                        </label>
-                        <input 
-                          type="number" 
-                          value={newPrice}
-                          onChange={(e) => setNewPrice(e.target.value)}
-                          required={!isFree}
-                          disabled={isFree}
-                          placeholder="e.g. 85000"
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black', background: isFree ? '#f1f5f9' : 'white' }}
-                        />
-                      </div>
-                    </div>
-
-                    <button 
-                      type="button" 
-                      onClick={() => setPostStep(2)}
-                      style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Category *' : 'வகை *'}
+                    </label>
+                    <select 
+                      value={newCatId}
+                      onChange={handleCategoryChange}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
                     >
-                      Next Step
-                    </button>
+                      <option value="">{lang === 'en' ? '-- Choose Category --' : '-- வகை தேர்ந்தெடுக்கவும் --'}</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Subcategory' : 'துணை வகை'}
+                    </label>
+                    <select 
+                      value={newSubcatId}
+                      onChange={(e) => setNewSubcatId(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                    >
+                      <option value="">{lang === 'en' ? '-- Choose Subcategory --' : '-- துணை வகை --'}</option>
+                      {formSubcategories.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-                {postStep === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Brand Name</label>
-                        <input 
-                          type="text" 
-                          value={newBrand}
-                          onChange={(e) => setNewBrand(e.target.value)}
-                          placeholder="e.g. Apple"
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        />
-                      </div>
-                      <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '24px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={newNegotiable}
-                            onChange={(e) => setNewNegotiable(e.target.checked)}
-                          />
-                          Price is negotiable
-                        </label>
-                      </div>
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                      {lang === 'en' ? 'Price (INR) *' : 'விலை (INR) *'}
+                      <label style={{ fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} /> {lang === 'en' ? 'Free' : 'இலவசம்'}
+                      </label>
+                    </label>
+                    <input 
+                      type="number" 
+                      value={newPrice}
+                      onChange={(e) => setNewPrice(e.target.value)}
+                      required={!isFree}
+                      disabled={isFree}
+                      placeholder={lang === 'en' ? 'e.g. 85000' : 'எ.கா: 85000'}
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black', background: isFree ? '#f1f5f9' : 'white' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Brand Name' : 'பிராண்ட் பெயர்'}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={newBrand}
+                      onChange={(e) => setNewBrand(e.target.value)}
+                      placeholder={lang === 'en' ? 'e.g. Apple' : 'எ.கா: ஆப்பிள்'}
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                    />
+                  </div>
+                </div>
 
-                    <div className="form-group">
-                      <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Product Description *</label>
-                      <textarea 
-                        value={newDesc}
-                        onChange={(e) => setNewDesc(e.target.value)}
-                        required 
-                        rows="3"
-                        placeholder="Provide details about condition, usage, specifications..."
-                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                      ></textarea>
-                    </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={newNegotiable}
+                      onChange={(e) => setNewNegotiable(e.target.checked)}
+                    />
+                    {lang === 'en' ? 'Price is negotiable' : 'விலை பேசித் தீர்மானிக்கலாம்'}
+                  </label>
+                </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setPostStep(1)}
-                        style={{ background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer' }}
-                      >
-                        Back
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => setPostStep(3)}
-                        style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer' }}
-                      >
-                        Next Step
-                      </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'District Locality *' : 'மாவட்டம் / இடம் *'}
+                    </label>
+                    <select 
+                      value={newDistrictId}
+                      onChange={(e) => setNewDistrictId(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                    >
+                      <option value="">{lang === 'en' ? '-- Choose District --' : '-- மாவட்டத்தைத் தேர்ந்தெடுக்கவும் --'}</option>
+                      {districts.map(d => (
+                        <option key={d.id} value={d.id}>{lang === 'en' ? d.nameEn : d.nameTa}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Contact Phone *' : 'தொடர்பு எண் *'}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      required 
+                      placeholder="e.g. 9876543210"
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'WhatsApp Number' : 'வாட்ஸ்அப் எண்'}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={newWhatsapp}
+                      onChange={(e) => setNewWhatsapp(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                    {lang === 'en' ? 'Product Description *' : 'விளம்பரம் விளக்கம் *'}
+                  </label>
+                  <textarea 
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    required 
+                    rows="3"
+                    placeholder={lang === 'en' ? 'Provide details about condition, usage, specifications...' : 'பொருளின் நிலை, மாடல் அல்லது சலுகை நிபந்தனைகள்...'}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
+                  ></textarea>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Upload Photos (Up to 8)' : 'புகைப்படங்களை பதிவேற்றவும் (8 வரை)'}
+                    </label>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*"
+                      onChange={(e) => setImageFiles(Array.from(e.target.files).slice(0, 8))}
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px dashed #cbd5e1', color: 'black' }}
+                    />
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                      {lang === 'en' ? `Selected ${imageFiles.length} file(s)` : `தேர்ந்தெடுக்கப்பட்ட கோப்புகள்: ${imageFiles.length}`}
                     </div>
                   </div>
-                )}
-
-                {postStep === 3 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Contact Phone *</label>
-                        <input 
-                          type="text" 
-                          value={newPhone}
-                          onChange={(e) => setNewPhone(e.target.value)}
-                          required 
-                          placeholder="e.g. 9876543210"
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>WhatsApp Number</label>
-                        <input 
-                          type="text" 
-                          value={newWhatsapp}
-                          onChange={(e) => setNewWhatsapp(e.target.value)}
-                          placeholder="e.g. 9876543210"
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>District Locality</label>
-                        <select 
-                          value={newDistrictId}
-                          onChange={(e) => setNewDistrictId(e.target.value)}
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: 'black' }}
-                        >
-                          <option value="">-- Choose District --</option>
-                          {districts.map(d => (
-                            <option key={d.id} value={d.id}>{lang === 'en' ? d.nameEn : d.nameTa}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Upload Photos (Up to 8)</label>
-                        <input 
-                          type="file" 
-                          multiple 
-                          accept="image/*"
-                          onChange={(e) => setImageFiles(Array.from(e.target.files).slice(0, 8))}
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px dashed #cbd5e1', color: 'black' }}
-                        />
-                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Selected {imageFiles.length} file(s)</div>
-                      </div>
-                      
-                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Location Pin (Optional)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                            <button type="button" onClick={handleGeolocation} style={{ background: '#e2e8f0', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                <i className="fas fa-map-marker-alt" style={{ color: '#ef4444' }}></i> Use My Location
-                            </button>
-                            {newLatitude && <span style={{ fontSize: '12px', color: '#10b981' }}><i className="fas fa-check-circle"></i> Captured</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setPostStep(2)}
-                        style={{ background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer' }}
-                      >
-                        Back
-                      </button>
-                      <button 
-                        type="submit"
-                        disabled={uploadingMedia}
-                        style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer' }}
-                      >
-                        {uploadingMedia ? 'Uploading...' : 'Publish Listing'}
-                      </button>
+                  
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Location Pin (Optional)' : 'இடத்தின் வரைபடம் (விருப்பத்தேர்வு)'}
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                        <button type="button" onClick={handleGeolocation} style={{ background: '#e2e8f0', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                            <i className="fas fa-map-marker-alt" style={{ color: '#ef4444' }}></i> {lang === 'en' ? 'Use My Location' : 'எனது இருப்பிடத்தைப் பயன்படுத்தவும்'}
+                        </button>
+                        {newLatitude && <span style={{ fontSize: '12px', color: '#10b981' }}><i className="fas fa-check-circle"></i> {lang === 'en' ? 'Captured' : 'பதியப்பட்டது'}</span>}
                     </div>
                   </div>
-                )}
+                </div>
 
+                <button 
+                  type="submit"
+                  disabled={uploadingMedia}
+                  style={{ background: '#ec4899', color: '#fff', border: 'none', borderRadius: '6px', padding: '12px', fontSize: '14.5px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
+                >
+                  {uploadingMedia ? (lang === 'en' ? 'Posting...' : 'வெளியிடப்படுகிறது...') : (lang === 'en' ? 'Post Ad' : 'விளம்பரத்தை வெளியிடவும்')}
+                </button>
               </form>
             </div>
           </div>

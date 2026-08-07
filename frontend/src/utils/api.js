@@ -110,8 +110,8 @@ export const fetchApi = async (endpoint, options = {}) => {
     circuits[basePath] = circuit;
   }
 
-  // Bypass circuit breaker and stale cache for live breaking news, public layout, categories, districts, and menus
-  const isBypassed = endpoint.includes('breaking-news') || endpoint.includes('layout') || endpoint.includes('categories') || endpoint.includes('districts') || endpoint.includes('menus');
+  // Bypass circuit breaker and stale cache for live articles, breaking news, public layout, categories, districts, and menus
+  const isBypassed = endpoint.includes('articles') || endpoint.includes('breaking-news') || endpoint.includes('layout') || endpoint.includes('categories') || endpoint.includes('districts') || endpoint.includes('menus');
   if (isBypassed) {
     circuit.status = 'closed';
     circuit.failures = 0;

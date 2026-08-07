@@ -29,7 +29,7 @@ public class ContentEditService {
     @Transactional
     public boolean attemptEdit(String contentType, Long contentId, Long editorId) {
         Optional<ContentEditLog> logOpt = contentEditLogRepository
-                .findByContentTypeAndContentId(contentType, contentId);
+                .findByContentTypeAndContentIdForWrite(contentType, contentId);
 
         ContentEditLog log;
         if (logOpt.isPresent()) {

@@ -48,7 +48,7 @@ public class AiConfigurationService {
             "ollama", "http://localhost:11434/api/chat"
         );
         Map<String, String> defaultModels = Map.of(
-            "gemini", "gemini-flash-latest",
+            "gemini", "gemini-2.0-flash",
             "openai", "gpt-4o-mini",
             "anthropic", "claude-3-5-sonnet-20241022",
             "groq", "llama-3.3-70b-versatile",

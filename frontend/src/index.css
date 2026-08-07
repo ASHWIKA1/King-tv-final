@@ -952,6 +952,46 @@ ul {
   background: #06B6D4;
 }
 
+.cat-regional, .cat-directory {
+  background: #6366F1;
+}
+
+.cat-tech, .cat-technology {
+  background: #A855F7;
+}
+
+.cat-wishes {
+  background: #F43F5E;
+}
+
+.cat-obituaries {
+  background: #64748B;
+}
+
+.cat-jobs {
+  background: #14B8A6;
+}
+
+.cat-classifieds {
+  background: #F59E0B;
+}
+
+.cat-international {
+  background: #0EA5E9;
+}
+
+.cat-video, .cat-videos {
+  background: #EAB308;
+}
+
+.cat-web-stories {
+  background: #8B5CF6;
+}
+
+.cat-news {
+  background: #334155;
+}
+
 /* Quick Access */
 .quick-access {
   padding: 0 0 24px;

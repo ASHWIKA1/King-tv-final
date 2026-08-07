@@ -1,9 +1,11 @@
 package com.kingstv.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "articles")
 public class Article implements Serializable {

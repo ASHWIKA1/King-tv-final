@@ -502,15 +502,12 @@ const Category = () => {
           };
         });
 
-        // Combine DB articles on top, then fall back to static articles if DB list has < 4 items
-        const staticList = currentCat.articles || [];
-        const combined = [...dbArticles, ...staticList.filter(s => !dbArticles.some(d => d.id === s.id))];
-
-        setArticles(combined);
+        // Use DB articles strictly
+        setArticles(dbArticles);
       })
       .catch(err => {
         console.warn("Could not fetch articles for category", err);
-        setArticles(currentCat.articles || []);
+        setArticles([]);
       });
   }, [catKey, matchedDbCat, navCategories]);
 

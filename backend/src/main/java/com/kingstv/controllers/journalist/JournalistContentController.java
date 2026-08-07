@@ -76,7 +76,7 @@ public class JournalistContentController {
         String userRole = getCallerRole();
 
         // Validate category restriction (#37, #43)
-        Long categoryId = request.get("categoryId") != null ? ((Number) request.get("categoryId")).longValue() : null;
+        Long categoryId = safeLong(request.get("categoryId"));
         if (categoryId != null && (Role.MOBILE_JOURNALIST.equals(userRole) || Role.INSTITUTION_LOGIN.equals(userRole))) {
             List<Long> assignedCategories = userCategoryRepository.findByUserId(userId)
                     .stream().map(UserCategory::getCategoryId).collect(Collectors.toList());
@@ -88,7 +88,7 @@ public class JournalistContentController {
 
         // Check video duration if provided (#36, #42)
         String imageUrl = (String) request.get("imageUrl");
-        boolean isVideo = imageUrl != null && (imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") || 
+        boolean isVideo = imageUrl != null && (imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") ||
             imageUrl.toLowerCase().endsWith(".avi") || imageUrl.toLowerCase().endsWith(".webm") || imageUrl.toLowerCase().endsWith(".mkv"));
 
         if (isVideo && (!request.containsKey("videoDurationSeconds") || request.get("videoDurationSeconds") == null)) {
@@ -97,8 +97,8 @@ public class JournalistContentController {
 
         if (request.containsKey("videoDurationSeconds") && request.get("videoDurationSeconds") != null) {
             try {
-                int duration = ((Number) request.get("videoDurationSeconds")).intValue();
-                videoUploadService.validateDuration(duration);
+                Integer duration = safeInt(request.get("videoDurationSeconds"));
+                if (duration != null) videoUploadService.validateDuration(duration);
             } catch (VideoUploadService.VideoTooLongException e) {
                 return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
             }
@@ -113,12 +113,15 @@ public class JournalistContentController {
         article.setShortDescEn((String) request.get("shortDescEn"));
         article.setImageUrl((String) request.get("imageUrl"));
         article.setCategoryId(categoryId);
-        article.setDistrictId(request.get("districtId") != null ? ((Number) request.get("districtId")).longValue() : null);
-        
-        if (request.get("latitude") != null) article.setLatitude(((Number) request.get("latitude")).doubleValue());
-        if (request.get("longitude") != null) article.setLongitude(((Number) request.get("longitude")).doubleValue());
-        if (request.get("visibilityRadiusKm") != null) article.setVisibilityRadiusKm(((Number) request.get("visibilityRadiusKm")).doubleValue());
-        
+        article.setDistrictId(safeLong(request.get("districtId")));
+
+        Double lat = safeDouble(request.get("latitude"));
+        Double lng = safeDouble(request.get("longitude"));
+        Double radius = safeDouble(request.get("visibilityRadiusKm"));
+        if (lat != null) article.setLatitude(lat);
+        if (lng != null) article.setLongitude(lng);
+        if (radius != null) article.setVisibilityRadiusKm(radius);
+
         article.setAuthorName(String.valueOf(userId)); // Store userId as author reference
         article.setStatus("submitted"); // Goes to Chief Editor queue
 
@@ -193,9 +196,9 @@ public class JournalistContentController {
         if (request.containsKey("shortDescEn")) article.setShortDescEn((String) request.get("shortDescEn"));
         if (request.containsKey("imageUrl")) article.setImageUrl((String) request.get("imageUrl"));
 
-        if (request.containsKey("latitude")) article.setLatitude(request.get("latitude") != null ? ((Number) request.get("latitude")).doubleValue() : null);
-        if (request.containsKey("longitude")) article.setLongitude(request.get("longitude") != null ? ((Number) request.get("longitude")).doubleValue() : null);
-        if (request.containsKey("visibilityRadiusKm")) article.setVisibilityRadiusKm(request.get("visibilityRadiusKm") != null ? ((Number) request.get("visibilityRadiusKm")).doubleValue() : null);
+        if (request.containsKey("latitude")) article.setLatitude(safeDouble(request.get("latitude")));
+        if (request.containsKey("longitude")) article.setLongitude(safeDouble(request.get("longitude")));
+        if (request.containsKey("visibilityRadiusKm")) article.setVisibilityRadiusKm(safeDouble(request.get("visibilityRadiusKm")));
 
         // Reset status to submitted so it must be reviewed again
         article.setStatus("submitted");
@@ -227,6 +230,34 @@ public class JournalistContentController {
 
     // NOTE: DELETE endpoint intentionally omitted for MJ and Institution roles.
     // This is server-side enforcement — the API simply does not expose a delete capability.
+
+    // ── Safe numeric parsers ────────────────────────────────────────────────────
+    // These handle null, empty string "", String numbers, and Number instances
+    // so the controller never throws ClassCastException on bad frontend payloads.
+
+    private static Long safeLong(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).longValue();
+        String s = val.toString().trim();
+        if (s.isEmpty()) return null;
+        try { return Long.parseLong(s); } catch (NumberFormatException e) { return null; }
+    }
+
+    private static Double safeDouble(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        String s = val.toString().trim();
+        if (s.isEmpty()) return null;
+        try { return Double.parseDouble(s); } catch (NumberFormatException e) { return null; }
+    }
+
+    private static Integer safeInt(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).intValue();
+        String s = val.toString().trim();
+        if (s.isEmpty()) return null;
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return null; }
+    }
 
     private Long getCallerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

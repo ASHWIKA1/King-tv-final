@@ -35,7 +35,8 @@ const LiveTv = () => {
   }, [lang]);
 
   const getYoutubeEmbedUrl = (url) => {
-    if (!url) return 'https://www.youtube.com/embed/2g811Eo7K8U';
+    if (!url) return 'https://www.youtube.com/embed/hw7Fjh6mncQ';
+    if (url.includes('2g811Eo7K8U')) return 'https://www.youtube.com/embed/hw7Fjh6mncQ';
     if (url.includes('embed/')) return url;
     // Extract video ID
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;

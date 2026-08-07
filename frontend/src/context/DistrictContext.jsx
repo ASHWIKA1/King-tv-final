@@ -11,7 +11,8 @@ const DISTRICT_MAP = {
   'ஈரோடு': 'Erode',
   'தஞ்சாவூர்': 'Tanjore',
   'கன்னியாகுமரி': 'Kanyakumari',
-  'நாமக்கல்': 'Namakkal'
+  'நாமக்கல்': 'Namakkal',
+  'புதுச்சேரி': 'Puducherry'
 };
 
 export const DistrictContext = createContext();
@@ -26,10 +27,66 @@ export const DistrictProvider = ({ children }) => {
     localStorage.setItem('selectedDistrict', key);
   };
 
+  const autoDetectLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            
+            // Using BigDataCloud free client-side reverse geocoding which works better on localhost without API keys
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+            
+            if (data) {
+              const addressValues = [
+                data.city, 
+                data.locality, 
+                data.principalSubdivision, 
+                ...(data.localityInfo?.administrative?.map(a => a.name) || [])
+              ].join(' ').toLowerCase();
+              
+              const mappedTamilDistrict = Object.keys(DISTRICT_MAP).find(
+                (tamilName) =>
+                  addressValues.includes(DISTRICT_MAP[tamilName].toLowerCase())
+              );
+
+              if (mappedTamilDistrict) {
+                setDistrict(mappedTamilDistrict);
+              } else {
+                const fallbackLocation = data.city || data.locality || data.principalSubdivision;
+                if (fallbackLocation) {
+                  setDistrict(fallbackLocation);
+                } else {
+                  console.warn('Location detected but district could not be parsed:', addressValues);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching location data:', error);
+          }
+        },
+        (error) => {
+          console.warn('Geolocation access denied or unavailable:', error.message);
+        },
+        { timeout: 10000 }
+      );
+    }
+  };
+
+  useEffect(() => {
+    const hasSelectedBefore = localStorage.getItem('selectedDistrict');
+    if (!hasSelectedBefore) {
+      autoDetectLocation();
+    }
+  }, []);
+
   const districtEn = DISTRICT_MAP[district] || 'Chennai';
 
   return (
-    <DistrictContext.Provider value={{ district, setDistrict, districtEn, DISTRICT_MAP }}>
+    <DistrictContext.Provider value={{ district, setDistrict, districtEn, DISTRICT_MAP, autoDetectLocation }}>
       {children}
     </DistrictContext.Provider>
   );

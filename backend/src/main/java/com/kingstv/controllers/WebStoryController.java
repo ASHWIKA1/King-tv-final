@@ -23,19 +23,36 @@ public class WebStoryController {
     @Autowired
     private WebStoryRepository webStoryRepository;
 
+    @Autowired
+    private com.kingstv.repository.UserRepository userRepository;
+
     @GetMapping("/getAll")
     public Page<WebStory> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) String authorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "publishedAt") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
 
+        // Map numeric authorId to fullName to match how it's stored in the database
+        if (authorId != null && !authorId.isEmpty()) {
+            try {
+                Long id = Long.parseLong(authorId);
+                Optional<com.kingstv.models.User> uOpt = userRepository.findById(id);
+                if (uOpt.isPresent()) {
+                    authorId = uOpt.get().getFullName();
+                }
+            } catch (NumberFormatException e) {
+                // If it's not a number, it might already be a name, so leave it as is
+            }
+        }
+
         Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        Specification<WebStory> spec = SpecificationBuilder.build(search, status, categoryId, null);
+        Specification<WebStory> spec = SpecificationBuilder.build(search, status, categoryId, null, authorId);
         return webStoryRepository.findAll(spec, pageable);
     }
 
@@ -48,7 +65,7 @@ public class WebStoryController {
             @RequestParam(defaultValue = "publishedAt") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
 
-        return getAll(search, "published", categoryId, page, size, sortBy, direction);
+        return getAll(search, "published", categoryId, null, page, size, sortBy, direction);
     }
 
     @PostMapping("/saveUpdate")
@@ -59,6 +76,23 @@ public class WebStoryController {
         if (story.getPublishedAt() == null) {
             story.setPublishedAt(LocalDateTime.now());
         }
+        
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String authorId = String.valueOf(auth.getDetails());
+            try {
+                Long id = Long.parseLong(authorId);
+                Optional<com.kingstv.models.User> uOpt = userRepository.findById(id);
+                if (uOpt.isPresent()) {
+                    story.setAuthorName(uOpt.get().getFullName());
+                }
+            } catch (NumberFormatException e) {
+                story.setAuthorName("Kings TV News Desk");
+            }
+        } else {
+            story.setAuthorName("Kings TV News Desk");
+        }
+        
         WebStory saved = webStoryRepository.save(story);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

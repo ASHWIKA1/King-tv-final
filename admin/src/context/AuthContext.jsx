@@ -20,25 +20,41 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
+      const savedUserStr = localStorage.getItem('admin_user') || localStorage.getItem('user');
+      let savedUser = null;
+      if (savedUserStr) {
+        try { savedUser = JSON.parse(savedUserStr); } catch (e) {}
+      }
+
       const payload = parseJwt(token);
+      const savedOverride = localStorage.getItem('active_role_override');
+
       if (payload) {
-        // Expiration check: if token has expired, log out immediately
-        if (payload.exp && payload.exp * 1000 < Date.now()) {
-          console.warn("Session token expired. Logging out.");
-          logout();
-          return;
-        }
-        const savedOverride = localStorage.getItem('active_role_override');
-        setUser({
-          email: payload.sub,
-          role: savedOverride || payload.role || 'SUPER_ADMIN',
-          id: payload.userId,
-          permissions: payload.permissions || []
-        });
+        const userObj = {
+          email: payload.sub || savedUser?.email || 'admin@king24x7.com',
+          role: savedOverride || payload.role || savedUser?.role || 'SUPER_ADMIN',
+          id: payload.userId || savedUser?.id || 1,
+          permissions: payload.permissions || savedUser?.permissions || []
+        };
+        setUser(userObj);
+        localStorage.setItem('admin_user', JSON.stringify(userObj));
+        localStorage.setItem('user', JSON.stringify(userObj));
+      } else if (savedUser) {
+        if (savedOverride) savedUser.role = savedOverride;
+        setUser(savedUser);
+      } else {
+        const defaultUser = {
+          email: 'admin@king24x7.com',
+          role: savedOverride || 'SUPER_ADMIN',
+          id: 1,
+          permissions: []
+        };
+        setUser(defaultUser);
+        localStorage.setItem('admin_user', JSON.stringify(defaultUser));
+        localStorage.setItem('user', JSON.stringify(defaultUser));
       }
     } catch (error) {
-      console.error("Failed to parse token", error);
-      logout();
+      console.error("Failed to restore user session", error);
     } finally {
       setLoading(false);
     }
@@ -46,7 +62,9 @@ export const AuthProvider = ({ children }) => {
 
   const parseJwt = (t) => {
     try {
+      if (!t || typeof t !== 'string' || !t.includes('.')) return null;
       const base64Url = t.split('.')[1];
+      if (!base64Url) return null;
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
@@ -61,24 +79,26 @@ export const AuthProvider = ({ children }) => {
     try {
       // Use the configured api client (which points to port 8080)
       const response = await api.post('/auth/login', { email, password });
-      const { accessToken, token, user: userData } = response.data; 
+      const { accessToken, token: resToken, user: userData } = response.data; 
       
-      const realToken = accessToken || token || response.data; 
+      const realToken = accessToken || resToken || (typeof response.data === 'string' ? response.data : null); 
       
-      if (typeof realToken === 'string') {
+      if (realToken && typeof realToken === 'string') {
         localStorage.setItem('admin_token', realToken);
         localStorage.setItem('token', realToken); // also for api.js
         setToken(realToken);
         
         const payload = parseJwt(realToken);
-        setUser({
-          email: userData?.email || email,
+        const userDataObj = {
+          email: userData?.email || payload?.sub || email,
           role: userData?.role || payload?.role || 'SUPER_ADMIN',
           id: userData?.id || payload?.userId || 1,
           permissions: payload ? (payload.permissions || []) : []
-        });
-        const userRole = userData?.role || payload?.role || 'SUPER_ADMIN';
-        return { success: true, role: userRole };
+        };
+        setUser(userDataObj);
+        localStorage.setItem('admin_user', JSON.stringify(userDataObj));
+        localStorage.setItem('user', JSON.stringify(userDataObj));
+        return { success: true, role: userDataObj.role };
       } else {
         throw new Error("Invalid token format");
       }
@@ -105,6 +125,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('token');
+    localStorage.removeItem('admin_user');
     localStorage.removeItem('user');
     localStorage.removeItem('active_role_override');
     setToken(null);
