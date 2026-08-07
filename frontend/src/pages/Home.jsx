@@ -286,9 +286,9 @@ const Home = () => {
 
     // Geolocation Personalized Articles
     const selectedDistId = localStorage.getItem('selectedDistrictId');
-    let newsUrl = '/public/news?limit=12';
+    let newsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
     if (selectedDistId) {
-      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=12`;
+      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=100`;
     }
 
     const pPersonalized = new Promise((resolve) => {
