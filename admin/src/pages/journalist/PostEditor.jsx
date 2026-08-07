@@ -45,9 +45,9 @@ const callGemini = async (prompt) => {
   const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
     configuredModel,
-    'gemini-flash-latest',
+    'gemini-2.0-flash',
     'gemini-1.5-flash',
-    'gemini-2.5-flash'
+    'gemini-1.5-pro'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
@@ -2414,10 +2414,10 @@ const PostEditor = () => {
                     background: 'var(--bg-secondary, #fff)'
                   }}
                 >
-                  <option value="gemini-flash-latest">gemini-flash-latest (Recommended Fast & Multimodal)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Next Generation High-Speed)</option>
-                  <option value="gemini-3.6-flash">gemini-3.6-flash (Latest Interactions API Model)</option>
-                  <option value="gemini-2.0-flash-001">gemini-2.0-flash-001 (Stable 2.0 Endpoint)</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash (Recommended Fast & Multimodal)</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (High-Speed Standard)</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro (High-Capacity Reasoning)</option>
+                  <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Experimental Endpoint)</option>
                 </select>
               </div>
 
