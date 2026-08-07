@@ -53,7 +53,7 @@ public class Article implements Serializable {
     private Integer viewsCount = 0;
 
     @Column(nullable = false)
-    private String status = "published";
+    private String status = "draft";
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt = LocalDateTime.now();
