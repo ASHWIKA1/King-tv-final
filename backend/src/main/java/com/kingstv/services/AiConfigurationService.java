@@ -52,7 +52,7 @@ public class AiConfigurationService {
             "openai", "gpt-4o-mini",
             "anthropic", "claude-3-5-sonnet-20241022",
             "groq", "llama-3.3-70b-versatile",
-            "openrouter", "google/gemini-2.0-flash-exp:free",
+            "openrouter", "meta-llama/llama-3.1-8b-instruct:free",
             "ollama", "llama3"
         );
 
