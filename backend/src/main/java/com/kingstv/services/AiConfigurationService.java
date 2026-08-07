@@ -52,7 +52,7 @@ public class AiConfigurationService {
             "openai", "gpt-4o-mini",
             "anthropic", "claude-3-5-sonnet-20241022",
             "groq", "llama-3.3-70b-versatile",
-            "openrouter", "meta-llama/llama-3.1-8b-instruct:free",
+            "openrouter", "nvidia/nemotron-nano-9b-v2:free",
             "ollama", "llama3"
         );
 
@@ -63,7 +63,19 @@ public class AiConfigurationService {
                 conf.setProvider(prov);
                 conf.setBaseUrl(defaultUrls.get(prov));
                 conf.setModel(defaultModels.get(prov));
-                if ("gemini".equals(prov)) {
+                if ("openrouter".equals(prov)) {
+                    String openrouterKey = System.getenv("OPENROUTER_API_KEY");
+                    if (openrouterKey != null && !openrouterKey.isBlank()) {
+                        try {
+                            conf.setApiKey(encryptionService.encrypt(openrouterKey));
+                            conf.setIsEncrypted(true);
+                        } catch (Exception e) {
+                            conf.setApiKey(openrouterKey);
+                            conf.setIsEncrypted(false);
+                        }
+                    }
+                    conf.setEnableAi(true);
+                } else if ("gemini".equals(prov)) {
                     String geminiKey = System.getenv("GEMINI_API_KEY");
                     if (geminiKey != null && !geminiKey.isBlank()) {
                         try {
@@ -83,7 +95,9 @@ public class AiConfigurationService {
                 conf.setMaxTokens(1024);
                 conf.setTimeout(30);
                 conf.setRetryAttempts(3);
-                conf.setEnableAi(prov.equals("gemini"));
+                if (!"gemini".equals(prov) && !"openrouter".equals(prov)) {
+                    conf.setEnableAi(false);
+                }
                 conf.setEnableTranslation(true);
                 conf.setEnableSeo(true);
                 conf.setEnableSummary(true);
