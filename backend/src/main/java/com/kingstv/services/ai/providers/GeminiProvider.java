@@ -84,13 +84,7 @@ public class GeminiProvider implements LLMProvider {
     private List<String> getCandidateModels(AiConfiguration config) {
         List<String> list = new ArrayList<>();
         list.add("gemini-2.0-flash");
-
-        String requested = config.getModel();
-        if (requested != null && !requested.isBlank() && !requested.equalsIgnoreCase("gemini-1.5-pro") && !requested.equalsIgnoreCase("gemini-2.5-flash") && !requested.equalsIgnoreCase("gemini-3.6-flash")) {
-            if (!list.contains(requested)) list.add(requested);
-        }
-        if (!list.contains("gemini-1.5-flash")) list.add("gemini-1.5-flash");
-        if (!list.contains("gemini-2.0-flash-exp")) list.add("gemini-2.0-flash-exp");
+        list.add("gemini-1.5-flash");
         return list;
     }
 

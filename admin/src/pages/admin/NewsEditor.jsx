@@ -19,7 +19,7 @@ export let activeAiConfig = {
 };
 
 export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
-  const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
+  const model = modelOverride || 'gemini-2.0-flash';
   const key = apiKeyOverride 
     || activeAiConfig.apiKey 
     || localStorage.getItem('gemini_api_key') 
@@ -42,16 +42,12 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  const modelsToTry = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash-exp'
-  ];
-  
-  const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
+  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  let primaryError = null;
   let lastError = null;
 
-  for (const model of uniqueModels) {
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const model = modelsToTry[i];
     try {
       const url = getGeminiUrl(model, apiKey);
       const res = await fetch(url, {
@@ -67,9 +63,13 @@ const callGemini = async (prompt) => {
         const errorData = await res.json().catch(() => ({}));
         let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 429) {
-          errorMsg = errorData?.error?.message || 'Google AI Prepayment credits depleted or rate limit exceeded. Please top up credits or create a free key at https://aistudio.google.com';
+          errorMsg = 'Google AI API rate limit exceeded or payment credits depleted. Please try again later or verify your key at https://aistudio.google.com';
+        } else if (res.status === 400 || res.status === 403) {
+          errorMsg = errorData?.error?.message || 'Gemini API Key is invalid or Generative Language API is blocked/disabled for this key.';
         }
-        lastError = new Error(`Gemini (${model}): ${errorMsg}`);
+        const errObj = new Error(`Gemini (${model}): ${errorMsg}`);
+        if (i === 0) primaryError = errObj;
+        lastError = errObj;
         console.warn(`Model ${model} failed:`, errorMsg);
         continue;
       }
@@ -78,35 +78,58 @@ const callGemini = async (prompt) => {
       const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
       if (resultText) return resultText;
     } catch (err) {
+      if (i === 0) primaryError = err;
       lastError = err;
       console.warn(`Model ${model} error:`, err);
     }
   }
 
-  throw lastError || new Error('Gemini API call failed on all model endpoints.');
+  throw primaryError || lastError || new Error('Gemini API call failed on all model endpoints.');
 };
 
 const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
-  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || '';
+  const apiKey = activeAiConfig.apiKey 
+    || localStorage.getItem('gemini_api_key') 
+    || localStorage.getItem('ai.llm_api_key') 
+    || localStorage.getItem('ai_llm_api_key') 
+    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
+    || DEFAULT_GEMINI_KEY;
   if (!apiKey) throw new Error('API Key missing. Click "🔑 Set API Key" to enter key.');
   if (!base64Data || !base64Data.trim()) throw new Error('Source file data is empty or invalid.');
   
-  const url = getGeminiUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: prompt }
-        ]
-      }]
-    }),
-  });
-  if (!res.ok) throw new Error(`Multimodal failed: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  let primaryError = null;
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const model = modelsToTry[i];
+    try {
+      const url = getGeminiUrl(model, apiKey);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inlineData: { data: base64Data, mimeType: mimeType } },
+              { text: prompt }
+            ]
+          }]
+        }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errObj = new Error(`Multimodal (${model}) failed: ${errorData?.error?.message || res.status}`);
+        if (i === 0) primaryError = errObj;
+        continue;
+      }
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+      if (text) return text;
+    } catch (e) {
+      if (i === 0) primaryError = e;
+    }
+  }
+  throw primaryError || new Error('Gemini Multimodal API call failed.');
 };
 
 const slugify = (text) => {
