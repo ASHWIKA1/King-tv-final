@@ -111,9 +111,17 @@ const ArticleDetail = () => {
     const title = (lang === 'ta' ? article.titleTa : article.titleEn) || article.titleTa || '';
     const description = (lang === 'ta' ? article.shortDescTa : article.shortDescEn) || article.metaDescription || '';
     const image = article.ogImage || article.featuredImage || article.imageUrl || '';
-    const author = article.authorName || 'Kings TV News Desk';
-    const pubDate = article.publishedAt ? new Date(article.publishedAt).toISOString() : new Date().toISOString();
-    const modDate = article.updatedAt ? new Date(article.updatedAt).toISOString() : pubDate;
+    const safeIso = (dateVal) => {
+      if (!dateVal) return new Date().toISOString();
+      try {
+        const d = new Date(dateVal);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      } catch (e) {
+        return new Date().toISOString();
+      }
+    };
+    const pubDate = safeIso(article.publishedAt);
+    const modDate = safeIso(article.updatedAt || article.publishedAt);
 
     const setMeta = (selector, attrName, attrVal, content) => {
       let el = document.querySelector(selector);
@@ -315,6 +323,8 @@ const ArticleDetail = () => {
             authorNameEn: data.authorNameEn || 'Kings TV Desk',
             authorRole: 'செய்தி நிருபர்',
             authorRoleEn: 'News Reporter',
+            publishedAt: data.publishedAt,
+            updatedAt: data.updatedAt,
             pubDate: data.publishedAt ? new Date(data.publishedAt).toLocaleDateString() : new Date().toLocaleDateString(),
             updDate: data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
             readTime: `${data.readingTime || 1} நிமிட வாசிப்பு`,
