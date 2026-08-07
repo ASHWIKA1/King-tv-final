@@ -31,6 +31,20 @@ export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
 };
 
 const callGemini = async (prompt) => {
+  // 1. Try Backend AI Service (/articles/ai-assist) first — uses OpenRouter / Gemini / active backend provider!
+  try {
+    const res = await api.post('/articles/ai-assist', {
+      action: 'generate',
+      text: prompt,
+      context: 'news'
+    });
+    if (res.data && res.data.result && !res.data.error) {
+      return res.data.result;
+    }
+  } catch (backendErr) {
+    console.warn("Backend AI assist failed, trying direct provider fallback...", backendErr);
+  }
+
   const apiKey = activeAiConfig.apiKey 
     || localStorage.getItem('gemini_api_key') 
     || localStorage.getItem('ai.llm_api_key') 
@@ -39,7 +53,7 @@ const callGemini = async (prompt) => {
     || (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY)
     || DEFAULT_GEMINI_KEY;
   if (!apiKey) {
-    throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
+    throw new Error('AI Service connection failed. Please check AI Configuration in Admin Settings.');
   }
 
   const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
