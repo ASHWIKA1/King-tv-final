@@ -326,7 +326,7 @@ const NewsManagement = () => {
                         
                         {/* View Live Article on Reader App */}
                         <a 
-                          href={`${window.location.origin}/article/${art.slug || art.id}`}
+                          href={`${window.location.origin}/article/${art.id}`}
                           target="_blank" 
                           rel="noreferrer"
                           title="View Live Reader Page"
