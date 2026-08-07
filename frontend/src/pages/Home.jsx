@@ -384,6 +384,7 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    if (!tickers || tickers.length === 0) return;
     const timer = setInterval(() => {
       setTickerIndex(prev => (prev + 1) % tickers.length);
     }, slideSpeed * 1000);
@@ -393,8 +394,9 @@ const Home = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCommodityPrices(prev => prev.map(item => {
+        if (!item || !item.price || typeof item.price !== 'string') return item;
         const numericStr = item.price.replace(/[^\d]/g, '');
-        const currentPrice = parseInt(numericStr);
+        const currentPrice = parseInt(numericStr) || 1000;
         const changeVal = Math.floor(Math.random() * 21) - 10;
         const newPrice = currentPrice + changeVal;
         const changeSign = changeVal >= 0 ? '+' : '';
@@ -701,11 +703,11 @@ const Home = () => {
       : displayArticles;
     const activeHeroPool = heroPool.length > 0 ? heroPool : displayArticles;
 
-    if (!activeHeroPool || activeHeroPool.length === 0) return null;
+    if (!activeHeroPool || activeHeroPool.length === 0 || !activeHeroPool[0]) return null;
 
     const heroFeatured = activeHeroPool[0];
     const heroCat = getCategoryDetails(heroFeatured.categoryId);
-    const heroSideItems = activeHeroPool.slice(1, 5);
+    const heroSideItems = activeHeroPool.slice(1, 5).filter(Boolean);
 
 
     return (
