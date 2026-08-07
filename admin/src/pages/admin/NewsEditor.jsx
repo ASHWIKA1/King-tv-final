@@ -1304,48 +1304,24 @@ const NewsEditor = () => {
     let enExcerpt = (form.shortDescEn || '').trim();
     let enContent = (editorRefEn.current ? editorRefEn.current.getContent() : (form.contentEn || '')).trim();
 
-    let sourceTitle = '';
-    let sourceExcerpt = '';
-    let sourceContent = '';
-
-    // Pick available text from activeTab first, or any side with content
-    if (activeTab === 0 && (taTitle || taExcerpt || taContent)) {
-      sourceTitle = taTitle;
-      sourceExcerpt = taExcerpt;
-      sourceContent = taContent;
-    } else if (activeTab === 1 && (enTitle || enExcerpt || enContent)) {
-      sourceTitle = enTitle;
-      sourceExcerpt = enExcerpt;
-      sourceContent = enContent;
-    } else if (taTitle || taExcerpt || taContent) {
-      sourceTitle = taTitle;
-      sourceExcerpt = taExcerpt;
-      sourceContent = taContent;
-    } else if (enTitle || enExcerpt || enContent) {
-      sourceTitle = enTitle;
-      sourceExcerpt = enExcerpt;
-      sourceContent = enContent;
-    }
-
-    const combinedSource = (sourceTitle + ' ' + sourceExcerpt + ' ' + sourceContent).replace(/<[^>]*>/g, ' ').trim();
-    if (!combinedSource || combinedSource.length < 2) {
-      showMsg('Please write some title or content to translate first.', true);
-      setIsTranslating(false);
-      return;
-    }
-
-    // Script-level detection: Does the input contain Tamil characters (\u0B80-\u0BFF)?
-    const isTamilScript = /[\u0B80-\u0BFF]/.test(combinedSource);
-    const direction = isTamilScript ? 'ta2en' : 'en2ta';
+    const direction = requestedDirection; // 'ta2en' translates TO English, 'en2ta' translates TO Tamil
+    let sourceTitle = direction === 'ta2en' ? (taTitle || enTitle) : (enTitle || taTitle);
+    let sourceExcerpt = direction === 'ta2en' ? (taExcerpt || enExcerpt) : (enExcerpt || taExcerpt);
+    let sourceContent = direction === 'ta2en' ? (taContent || enContent) : (enContent || taContent);
 
     const parts = [];
     if (sourceTitle && sourceTitle.trim()) parts.push(`TITLE:\n${sourceTitle.trim()}`);
     if (sourceExcerpt && sourceExcerpt.trim()) parts.push(`EXCERPT:\n${sourceExcerpt.trim()}`);
     if (sourceContent && sourceContent.trim()) parts.push(`CONTENT:\n${sourceContent.trim()}`);
 
-    const baseRaw = parts.length > 0 ? parts.join('\n\n') : combinedSource;
+    const baseRaw = parts.length > 0 ? parts.join('\n\n') : (sourceTitle || sourceExcerpt || sourceContent || '').trim();
+    if (!baseRaw || baseRaw.length < 2) {
+      showMsg('Please write some title or content to translate first.', true);
+      setIsTranslating(false);
+      return;
+    }
 
-    showMsg(`⚡ Translating ${direction === 'ta2en' ? 'Tamil content to English' : 'English content to Tamil'}...`);
+    showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
     try {
       let translatedText = '';
       try {
