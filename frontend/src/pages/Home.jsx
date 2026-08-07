@@ -1560,21 +1560,10 @@ const Home = () => {
 
   const hasDynamicLayout = Array.isArray(layoutSections) && layoutSections.length > 0;
 
-  const sortedTopSections = hasDynamicLayout
-    ? layoutSections.filter(s => s.isVisible !== false && topKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
-    : [];
-
-  const sortedLeftSections = hasDynamicLayout
-    ? layoutSections.filter(s => s.isVisible !== false && !topKeys.includes(s.sectionKey) && !sidebarKeys.includes(s.sectionKey) && !bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
-    : [];
-
-  const sortedSidebarSections = hasDynamicLayout
-    ? layoutSections.filter(s => s.isVisible !== false && sidebarKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
-    : [];
-
-  const sortedBottomSections = hasDynamicLayout
-    ? layoutSections.filter(s => s.isVisible !== false && bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
-    : [];
+  const sortedTopSections = getSortedSections(topKeys);
+  const sortedLeftSections = getSortedSections(leftKeys);
+  const sortedSidebarSections = getSortedSections(sidebarKeys);
+  const sortedBottomSections = getSortedSections(bottomKeys);
 
   return (
     <div style={{ width: '100%' }}>
