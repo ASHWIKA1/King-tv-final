@@ -38,20 +38,20 @@ public class AiAssistService {
                     "AI Assistant is not configured. Please click Set API Key in AI Settings.");
         }
 
-        // Enforce individual feature toggles (permit if null or true when enableAi is true)
-        if ("seo".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSeo())) {
+        // Permit features by default if enableAi is active
+        if ("seo".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSeo()) && activeConfig.getEnableSeo() != null) {
             return Map.of("error", true, "result", "SEO generation AI is disabled in settings.");
         }
-        if ("translate".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTranslation())) {
+        if ("translate".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTranslation()) && activeConfig.getEnableTranslation() != null) {
             return Map.of("error", true, "result", "Translation AI is disabled in settings.");
         }
-        if ("summarize".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSummary())) {
+        if ("summarize".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSummary()) && activeConfig.getEnableSummary() != null) {
             return Map.of("error", true, "result", "Summarization AI is disabled in settings.");
         }
-        if ("rewrite".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableRewrite())) {
+        if ("rewrite".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableRewrite()) && activeConfig.getEnableRewrite() != null) {
             return Map.of("error", true, "result", "AI rewrite is disabled in settings.");
         }
-        if ("tags".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTags())) {
+        if ("tags".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTags()) && activeConfig.getEnableTags() != null) {
             return Map.of("error", true, "result", "Auto tags AI is disabled in settings.");
         }
 
