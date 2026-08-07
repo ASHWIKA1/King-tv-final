@@ -286,9 +286,9 @@ const Home = () => {
 
     // Geolocation Personalized Articles
     const selectedDistId = localStorage.getItem('selectedDistrictId');
-    let newsUrl = '/public/news?limit=12';
+    let newsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
     if (selectedDistId) {
-      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=12`;
+      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=100`;
     }
 
     const pPersonalized = new Promise((resolve) => {
@@ -739,12 +739,7 @@ const Home = () => {
   };
 
   const renderHero = (config = {}, customLabel = null) => {
-    const filterCatId = config.categoryId ? String(config.categoryId) : null;
-    const heroPool = filterCatId
-      ? displayArticles.filter(a => String(a.categoryId) === filterCatId)
-      : displayArticles;
-    const activeHeroPool = heroPool.length > 0 ? heroPool : displayArticles;
-
+    const activeHeroPool = getArticlesForSection(config, customLabel, 'hero');
     if (!activeHeroPool || activeHeroPool.length === 0) return null;
 
     const heroFeatured = activeHeroPool[0];
@@ -908,13 +903,73 @@ const Home = () => {
     );
   };
 
-  const renderLatestNews = (config = {}, customLabel = null) => {
-    const filterCatId = config.categoryId ? parseInt(config.categoryId) : null;
-    const filtered = filterCatId
-      ? displayArticles.filter(a => String(a.categoryId) === String(filterCatId))
-      : displayArticles;
+  const getArticlesForSection = (config = {}, customLabel = null, sectionKey = '') => {
+    const keyLower = (sectionKey || '').toLowerCase();
+    const labelLower = (customLabel || '').toLowerCase();
+
+    // 1. Direct config categoryId
+    let targetCatId = config.categoryId ? String(config.categoryId) : null;
+
+    // 2. Map section key or section label to Category ID
+    if (!targetCatId) {
+      if (keyLower.includes('politi') || labelLower.includes('அரசியல்') || keyLower.includes('election') || labelLower.includes('தேர்தல்')) {
+        targetCatId = '1';
+      } else if (keyLower.includes('busine') || labelLower.includes('வணிகம்') || keyLower.includes('agri') || labelLower.includes('விவசாயம்') || labelLower.includes('market') || labelLower.includes('சந்தை')) {
+        targetCatId = '2';
+      } else if (keyLower.includes('sport') || labelLower.includes('விளையாட்டு')) {
+        targetCatId = '3';
+      } else if (keyLower.includes('cinema') || labelLower.includes('சினிமா') || labelLower.includes('பொழுதுபோக்கு')) {
+        targetCatId = '4';
+      } else if (keyLower.includes('tech') || labelLower.includes('தொழில்நுட்பம்')) {
+        targetCatId = '5';
+      } else if (keyLower.includes('inter') || labelLower.includes('சர்வதேசம்')) {
+        targetCatId = '6';
+      } else if (keyLower.includes('distr') || keyLower.includes('regio') || labelLower.includes('நம்ம ஊர்') || labelLower.includes('மாவட்ட') || labelLower.includes('மண்டலம்')) {
+        targetCatId = '7';
+      }
+    }
+
+    if (targetCatId) {
+      const filtered = displayArticles.filter(a => String(a.categoryId) === targetCatId);
+      if (filtered.length > 0) return filtered;
+    }
+
+    // 3. Title/Content Keyword Matching for Topic Relevance
+    if (labelLower || keyLower) {
+      const keywordFiltered = displayArticles.filter(a => {
+        const text = ((a.titleEn || '') + ' ' + (a.titleTa || '') + ' ' + (a.shortDescEn || '') + ' ' + (a.shortDescTa || '')).toLowerCase();
+        if (keyLower.includes('agri') || labelLower.includes('agriculture') || labelLower.includes('விவசாயம்') || labelLower.includes('market')) {
+          return text.includes('agri') || text.includes('farmer') || text.includes('budget') || text.includes('பட்ஜெட்') || text.includes('விவசாயி') || text.includes('நெல்') || text.includes('விலை') || text.includes('சந்தை');
+        }
+        if (keyLower.includes('election') || labelLower.includes('election') || labelLower.includes('தேர்தல்') || labelLower.includes('poll')) {
+          return text.includes('election') || text.includes('voter') || text.includes('vote') || text.includes('தேர்தல்') || text.includes('வாக்காளர்') || text.includes('கட்சி') || text.includes('அரசியல்');
+        }
+        if (keyLower.includes('busine') || labelLower.includes('business') || labelLower.includes('வணிகம்')) {
+          return text.includes('stock') || text.includes('market') || text.includes('gold') || text.includes('sensex') || text.includes('பங்கு') || text.includes('தங்கம்') || text.includes('வணிகம்');
+        }
+        if (keyLower.includes('distr') || labelLower.includes('district') || labelLower.includes('மாவட்ட')) {
+          return text.includes('district') || text.includes('chennai') || text.includes('tn') || text.includes('சென்னை') || text.includes('மாவட்டம்') || text.includes('தமிழகம்');
+        }
+        return false;
+      });
+      if (keywordFiltered.length > 0) return keywordFiltered;
+    }
+
+    // 4. For general sections without specific category filters
+    if (keyLower === 'latest_news' || keyLower === 'hero' || keyLower === 'news_ticker' || (!labelLower && !targetCatId)) {
+      return displayArticles;
+    }
+
+    // Fallback: If category was specifically requested, match by category
+    return targetCatId ? displayArticles.filter(a => String(a.categoryId) === targetCatId) : displayArticles;
+  };
+
+  const renderLatestNews = (config = {}, customLabel = null, sectionKey = '') => {
+    const activeArticles = getArticlesForSection(config, customLabel, sectionKey);
+    if (!activeArticles || activeArticles.length === 0) return null;
+
     const limit = config.limit ? parseInt(config.limit) : 6;
-    const activeGrid = (filtered && filtered.length > 0 ? filtered : displayArticles).slice(0, limit);
+    const activeGrid = activeArticles.slice(0, limit);
     const titleText = customLabel || (lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்');
 
     return (
@@ -1484,7 +1539,7 @@ const Home = () => {
         case 'quick_access':
           return renderQuickAccess();
         case 'latest_news':
-          return renderLatestNews(config, customLabel);
+          return renderLatestNews(config, customLabel, key);
         case 'video_news':
           return renderVideoNews(config, customLabel);
         case 'web_stories':
@@ -1509,7 +1564,7 @@ const Home = () => {
         case 'newsletter':
           return renderNewsletterStrip();
         default:
-          return renderLatestNews(config, customLabel);
+          return renderLatestNews(config, customLabel, key);
       }
     };
 
