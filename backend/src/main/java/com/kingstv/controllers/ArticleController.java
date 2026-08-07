@@ -312,7 +312,6 @@ public class ArticleController {
 
     // --- NEW Standardized API Standard Endpoints ---
     @GetMapping("/getAll")
-    @Cacheable(value = "articles_all", key = "T(java.util.Objects).hash(#search, #status, #categoryId, #districtId, #authorId, #tag, #startDateStr, #endDateStr, #year, #month, #page, #size, #sortBy, #direction)")
     public Page<Article> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
@@ -372,7 +371,6 @@ public class ArticleController {
     }
 
     @GetMapping("/getAllWeb")
-    @Cacheable(value = "articles_web", key = "T(java.util.Objects).hash(#search, #categoryId, #districtId, #tag, #startDateStr, #endDateStr, #year, #month, #page, #size, #sortBy, #direction)")
     public Page<Article> getAllWeb(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String categoryId,
