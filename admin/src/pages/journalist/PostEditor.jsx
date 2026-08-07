@@ -1201,26 +1201,57 @@ const PostEditor = () => {
   };
 
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
-  const handleAutoTranslate = async (direction) => {
+  const handleAutoTranslate = async (requestedDirection) => {
     setIsTranslating(true);
     try {
-      const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
-      const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
-      const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+      let taTitle = (form.titleTa || '').trim();
+      let taExcerpt = (form.shortDescTa || '').trim();
+      let taContent = (editorRefTa.current ? editorRefTa.current.getContent() : (form.contentTa || '')).trim();
+
+      let enTitle = (form.titleEn || '').trim();
+      let enExcerpt = (form.shortDescEn || '').trim();
+      let enContent = (editorRefEn.current ? editorRefEn.current.getContent() : (form.contentEn || '')).trim();
+
+      let sourceTitle = '';
+      let sourceExcerpt = '';
+      let sourceContent = '';
+
+      if (activeTab === 0 && (taTitle || taExcerpt || taContent)) {
+        sourceTitle = taTitle;
+        sourceExcerpt = taExcerpt;
+        sourceContent = taContent;
+      } else if (activeTab === 1 && (enTitle || enExcerpt || enContent)) {
+        sourceTitle = enTitle;
+        sourceExcerpt = enExcerpt;
+        sourceContent = enContent;
+      } else if (taTitle || taExcerpt || taContent) {
+        sourceTitle = taTitle;
+        sourceExcerpt = taExcerpt;
+        sourceContent = taContent;
+      } else if (enTitle || enExcerpt || enContent) {
+        sourceTitle = enTitle;
+        sourceExcerpt = enExcerpt;
+        sourceContent = enContent;
+      }
+
+      const combinedSource = (sourceTitle + ' ' + sourceExcerpt + ' ' + sourceContent).replace(/<[^>]*>/g, ' ').trim();
+      if (!combinedSource || combinedSource.length < 2) {
+        showMsg('Please write some title or content to translate first.', true);
+        setIsTranslating(false);
+        return;
+      }
+
+      const isTamilScript = /[\u0B80-\u0BFF]/.test(combinedSource);
+      const direction = isTamilScript ? 'ta2en' : 'en2ta';
 
       const parts = [];
       if (sourceTitle && sourceTitle.trim()) parts.push(`TITLE:\n${sourceTitle.trim()}`);
       if (sourceExcerpt && sourceExcerpt.trim()) parts.push(`EXCERPT:\n${sourceExcerpt.trim()}`);
       if (sourceContent && sourceContent.trim()) parts.push(`CONTENT:\n${sourceContent.trim()}`);
 
-      const baseRaw = parts.length > 0 ? parts.join('\n\n') : (sourceTitle || sourceExcerpt || sourceContent || '').trim();
-      if (!baseRaw || baseRaw.length < 2) {
-        showMsg('Please write some title or content to translate first.', true);
-        setIsTranslating(false);
-        return;
-      }
+      const baseRaw = parts.length > 0 ? parts.join('\n\n') : combinedSource;
 
-      showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
+      showMsg(`⚡ Translating ${direction === 'ta2en' ? 'Tamil content to English' : 'English content to Tamil'}...`);
       let translatedText = '';
       try {
         const res = await api.post('/articles/ai-assist', {
