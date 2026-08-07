@@ -131,9 +131,12 @@ public class ArticleController {
             artOpt = articleRepository.findById(Long.parseLong(idOrSlug));
         }
         
-        // Fall back to slug lookup
+        // Fall back to slug lookup (exact and lowercased case-insensitive fallback)
         if (artOpt.isEmpty()) {
             artOpt = articleRepository.findBySlug(idOrSlug);
+        }
+        if (artOpt.isEmpty() && idOrSlug != null) {
+            artOpt = articleRepository.findBySlug(idOrSlug.toLowerCase());
         }
         
         if (artOpt.isEmpty()) {
