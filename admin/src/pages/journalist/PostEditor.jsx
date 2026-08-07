@@ -1342,7 +1342,7 @@ const PostEditor = () => {
     if (!finalDescEn && finalDescTa) finalDescEn = finalDescTa;
 
     // 3. Ensure valid unique slug
-    let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
+    let finalSlug = form.slug ? slugify(form.slug) : slugify(finalTitleEn || finalTitleTa);
     if (!finalSlug) finalSlug = `article-${Date.now()}`;
 
     const toCommaString = (val) => {
