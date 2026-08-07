@@ -1325,8 +1325,15 @@ const PostEditor = () => {
       targetStatus = 'pending_review';
     }
 
-    let finalContentTa = editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa;
-    let finalContentEn = editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn;
+    let rawTa = (editorRefTa.current && typeof editorRefTa.current.getContent === 'function') 
+      ? editorRefTa.current.getContent() : '';
+    let rawEn = (editorRefEn.current && typeof editorRefEn.current.getContent === 'function') 
+      ? editorRefEn.current.getContent() : '';
+    
+    const stripTags = (str) => (str || '').replace(/<[^>]*>/g, '').trim();
+    
+    let finalContentTa = stripTags(rawTa) ? rawTa : (form.contentTa || rawTa);
+    let finalContentEn = stripTags(rawEn) ? rawEn : (form.contentEn || rawEn);
 
     let finalTitleTa = (form.titleTa || '').trim();
     let finalTitleEn = (form.titleEn || '').trim();

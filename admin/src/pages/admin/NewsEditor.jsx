@@ -641,7 +641,7 @@ const NewsEditor = () => {
     if (isEdit) {
       api.get(`/articles/${id}`).then(r => {
         const a = r.data;
-        setForm({
+        const newForm = {
           ...a,
           publishedAt: a.publishedAt ? a.publishedAt.substring(0, 16) : '',
           showRightColumn: a.showRightColumn !== false,
@@ -650,7 +650,15 @@ const NewsEditor = () => {
           allowPingbacks: a.allowPingbacks !== false,
           authorName: a.authorName || 'Kings TV News Desk',
           status: a.status || 'draft'
-        });
+        };
+        setForm(newForm);
+        // Force sync content to TinyMCE if editor instances are already initialized
+        if (editorRefTa.current && a.contentTa) {
+          try { editorRefTa.current.setContent(a.contentTa); } catch (e) {}
+        }
+        if (editorRefEn.current && a.contentEn) {
+          try { editorRefEn.current.setContent(a.contentEn); } catch (e) {}
+        }
       }).catch(() => {});
     }
   }, [id, isEdit]);
@@ -1434,8 +1442,17 @@ const NewsEditor = () => {
 
     // Clean out highlight spans before saving
     const cleanContent = (html) => html ? html.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1') : html;
-    let finalContentTa = cleanContent(editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa);
-    let finalContentEn = cleanContent(editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+    
+    let rawTa = (editorRefTa.current && typeof editorRefTa.current.getContent === 'function') 
+      ? editorRefTa.current.getContent() : '';
+    let rawEn = (editorRefEn.current && typeof editorRefEn.current.getContent === 'function') 
+      ? editorRefEn.current.getContent() : '';
+    
+    // Strip empty HTML tags to verify if editor actually holds real content
+    const stripTags = (str) => (str || '').replace(/<[^>]*>/g, '').trim();
+    
+    let finalContentTa = cleanContent(stripTags(rawTa) ? rawTa : (form.contentTa || rawTa));
+    let finalContentEn = cleanContent(stripTags(rawEn) ? rawEn : (form.contentEn || rawEn));
 
     let finalTitleTa = (form.titleTa || '').trim();
     let finalTitleEn = (form.titleEn || '').trim();
