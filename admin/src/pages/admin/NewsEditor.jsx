@@ -1293,20 +1293,51 @@ const NewsEditor = () => {
   };
 
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
-  const handleAutoTranslate = async (direction) => {
+  const handleAutoTranslate = async (requestedDirection) => {
     setIsTranslating(true);
+
+    let taTitle = form.titleTa || '';
+    let taExcerpt = form.shortDescTa || '';
+    let taContent = editorRefTa.current ? editorRefTa.current.getContent() : (form.contentTa || '');
+
+    let enTitle = form.titleEn || '';
+    let enExcerpt = form.shortDescEn || '';
+    let enContent = editorRefEn.current ? editorRefEn.current.getContent() : (form.contentEn || '');
+
+    let direction = requestedDirection;
+    let sourceTitle = '';
+    let sourceExcerpt = '';
+    let sourceContent = '';
+
+    // Auto-detect source content if requested side is empty
+    const hasTa = (taTitle + taExcerpt + taContent).trim().length > 3;
+    const hasEn = (enTitle + enExcerpt + enContent).trim().length > 3;
+
+    if (direction === 'ta2en' && !hasTa && hasEn) {
+      direction = 'en2ta';
+    } else if (direction === 'en2ta' && !hasEn && hasTa) {
+      direction = 'ta2en';
+    }
+
+    if (direction === 'ta2en') {
+      sourceTitle = taTitle;
+      sourceExcerpt = taExcerpt;
+      sourceContent = taContent;
+    } else {
+      sourceTitle = enTitle;
+      sourceExcerpt = enExcerpt;
+      sourceContent = enContent;
+    }
+
+    const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
+    if (!baseRaw || baseRaw.length < 5) {
+      showMsg('Please write some title or content to translate first.', true);
+      setIsTranslating(false);
+      return;
+    }
+
     showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
     try {
-      const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
-      const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
-      const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
-
-      const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
-      if (!baseRaw || baseRaw.length < 5) {
-        showMsg('Please write some content to translate first.', true);
-        setIsTranslating(false);
-        return;
-      }
 
       let translatedText = '';
       try {
