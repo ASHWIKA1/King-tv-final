@@ -1392,6 +1392,7 @@ const NewsEditor = () => {
           metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
         if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
+        setActiveTab(1); // Auto switch to English tab
       } else {
         setForm(f => ({
           ...f,
@@ -1402,9 +1403,10 @@ const NewsEditor = () => {
           metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
+        setActiveTab(0); // Auto switch to Tamil tab
       }
       
-      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
+      showMsg(`✅ Content translated to ${direction === 'ta2en' ? 'English' : 'Tamil'}! Switched to ${direction === 'ta2en' ? 'English' : 'Tamil'} tab.`);
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
