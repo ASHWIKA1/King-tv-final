@@ -266,7 +266,21 @@ const Home = () => {
           setAggregatedNews(data.content);
         }
       })
-      .catch(err => console.warn("Could not load RSS aggregated news", err));
+    const pInstitution = fetchApi('/articles/public/institution-news')
+      .then(data => {
+        if (Array.isArray(data)) {
+          setInstitutionNews(data);
+        }
+      })
+      .catch(() => {});
+
+    const pCrowd = fetchApi('/report-news/getAllWeb?size=4')
+      .then(res => {
+        if (res && Array.isArray(res.content)) {
+          setCrowdReports(res.content);
+        }
+      })
+      .catch(() => {});
 
     // Always fetch general 100 articles first so homepage is never blank
     const generalNewsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
