@@ -69,6 +69,7 @@ public class SecurityConfig {
                     "/api/v1/directory", "/api/v1/directory/**",
                     "/api/v1/districts", "/api/v1/districts/**",
                     "/api/v1/weather", "/api/v1/weather/**", "/api/weather", "/api/weather/**",
+                    "/api/v1/market", "/api/v1/market/**", "/api/market", "/api/market/**",
                     "/api/v1/home", "/api/v1/home/**",
                     "/api/v1/stories", "/api/v1/stories/**",
                     "/api/v1/web-stories", "/api/v1/web-stories/**",

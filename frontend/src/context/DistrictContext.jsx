@@ -28,7 +28,8 @@ export const DistrictProvider = ({ children }) => {
   };
 
   const autoDetectLocation = () => {
-    if ('geolocation' in navigator) {
+    const isSecure = typeof window !== 'undefined' && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isSecure && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
@@ -65,13 +66,13 @@ export const DistrictProvider = ({ children }) => {
               }
             }
           } catch (error) {
-            console.error('Error fetching location data:', error);
+            console.warn('Location data fetch failed:', error);
           }
         },
         (error) => {
-          console.warn('Geolocation access denied or unavailable:', error.message);
+          // Graceful silent fallback over HTTP / permission denied
         },
-        { timeout: 10000 }
+        { timeout: 5000 }
       );
     }
   };
