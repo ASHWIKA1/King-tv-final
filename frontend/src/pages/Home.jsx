@@ -302,22 +302,37 @@ const Home = () => {
             setArticles(generalList);
           }
 
-      try {
-        if (navigator.geolocation && window.isSecureContext) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              if (resolved) return;
-              const { latitude, longitude } = pos.coords;
-              fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
-                .then(data => {
-                  const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                  if (list.length > 0) setArticles(list);
-                  safeResolve();
-                })
-                .catch(() => { safeResolve(); });
-            },
-            () => {
-              if (resolved) return;
+          try {
+            if (navigator.geolocation && window.isSecureContext) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  if (resolved) return;
+                  const { latitude, longitude } = pos.coords;
+                  fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
+                    .then(data => {
+                      const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                      if (list.length > 0) setArticles(list);
+                      safeResolve();
+                    })
+                    .catch(() => { safeResolve(); });
+                },
+                () => {
+                  if (resolved) return;
+                  if (selectedDistId) {
+                    fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
+                      .then(distData => {
+                        const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
+                        if (distList.length > 0) setArticles(distList);
+                        safeResolve();
+                      })
+                      .catch(() => safeResolve());
+                  } else {
+                    safeResolve();
+                  }
+                },
+                { timeout: 3000 }
+              );
+            } else {
               if (selectedDistId) {
                 fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
                   .then(distData => {
@@ -329,35 +344,22 @@ const Home = () => {
               } else {
                 safeResolve();
               }
-            },
-            { timeout: 3000 }
-          );
-        } else {
-          if (selectedDistId) {
-            fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
-              .then(distData => {
-                const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
-                if (distList.length > 0) setArticles(distList);
-                safeResolve();
-              })
-              .catch(() => safeResolve());
-          } else {
-            safeResolve();
-          }
-        }
-      } catch (geoErr) {
-        if (selectedDistId) {
-          fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
-            .then(distData => {
-              const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
-              if (distList.length > 0) setArticles(distList);
+            }
+          } catch (geoErr) {
+            if (selectedDistId) {
+              fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
+                .then(distData => {
+                  const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
+                  if (distList.length > 0) setArticles(distList);
+                  safeResolve();
+                })
+                .catch(() => safeResolve());
+            } else {
               safeResolve();
-            })
-            .catch(() => safeResolve());
-        } else {
-          safeResolve();
-        }
-      }
+            }
+          }
+        })
+        .catch(() => safeResolve());
     });
 
     // 7. Fetch Weather Forecast from backend for Chennai
