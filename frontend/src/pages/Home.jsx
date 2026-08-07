@@ -268,28 +268,9 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load RSS aggregated news", err));
 
-    const pInstitution = fetchApi('/articles/public/institution-news')
-      .then(data => {
-        if (Array.isArray(data)) {
-          setInstitutionNews(data);
-        }
-      })
-      .catch(() => {});
-
-    const pCrowd = fetchApi('/report-news/getAllWeb?size=4')
-      .then(res => {
-        if (res && Array.isArray(res.content)) {
-          setCrowdReports(res.content);
-        }
-      })
-      .catch(() => {});
-
-    // Geolocation Personalized Articles
+    // Always fetch general 100 articles first so homepage is never blank
+    const generalNewsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
     const selectedDistId = localStorage.getItem('selectedDistrictId');
-    let newsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
-    if (selectedDistId) {
-      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=100`;
-    }
 
     const pPersonalized = new Promise((resolve) => {
       let resolved = false;
@@ -300,54 +281,29 @@ const Home = () => {
         }
       };
 
-      // Safety timeout: if geolocation hangs (e.g. user ignores prompt), resolve anyway after 3s
-      setTimeout(() => {
-        if (!resolved) {
-          fetchApi(newsUrl)
-            .then(data => {
-              const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-              if (list.length > 0) setArticles(list);
-              safeResolve();
-            })
-            .catch(() => safeResolve());
-        }
-      }, 3000);
+      fetchApi(generalNewsUrl)
+        .then(generalData => {
+          const generalList = generalData && Array.isArray(generalData.content) ? generalData.content : (Array.isArray(generalData) ? generalData : []);
+          if (generalList.length > 0) {
+            setArticles(generalList);
+          }
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            if (resolved) return;
-            const { latitude, longitude } = pos.coords;
-            fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
-              .then(data => {
-                const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                if (list.length > 0) setArticles(list);
+          if (selectedDistId) {
+            fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
+              .then(distData => {
+                const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
+                if (distList.length > 0) {
+                  const merged = [...distList, ...generalList.filter(g => !distList.some(d => (d.id || d.article_id) === (g.id || g.article_id)))];
+                  setArticles(merged);
+                }
                 safeResolve();
               })
-              .catch(() => { safeResolve(); });
-          },
-          () => {
-            if (resolved) return;
-            fetchApi(newsUrl)
-              .then(data => {
-                const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                if (list.length > 0) setArticles(list);
-                safeResolve();
-              })
-              .catch(() => { safeResolve(); });
-          },
-          { timeout: 5000 }
-        );
-      } else {
-        if (resolved) return;
-        fetchApi(newsUrl)
-          .then(data => {
-            const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-            if (list.length > 0) setArticles(list);
+              .catch(() => safeResolve());
+          } else {
             safeResolve();
-          })
-          .catch(() => { safeResolve(); });
-      }
+          }
+        })
+        .catch(() => safeResolve());
     });
 
     // 7. Fetch Weather Forecast from backend for Chennai
