@@ -40,7 +40,12 @@ public class SystemConfigService {
         if (config.isPresent()) {
             SystemConfig sc = config.get();
             if (Boolean.TRUE.equals(sc.getIsEncrypted())) {
-                return encryptionService.decrypt(sc.getConfigValue());
+                try {
+                    return encryptionService.decrypt(sc.getConfigValue());
+                } catch (Exception e) {
+                    org.slf4j.LoggerFactory.getLogger(SystemConfigService.class).warn("Failed to decrypt config value for key: {}. Returning null.", key, e);
+                    return null;
+                }
             }
             return sc.getConfigValue();
         }
