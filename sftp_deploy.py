@@ -7,7 +7,10 @@ import paramiko
 HOSTNAME = os.getenv("HOSTINGER_SFTP_HOST", "193.202.45.164")
 PORT = int(os.getenv("HOSTINGER_SFTP_PORT", "65002"))
 USERNAME = os.getenv("HOSTINGER_SFTP_USER", "u841409365")
-PASSWORD = os.getenv("HOSTINGER_SFTP_PASS", "Eash@2005")
+PASSWORD = os.getenv("HOSTINGER_SFTP_PASS")
+if not PASSWORD:
+    print("Error: HOSTINGER_SFTP_PASS environment variable is not set.")
+    sys.exit(1)
 
 def connect_ssh():
     hosts = [HOSTNAME, "test-technoprint.online"]
