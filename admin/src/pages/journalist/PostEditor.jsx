@@ -1288,6 +1288,8 @@ const PostEditor = () => {
 
       let translatedText = '';
       let isFallback = false;
+      let backendErrorMsg = '';
+      let geminiErrorMsg = '';
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
@@ -1305,9 +1307,13 @@ const PostEditor = () => {
           }
         } else {
           isFallback = true;
+          if (res.data && res.data.result) {
+            backendErrorMsg = res.data.result;
+          }
         }
       } catch (backendErr) {
         console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        backendErrorMsg = backendErr.response?.data?.result || backendErr.response?.data?.message || backendErr.message || '';
         isFallback = true;
       }
 
@@ -1317,6 +1323,7 @@ const PostEditor = () => {
           translatedText = await callGemini(prompt);
         } catch (geminiErr) {
           console.warn('Direct Gemini fallback failed:', geminiErr);
+          geminiErrorMsg = geminiErr.message || '';
         }
       }
       
@@ -1324,16 +1331,25 @@ const PostEditor = () => {
       let newExcerpt = '';
       let newContent = '';
 
-      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
-      const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
-      const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
+      if (translatedText) {
+        const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
+        const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
+        const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
 
-      if (titleMatch) newTitle = titleMatch[1].trim();
-      if (excerptMatch) newExcerpt = excerptMatch[1].trim();
-      if (contentMatch) newContent = contentMatch[1].trim();
+        if (titleMatch) newTitle = titleMatch[1].trim();
+        if (excerptMatch) newExcerpt = excerptMatch[1].trim();
+        if (contentMatch) newContent = contentMatch[1].trim();
+      }
 
       if (!translatedText || (!newTitle && !newExcerpt && !newContent)) {
-        showMsg('Translation error: Translation service returned empty content. Please check AI Key settings.', true);
+        let finalError = 'Translation service returned empty content.';
+        if (backendErrorMsg) {
+          finalError += ` (Backend Error: ${backendErrorMsg})`;
+        }
+        if (geminiErrorMsg) {
+          finalError += ` (Direct Fallback Error: ${geminiErrorMsg})`;
+        }
+        showMsg(`Translation error: ${finalError} Please check AI Key settings.`, true);
         return;
       }
 
