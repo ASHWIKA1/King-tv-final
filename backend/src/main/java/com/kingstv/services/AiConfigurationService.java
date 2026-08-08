@@ -137,6 +137,39 @@ public class AiConfigurationService {
                 if (envKey != null && !envKey.isBlank()) {
                     dec.setApiKey(envKey);
                 }
+            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "openrouter".equalsIgnoreCase(dec.getProvider())) {
+                String envKey = System.getenv("OPENROUTER_API_KEY");
+                if (envKey != null && !envKey.isBlank()) {
+                    dec.setApiKey(envKey);
+                }
+            }
+            return Optional.of(dec);
+        }
+        return Optional.empty();
+    }
+
+    public Optional<AiConfiguration> getConfigurationDecrypted(String provider) {
+        Optional<AiConfiguration> opt = aiConfigurationRepository.findByProvider(provider.toLowerCase());
+        if (opt.isPresent()) {
+            AiConfiguration dec = cloneConfig(opt.get());
+            if (dec.getApiKey() != null && !dec.getApiKey().isBlank() && Boolean.TRUE.equals(dec.getIsEncrypted())) {
+                try {
+                    dec.setApiKey(encryptionService.decrypt(dec.getApiKey()));
+                } catch (Exception e) {
+                    // Ignore decryption failure
+                }
+            }
+            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "gemini".equalsIgnoreCase(dec.getProvider())) {
+                String envKey = System.getenv("GEMINI_API_KEY");
+                if (envKey != null && !envKey.isBlank()) {
+                    dec.setApiKey(envKey);
+                }
+            }
+            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "openrouter".equalsIgnoreCase(dec.getProvider())) {
+                String envKey = System.getenv("OPENROUTER_API_KEY");
+                if (envKey != null && !envKey.isBlank()) {
+                    dec.setApiKey(envKey);
+                }
             }
             return Optional.of(dec);
         }

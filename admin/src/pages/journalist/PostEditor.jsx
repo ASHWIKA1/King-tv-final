@@ -1332,8 +1332,9 @@ const PostEditor = () => {
       if (excerptMatch) newExcerpt = excerptMatch[1].trim();
       if (contentMatch) newContent = contentMatch[1].trim();
 
-      if (!newTitle && !newExcerpt && !newContent) {
-        newContent = translatedText.trim();
+      if (!translatedText || (!newTitle && !newExcerpt && !newContent)) {
+        showMsg('Translation error: Translation service returned empty content. Please check AI Key settings.', true);
+        return;
       }
 
       if (direction === 'ta2en') {

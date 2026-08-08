@@ -25,12 +25,13 @@ public class AiAssistService {
         AiConfiguration activeConfig = aiConfigurationService.getActiveConfigurationDecrypted().orElse(null);
         
         if (activeConfig == null || activeConfig.getApiKey() == null || activeConfig.getApiKey().isBlank() || "[SECURED]".equals(activeConfig.getApiKey())) {
-            // Fall back to Gemini provider from DB
-            AiConfiguration gemini = aiConfigurationService.getConfiguration("gemini").orElse(null);
-            if (gemini != null) {
-                activeConfig = gemini;
-                activeConfig.setEnableAi(true);
-            }
+            activeConfig = aiConfigurationService.getConfigurationDecrypted("gemini").orElse(null);
+        }
+        if (activeConfig == null || activeConfig.getApiKey() == null || activeConfig.getApiKey().isBlank() || "[SECURED]".equals(activeConfig.getApiKey())) {
+            activeConfig = aiConfigurationService.getConfigurationDecrypted("openrouter").orElse(null);
+        }
+        if (activeConfig != null) {
+            activeConfig.setEnableAi(true);
         }
 
         if (activeConfig == null) {
