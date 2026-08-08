@@ -1,12 +1,13 @@
+import os
 import mysql.connector
 
 try:
     conn = mysql.connector.connect(
-        host="gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
-        port=4000,
-        user="fayxknEDQC42KGU.root",
-        password="5QFMIWHEY7XqBG0Z",
-        database="kings_tv_db"
+        host=os.environ.get("DB_HOST", "gateway01.ap-southeast-1.prod.aws.tidbcloud.com"),
+        port=int(os.environ.get("DB_PORT", 4000)),
+        user=os.environ.get("DB_USERNAME", "fayxknEDQC42KGU.root"),
+        password=os.environ.get("DB_PASSWORD"),
+        database=os.environ.get("DB_DATABASE", "kings_tv_db")
     )
     cursor = conn.cursor()
 
