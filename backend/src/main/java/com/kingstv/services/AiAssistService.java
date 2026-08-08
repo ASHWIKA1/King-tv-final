@@ -65,7 +65,21 @@ public class AiAssistService {
                 }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("LLM Provider assist call failed, serving smart fallback text:", e);
+            org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("LLM Provider assist call failed, attempting OpenRouter provider fallback:", e);
+            try {
+                AiConfiguration openrouter = aiConfigurationService.getConfiguration("openrouter").orElse(null);
+                if (openrouter != null && openrouter.getApiKey() != null && !openrouter.getApiKey().isBlank() && !"[SECURED]".equals(openrouter.getApiKey())) {
+                    LLMProvider openrouterClient = aiConfigurationService.getProviderClient("openrouter");
+                    if (openrouterClient != null) {
+                        String result = openrouterClient.generateContent(prompt, openrouter);
+                        if (result != null && !result.isBlank()) {
+                            return Map.of("error", false, "result", result, "action", action);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("OpenRouter provider fallback also failed:", ex);
+            }
         }
 
         // Smart Fallback for assist action

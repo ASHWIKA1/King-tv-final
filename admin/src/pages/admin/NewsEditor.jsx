@@ -45,9 +45,8 @@ const callGemini = async (prompt) => {
   const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
     configuredModel,
-    'gemini-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-2.5-flash'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
@@ -1404,9 +1403,13 @@ const NewsEditor = () => {
         isFallback = true;
       }
 
-      if (isFallback || !translatedText) {
-        const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
-        translatedText = await callGemini(prompt);
+      if (!translatedText) {
+        try {
+          const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
+          translatedText = await callGemini(prompt);
+        } catch (geminiErr) {
+          console.warn('Direct Gemini fallback failed:', geminiErr);
+        }
       }
       
       let newTitle = '';
