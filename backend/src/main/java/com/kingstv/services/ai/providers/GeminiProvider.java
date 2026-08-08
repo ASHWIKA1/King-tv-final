@@ -97,6 +97,10 @@ public class GeminiProvider implements LLMProvider {
         if (baseUrl == null || baseUrl.isBlank()) {
             baseUrl = "https://generativelanguage.googleapis.com/v1beta";
         }
+        baseUrl = baseUrl.trim();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
         return baseUrl + "/models/" + model + ":generateContent?key=" + config.getApiKey();
     }
 
