@@ -132,10 +132,26 @@ public class AiConfigurationService {
                     // Ignore decryption failure if it wasn't valid AES
                 }
             }
-            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "gemini".equalsIgnoreCase(dec.getProvider())) {
-                String envKey = System.getenv("GEMINI_API_KEY");
-                if (envKey != null && !envKey.isBlank()) {
-                    dec.setApiKey(envKey);
+            if ("gemini".equalsIgnoreCase(dec.getProvider())) {
+                if (dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) {
+                    String configKey = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_API_KEY);
+                    if (configKey != null && !configKey.isBlank()) {
+                        dec.setApiKey(configKey);
+                    }
+                }
+                if (dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) {
+                    String envKey = System.getenv("GEMINI_API_KEY");
+                    if (envKey != null && !envKey.isBlank()) {
+                        dec.setApiKey(envKey);
+                    }
+                }
+                String configUrl = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_API_URL);
+                if (configUrl != null && !configUrl.isBlank()) {
+                    dec.setBaseUrl(configUrl);
+                }
+                String configModel = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_MODEL);
+                if (configModel != null && !configModel.isBlank()) {
+                    dec.setModel(configModel);
                 }
             }
             if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "openrouter".equalsIgnoreCase(dec.getProvider())) {
@@ -160,10 +176,26 @@ public class AiConfigurationService {
                     // Ignore decryption failure
                 }
             }
-            if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "gemini".equalsIgnoreCase(dec.getProvider())) {
-                String envKey = System.getenv("GEMINI_API_KEY");
-                if (envKey != null && !envKey.isBlank()) {
-                    dec.setApiKey(envKey);
+            if ("gemini".equalsIgnoreCase(dec.getProvider())) {
+                if (dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) {
+                    String configKey = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_API_KEY);
+                    if (configKey != null && !configKey.isBlank()) {
+                        dec.setApiKey(configKey);
+                    }
+                }
+                if (dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) {
+                    String envKey = System.getenv("GEMINI_API_KEY");
+                    if (envKey != null && !envKey.isBlank()) {
+                        dec.setApiKey(envKey);
+                    }
+                }
+                String configUrl = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_API_URL);
+                if (configUrl != null && !configUrl.isBlank()) {
+                    dec.setBaseUrl(configUrl);
+                }
+                String configModel = systemConfigService.getConfigValue(com.kingstv.models.SystemConfig.AI_LLM_MODEL);
+                if (configModel != null && !configModel.isBlank()) {
+                    dec.setModel(configModel);
                 }
             }
             if ((dec.getApiKey() == null || dec.getApiKey().isBlank() || "[SECURED]".equals(dec.getApiKey())) && "openrouter".equalsIgnoreCase(dec.getProvider())) {
@@ -304,15 +336,7 @@ public class AiConfigurationService {
     private String executeAiPrompt(String prompt) throws Exception {
         try {
             AiConfiguration config = getActiveConfigurationDecrypted()
-                .orElseGet(() -> {
-                    AiConfiguration gemini = aiConfigurationRepository.findByProvider("gemini").orElse(null);
-                    if (gemini != null && gemini.getApiKey() != null && Boolean.TRUE.equals(gemini.getIsEncrypted())) {
-                        try {
-                            gemini.setApiKey(encryptionService.decrypt(gemini.getApiKey()));
-                        } catch (Exception e) {}
-                    }
-                    return gemini;
-                });
+                .orElseGet(() -> getConfigurationDecrypted("gemini").orElse(null));
 
             if (config != null && config.getApiKey() != null && !config.getApiKey().isBlank() && !"[SECURED]".equals(config.getApiKey())) {
                 LLMProvider providerClient = getProviderClient(config.getProvider());
