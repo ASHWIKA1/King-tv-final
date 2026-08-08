@@ -227,6 +227,8 @@ const Classifieds = () => {
   
   // Selection / Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [smartSearchLoading, setSmartSearchLoading] = useState(false);
+  const [smartSearchIntent, setSmartSearchIntent] = useState(null);
   const [selectedCat, setSelectedCat] = useState('all');
   const [selectedLoc, setSelectedLoc] = useState('all');
   const [selectedSort, setSelectedSort] = useState('newest');
@@ -243,6 +245,7 @@ const Classifieds = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [shareAdObj, setShareAdObj] = useState(null);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -285,6 +288,11 @@ const Classifieds = () => {
   const [isFree, setIsFree] = useState(false);
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [lastGeneratedDesc, setLastGeneratedDesc] = useState('');
+  
+  // AI Enhancement State
+  const [showAiEnhanceModal, setShowAiEnhanceModal] = useState(false);
+  const [aiEnhancedData, setAiEnhancedData] = useState(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // Fetch categories & districts from API with automatic fallback
   useEffect(() => {
@@ -541,11 +549,9 @@ const Classifieds = () => {
     setImagePreviewUrl('');
     setIsFree(false);
 
-    alert(
-      lang === 'en'
-        ? '🎉 Your ad has been submitted successfully!\n\nStatus: PENDING ADMIN APPROVAL.\nIt has been sent to the Admin Portal (Ad Management -> Pending Classifieds Approval) for review.'
-        : '🎉 உங்கள் விளம்பரம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!\n\nநிலை: நிர்வாக ஒப்புதலுக்கு காத்திருக்கிறது.\nநிர்வாக போர்ட்டலில் (Ad Management -> Pending Classifieds Approval) சரிபார்க்க அனுப்பப்பட்டுள்ளது.'
-    );
+    setShowPreviewModal(false);
+    setShowPostModal(false);
+    setShowSuccessPopup(true);
   };
 
   // ADMIN APPROVE AD
@@ -602,42 +608,150 @@ const Classifieds = () => {
     setShowShareModal(false);
   };
 
-  const generateAiDescription = async (force = false) => {
-    // Check if we should generate
-    if (!force && newDesc.trim() !== '' && newDesc.trim() !== lastGeneratedDesc) return;
-    if (!newTitle.trim() || !newCatId) return;
+  const generateTemplate = async () => {
+    if (!newTitle.trim() || !newCatId) {
+      alert(lang === 'en' ? 'Please enter a title and select a category first.' : 'தயவுசெய்து முதலில் தலைப்பை உள்ளிட்டு வகையை தேர்ந்தெடுக்கவும்.');
+      return;
+    }
 
     setIsGeneratingDesc(true);
     try {
       const cat = categories.find(c => c.id == newCatId);
       const subcat = formSubcategories.find(s => s.id == newSubcatId);
-      const dist = districts.find(d => d.id == newDistrictId);
       
-      const payloadText = `Title: ${newTitle}\nCategory: ${cat ? cat.name : ''}\nSubcategory: ${subcat ? subcat.name : ''}\nLocation: ${dist ? (dist.nameEn + ' ' + dist.nameTa) : ''}`;
+      const payloadText = `Title: ${newTitle}\nCategory: ${cat ? cat.name : ''}\nSubcategory: ${subcat ? subcat.name : ''}\nCurrent Description: ${newDesc}`;
       
-      const response = await fetch('/api/classifieds/ai-description', {
+      const data = await fetchApi('/classifieds/ai-description', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: payloadText, lang })
       });
-      const data = await response.json();
       if (!data.error && data.result) {
         setNewDesc(data.result);
         setLastGeneratedDesc(data.result);
       }
     } catch (e) {
-      console.error("AI Generation failed:", e);
+      console.error("AI Template Generation failed:", e);
     } finally {
       setIsGeneratingDesc(false);
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (showPostModal) generateAiDescription(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [newTitle, newCatId, newSubcatId, newDistrictId, showPostModal]);
+  const enhanceDescription = async () => {
+    if (!newTitle.trim() || !newCatId) {
+      alert(lang === 'en' ? 'Please enter a title and select a category first.' : 'தயவுசெய்து முதலில் தலைப்பை உள்ளிட்டு வகையை தேர்ந்தெடுக்கவும்.');
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const cat = categories.find(c => c.id == newCatId);
+      const subcat = formSubcategories.find(s => s.id == newSubcatId);
+      
+      const payloadText = `Title: ${newTitle}\nCategory: ${cat ? cat.name : ''}\nSubcategory: ${subcat ? subcat.name : ''}\nUser Description: ${newDesc}`;
+      
+      const data = await fetchApi('/classifieds/ai-enhance', {
+        method: 'POST',
+        body: JSON.stringify({ text: payloadText, lang })
+      });
+      if (!data.error && data.result) {
+        let parsedData;
+        try {
+          parsedData = JSON.parse(data.result.replace(/```json/g, '').replace(/```/g, '').trim());
+          setAiEnhancedData(parsedData);
+          setShowAiEnhanceModal(true);
+        } catch (parseError) {
+          console.error("Failed to parse AI response", data.result);
+          alert(lang === 'en' ? 'Failed to process AI response.' : 'AI பதிலைச் செயலாக்க முடியவில்லை.');
+        }
+      }
+    } catch (e) {
+      console.error("AI Enhancement failed:", e);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const autoCategorize = async () => {
+    if (!newTitle.trim()) {
+      alert(lang === 'en' ? 'Please enter a title first!' : 'தயவுசெய்து முதலில் தலைப்பை உள்ளிடவும்!');
+      return;
+    }
+    
+    setIsGeneratingDesc(true);
+    try {
+      const data = await fetchApi('/classifieds/ai-categorize', {
+        method: 'POST',
+        body: JSON.stringify({ text: newTitle })
+      });
+      if (!data.error && data.result) {
+        try {
+          const parsed = JSON.parse(data.result);
+          // Find matching category
+          const cat = categories.find(c => c.name.toLowerCase().includes(parsed.categoryName.toLowerCase()) || parsed.categoryName.toLowerCase().includes(c.name.split('/')[0].toLowerCase()));
+          if (cat) {
+            setNewCatId(cat.id);
+            const subcats = cat.subcategories || [];
+            setFormSubcategories(subcats);
+            
+            // Strictly match subcategory within the newly found category's subcategories
+            if (subcats.length > 0) {
+              const subcat = subcats.find(s => 
+                s.name.toLowerCase().includes(parsed.subcategoryName.toLowerCase()) || 
+                parsed.subcategoryName.toLowerCase().includes(s.name.split('/')[0].toLowerCase())
+              );
+              if (subcat) {
+                setNewSubcatId(subcat.id);
+              } else {
+                setNewSubcatId(subcats[0].id);
+              }
+            } else {
+              setNewSubcatId('');
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse AI category output", e);
+        }
+      }
+    } catch (e) {
+      console.error("AI Categorize failed:", e);
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
+
+
+  // Removed automatic description generation on title typing to prevent unwanted overriding
+
+
+  const handleSmartSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSmartSearchLoading(true);
+    setLoading(true);
+    try {
+      const data = await fetchApi(`/classifieds/smart-search?page=0&size=50`, {
+        method: 'POST',
+        body: JSON.stringify({ query: searchQuery })
+      });
+      if (data.results) {
+        setAds(data.results);
+        setSmartSearchIntent(data.intent);
+      } else {
+        setAds(Array.isArray(data) ? data : []);
+        setSmartSearchIntent(null);
+      }
+    } catch (e) {
+      console.error("Smart search failed:", e);
+    } finally {
+      setSmartSearchLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const clearSmartSearch = () => {
+    setSearchQuery('');
+    setSmartSearchIntent(null);
+    loadAds();
+  };
 
   return (
     <main className="container class-module-container" style={{ paddingTop: '20px' }}>
@@ -720,7 +834,9 @@ const Classifieds = () => {
           </button>
 
           <div className="class-filter-group">
-            <h4 style={{ margin: '0', fontSize: '14px' }}>{lang === 'en' ? 'Search' : 'தேடல்'}</h4>
+            <h4 style={{ margin: '0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {lang === 'en' ? 'Search' : 'தேடல்'}
+            </h4>
             <div className="class-filter-input-wrap">
               <i className="fas fa-search"></i>
               <input 
@@ -728,10 +844,31 @@ const Classifieds = () => {
                 placeholder={lang === 'en' ? 'What are you looking for?' : 'நீங்கள் என்ன தேடுகிறீர்கள்?'} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if(e.key === 'Enter') handleSmartSearch(); }}
               />
             </div>
+            
+            <button 
+              onClick={handleSmartSearch}
+              disabled={smartSearchLoading}
+              style={{ width: '100%', marginTop: '8px', padding: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
+            >
+              <i className={smartSearchLoading ? "fas fa-spinner fa-spin" : "fas fa-magic"}></i> 
+              {smartSearchLoading ? (lang === 'en' ? 'Searching...' : 'தேடுகிறது...') : (lang === 'en' ? 'Smart Search' : 'ஸ்மார்ட் தேடல்')}
+            </button>
+            
+            {smartSearchIntent && (
+              <div style={{ marginTop: '12px', padding: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '11px', color: '#166534' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>✨ AI Understood:</div>
+                {smartSearchIntent.query && <div>• <b>Keyword:</b> {smartSearchIntent.query}</div>}
+                {smartSearchIntent.priceMax && <div>• <b>Max Price:</b> ₹{smartSearchIntent.priceMax}</div>}
+                {smartSearchIntent.priceMin && <div>• <b>Min Price:</b> ₹{smartSearchIntent.priceMin}</div>}
+                {smartSearchIntent.condition && smartSearchIntent.condition !== 'null' && <div>• <b>Condition:</b> {smartSearchIntent.condition}</div>}
+                <button onClick={clearSmartSearch} style={{ background: 'transparent', border: 'none', color: '#ef4444', textDecoration: 'underline', marginTop: '6px', cursor: 'pointer', padding: 0 }}>Clear Smart Search</button>
+              </div>
+            )}
 
-            <div className="class-filter-input-wrap">
+            <div className="class-filter-input-wrap" style={{ marginTop: '16px' }}>
               <i className="fas fa-map-marker-alt"></i>
               <select value={selectedLoc} onChange={(e) => setSelectedLoc(e.target.value)}>
                 <option value="all">{lang === 'en' ? 'All Districts' : 'அனைத்து மாவட்டங்கள்'}</option>
@@ -1021,7 +1158,7 @@ const Classifieds = () => {
                     onChange={(e) => setNewTitle(e.target.value)}
                     required 
                     placeholder={lang === 'en' ? 'e.g. iPhone 14 Pro Max / Honda City' : 'எ.கா: Splendor பைக் விற்பனைக்கு'}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black', marginTop: '4px' }}
                   />
                 </div>
 
@@ -1133,14 +1270,24 @@ const Classifieds = () => {
                     <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
                       {lang === 'en' ? 'Product Description *' : 'விளம்பரம் விளக்கம் *'}
                     </label>
-                    <button 
-                      type="button" 
-                      onClick={() => generateAiDescription(true)}
-                      disabled={isGeneratingDesc}
-                      style={{ background: 'transparent', border: 'none', color: '#EA580C', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      {isGeneratingDesc ? (lang === 'en' ? 'Generating...' : 'உருவாக்குகிறது...') : (newDesc.trim() ? (lang === 'en' ? '✨ Improve with AI' : '✨ மேம்படுத்து') : (lang === 'en' ? '✨ Generate with AI' : '✨ AI உடன் உருவாக்கு'))}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        type="button" 
+                        onClick={generateTemplate}
+                        disabled={isGeneratingDesc || isEnhancing}
+                        style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        {isGeneratingDesc ? (lang === 'en' ? 'Generating...' : 'உருவாக்குகிறது...') : (lang === 'en' ? '✨ AI Template' : '✨ AI வார்ப்புரு')}
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={enhanceDescription}
+                        disabled={isEnhancing || isGeneratingDesc || !newDesc.trim()}
+                        style={{ background: 'transparent', border: 'none', color: '#10b981', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: !newDesc.trim() ? 0.5 : 1 }}
+                      >
+                        {isEnhancing ? (lang === 'en' ? 'Enhancing...' : 'மேம்படுத்துகிறது...') : (lang === 'en' ? '✨ Enhance with AI' : '✨ AI உடன் மேம்படுத்து')}
+                      </button>
+                    </div>
                   </div>
                   <textarea 
                     value={newDesc}
@@ -1266,6 +1413,109 @@ const Classifieds = () => {
               style={{ width: '100%', padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               <i className="far fa-copy"></i> {lang === 'en' ? 'Copy Link' : 'நகலெடுக்க'}
+            </button>
+          </div>
+        </div>
+      )}
+
+
+      {showAiEnhanceModal && aiEnhancedData && (
+        <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1100' }}>
+          <div className="modal-content" style={{ maxWidth: '700px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '12px' }}>
+            <div className="modal-header" style={{ padding: '16px 24px', background: 'linear-gradient(90deg, #10b981, #059669)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>✨ {lang === 'en' ? 'AI Enhanced Description' : 'AI மேம்படுத்தப்பட்ட விளக்கம்'}</h3>
+              <button onClick={() => setShowAiEnhanceModal(false)} style={{ color: 'white', background: 'transparent', border: 'none', fontSize: '28px', cursor: 'pointer', lineHeight: '1' }}>&times;</button>
+            </div>
+            
+            <div className="modal-body" style={{ padding: '24px' }}>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{lang === 'en' ? 'Description Quality' : 'விளக்கத்தின் தரம்'}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: aiEnhancedData.qualityScore >= 80 ? '#10b981' : (aiEnhancedData.qualityScore >= 50 ? '#f59e0b' : '#ef4444') }}>
+                    {aiEnhancedData.qualityScore}% {aiEnhancedData.qualityScore >= 80 ? (lang === 'en' ? 'Excellent' : 'சிறப்பானது') : (aiEnhancedData.qualityScore >= 50 ? (lang === 'en' ? 'Good' : 'நன்று') : (lang === 'en' ? 'Needs Improvement' : 'மேம்படுத்த வேண்டும்'))}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${aiEnhancedData.qualityScore}%`, height: '100%', background: `linear-gradient(90deg, #ef4444, #f59e0b, #10b981)`, borderRadius: '4px', transition: 'width 0.5s ease-out' }}></div>
+                </div>
+              </div>
+
+              {aiEnhancedData.missingAttributes && aiEnhancedData.missingAttributes.length > 0 && (
+                <div style={{ padding: '12px', background: '#fffbeb', borderLeft: '4px solid #f59e0b', borderRadius: '4px', marginBottom: '20px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#b45309' }}>⚠ {lang === 'en' ? 'Complete your listing' : 'பட்டியலை முழுமையாக்குங்கள்'}</h4>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#92400e' }}>
+                    {aiEnhancedData.missingAttributes.map((attr, idx) => (
+                      <li key={idx}>{attr}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h4 style={{ fontSize: '13px', margin: '0 0 8px 0', color: '#64748b' }}>{lang === 'en' ? 'Original' : 'அசல்'}</h4>
+                  <div style={{ flex: 1, padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', whiteSpace: 'pre-wrap', maxHeight: '280px', overflowY: 'auto' }}>
+                    {newDesc}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h4 style={{ fontSize: '13px', margin: '0 0 8px 0', color: '#10b981' }}>{lang === 'en' ? 'AI Enhanced (Editable)' : 'AI மேம்படுத்தப்பட்டது (திருத்தலாம்)'}</h4>
+                  <textarea 
+                    value={aiEnhancedData.enhancedDescription}
+                    onChange={(e) => setAiEnhancedData({...aiEnhancedData, enhancedDescription: e.target.value})}
+                    style={{ flex: 1, height: '280px', padding: '12px', border: '2px solid #10b981', borderRadius: '8px', fontSize: '13px', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setShowAiEnhanceModal(false)}
+                  style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}
+                >
+                  {lang === 'en' ? 'Cancel' : 'ரத்து செய்'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setNewDesc(aiEnhancedData.enhancedDescription);
+                    setShowAiEnhanceModal(false);
+                  }}
+                  style={{ padding: '10px 20px', border: 'none', background: '#10b981', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  {lang === 'en' ? 'Use This Description' : 'இதைப் பயன்படுத்து'}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS POPUP MODAL */}
+      {showSuccessPopup && (
+        <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1200' }}>
+          <div className="modal-content" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center', borderRadius: '16px' }}>
+            <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+              <i className="fas fa-check-circle" style={{ fontSize: '40px', color: '#10b981' }}></i>
+            </div>
+            <h2 style={{ margin: '0 0 12px 0', fontSize: '22px', color: '#1e293b' }}>
+              {lang === 'en' ? 'Success!' : 'வெற்றி!'}
+            </h2>
+            <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px', marginBottom: '24px' }}>
+              <p style={{ margin: 0, fontSize: '15px', color: '#b45309', fontWeight: '600' }}>
+                <i className="fas fa-clock" style={{ marginRight: '8px' }}></i>
+                {lang === 'en' ? 'Pending Admin Approval' : 'நிர்வாக ஒப்புதலுக்காக காத்திருக்கிறது'}
+              </p>
+            </div>
+            <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.5' }}>
+              {lang === 'en' ? 'Your ad has been successfully submitted and is currently under review by our admin team. It will be live on the platform once approved.' : 'உங்கள் விளம்பரம் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது மற்றும் எங்கள் நிர்வாக குழுவால் சரிபார்க்கப்படுகிறது. ஒப்புதல் அளித்தவுடன் அது மேடையில் வெளியிடப்படும்.'}
+            </p>
+            <button 
+              onClick={() => setShowSuccessPopup(false)}
+              style={{ width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              {lang === 'en' ? 'Got it, Thanks!' : 'புரிந்தது, நன்றி!'}
             </button>
           </div>
         </div>

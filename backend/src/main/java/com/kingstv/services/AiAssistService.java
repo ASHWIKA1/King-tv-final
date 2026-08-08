@@ -86,6 +86,22 @@ public class AiAssistService {
             return clean.length() > 200 ? clean.substring(0, 200) + "..." : clean;
         } else if ("seo".equalsIgnoreCase(action)) {
             return "Meta Title: " + (clean.length() > 60 ? clean.substring(0, 60) : clean) + " | Kings 24x7\nMeta Description: " + (clean.length() > 150 ? clean.substring(0, 150) : clean) + "\nKeywords: news, breaking, tamil nadu, kings 24x7";
+        } else if ("generate_ad_description".equalsIgnoreCase(action)) {
+            String title = "";
+            String category = "";
+            String subcategory = "";
+            for (String line : text.split("\n")) {
+                if (line.startsWith("Title: ")) title = line.substring(7);
+                if (line.startsWith("Category: ")) category = line.substring(10);
+                if (line.startsWith("Subcategory: ")) subcategory = line.substring(13);
+            }
+            return "Product Details:\n" +
+                   "- Title: " + title + "\n" +
+                   "- Category: " + category + " > " + subcategory + "\n" +
+                   "- Brand:\n- Model:\n- Condition:\n- Price:\n\n" +
+                   "Please provide detailed information about your product.";
+        } else if ("enhance_ad_description".equalsIgnoreCase(action)) {
+            return "{\n  \"enhancedDescription\": \"" + clean.replace("\"", "\\\"") + "\",\n  \"extractedAttributes\": [],\n  \"missingAttributes\": [\"Could not connect to AI service\"],\n  \"qualityScore\": 0\n}";
         }
         return clean;
     }
@@ -185,36 +201,102 @@ public class AiAssistService {
             case "generate_ad_description" -> {
                 yield """
                         You are an AI Product Description Assistant for a classifieds marketplace.
-                        Your purpose is to generate a READY-MADE FILLABLE DESCRIPTION TEMPLATE.
+                        Your task is to create a dynamic, category-specific product description template.
                         DO NOT automatically write a complete advertisement.
                         
                         Details provided by the user:
                         """ + text + """
                         
                         STRICT RULES:
-                        1. IDENTIFY PRODUCT: Understand what the user is trying to sell based on Product Title, Category, Subcategory, and any text they already typed. The strongest signals are Title + Category + Subcategory.
+                        1. IDENTIFY CATEGORY: Understand the product based on Product Title, Category, and Subcategory.
+                        2. GENERATE STRUCTURED TEMPLATE: Create a fillable template with relevant fields (e.g. Brand, Model, Condition, Price) suitable for this specific product type.
+                        3. NEVER INVENT INFO: Do NOT fabricate details. Leave missing fields blank for the user to fill out.
+                        4. REUSE EXISTING INFO: If the user provided facts, include them in the corresponding fields.
+                        5. FORMAT: Use clear headings and bullet points. No prefixes/suffixes. Return ONLY the template text.
+                        """;
+            }
+
+            case "enhance_ad_description" -> {
+                yield """
+                        You are an AI marketplace listing assistant.
+                        Analyze the provided Product Title, Category, Subcategory, and User Description.
+                        Your task is to create a clear, accurate, category-specific marketplace listing.
+
+                        Extract only information explicitly provided by the user.
+                        Never invent missing facts, prices, specifications, ownership, or condition.
+
+                        First identify the relevant attributes for this category and subcategory.
+                        Then structure the description into appropriate sections.
+                        Improve grammar, spelling, clarity, readability, and professionalism.
+                        Use concise marketplace-friendly language.
                         
-                        2. DETERMINE FIELDS: Generate fields relevant ONLY to the identified product. Do not ask for Battery Health for a house, or Engine Capacity for a sofa.
-                           - VEHICLES (CARS): Brand, Model, Variant, Manufacturing Year, Registration Year, Fuel Type, Transmission, Mileage, Number of Owners, Condition, Insurance, Service History, Color, Location, Key Features, Reason for Selling.
-                           - VEHICLES (BIKES/SCOOTERS): Brand, Model, Variant, Year, Mileage, Fuel Type, Engine Capacity, Ownership, Condition, Insurance, Service History, Registration, Accessories, Key Features, Reason for Selling.
-                           - REAL ESTATE: Property Type, BHK, Area / Sq.ft, Location, Floor, Total Floors, Bedrooms, Bathrooms, Parking, Furnishing, Age of Property, Facing, Amenities, Availability, Nearby Locations, Price / Rent, Additional Details.
-                           - ELECTRONICS (MOBILE): Brand, Model, Storage, RAM, Color, Purchase Date, Age, Condition, Battery Health, Warranty, Bill Available, Original Accessories, Repair History, Features, Reason for Selling.
-                           - ELECTRONICS (LAPTOP): Brand, Model, Processor, RAM, Storage, Graphics, Screen Size, Purchase Year, Condition, Battery Condition, Warranty, Bill Available, Accessories, Reason for Selling.
-                           - FURNITURE: Product Type, Brand, Material, Dimensions, Color, Age, Condition, Usage, Features, Reason for Selling, Additional Information.
-                           - AGRICULTURE (Seeds): Crop, Variety, Quantity, Brand, Suitable Season, Quality, Packaging, Location.
-                           - AGRICULTURE (Farm Equip): Brand, Model, Year, Condition, Usage Hours, Capacity, Fuel Type, Accessories, Service History.
-                           
-                        3. SMART PLACEHOLDERS: Use context-aware placeholders in brackets instead of fabricating info.
-                           - DO NOT use confusing technical placeholders like {vehicle_model_name}.
-                           - DO USE: [Enter brand], [Enter model], [Enter year], [Enter mileage in km], [Enter battery health percentage], [Enter property area in sq.ft], etc.
-                           
-                        4. REUSE EXISTING INFO: If the user provided information in their text (e.g. "2022 Honda Activa, first owner, 18000 km, excellent condition"), FILL IN THOSE DETAILS in the template instead of making them placeholders. Do NOT ask for info they already provided.
-                           
-                        5. FORMAT: Clean, professional, marketplace friendly, not overwhelming. Use headings and bullet points. Output the language requested (English, Tamil, or Mixed).
+                        You must also calculate a Quality Score (0 to 100) based on completeness (important fields like Condition, Price, Make, Model, Location, etc).
+                        Identify any important missing attributes that a buyer would typically want to know for this specific category.
+
+                        User Input Details:
+                        """ + text + """
                         
-                        6. NO FABRICATION: NEVER invent Price, Model year, Mileage, Brand, Condition, Specifications, Warranty, Ownership, Location, Features, or Measurements. If unknown, use a placeholder.
+                        Return a valid JSON object strictly in this format (and nothing else, do NOT use markdown formatting blocks like ```json):
+                        {
+                          "enhancedDescription": "The fully formatted description text with headings and bullet points",
+                          "extractedAttributes": ["List of extracted facts", "e.g. Brand: Apple", "Condition: Good"],
+                          "missingAttributes": ["List of important missing fields", "e.g. Warranty status", "Battery health"],
+                          "qualityScore": 85
+                        }
+                        """;
+            }
+
+            case "categorize_ad" -> {
+                yield """
+                        You are an AI Categorization Assistant for a classifieds marketplace.
+                        Given an ad title and description, determine the most appropriate Category and Subcategory.
                         
-                        7. Output ONLY the generated template without any conversational prefix, suffix, or explanation.
+                        AVAILABLE CATEGORIES:
+                        """ + (context != null ? context : "Electronics, Vehicles, Real Estate, Furniture, Services, Jobs, Others") + """
+                        
+                        Ad Title / Description:
+                        """ + text + """
+                        
+                        Return a valid JSON object strictly in this format (and nothing else):
+                        {
+                          "categoryName": "Best matching category name",
+                          "subcategoryName": "Best matching subcategory name"
+                        }
+                        """;
+            }
+
+            case "parse_search_intent" -> {
+                yield """
+                        You are an AI Smart Search parser for a classifieds marketplace.
+                        Extract search filters from the user's natural language query.
+                        
+                        User Query:
+                        """ + text + """
+                        
+                        Return a valid JSON object strictly in this format (and nothing else):
+                        {
+                          "query": "Cleaned keyword to search (e.g. 'iphone 13' from 'cheap iphone 13 under 5000')",
+                          "priceMax": [extracted max price as number or null],
+                          "priceMin": [extracted min price as number or null],
+                          "condition": "new/used/null"
+                        }
+                        """;
+            }
+
+            case "moderate_ad" -> {
+                yield """
+                        You are a trust and safety moderator for a classifieds marketplace.
+                        Analyze the following ad submission for spam, scams, inappropriate content, or policy violations.
+                        
+                        Ad Details:
+                        """ + text + """
+                        
+                        Return a valid JSON object strictly in this format (and nothing else):
+                        {
+                          "isSafe": true or false,
+                          "confidenceScore": 0.0 to 1.0,
+                          "reason": "Brief explanation if unsafe, or empty string if safe"
+                        }
                         """;
             }
 

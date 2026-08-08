@@ -147,7 +147,29 @@ public class ClassifiedController {
         if (classified.getTitle() == null || classified.getDescription() == null || classified.getPrice() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Title, description, and price are required."));
         }
-        classified.setStatus("pending");
+        
+        // AI Moderation check
+        String adContent = "Title: " + classified.getTitle() + "\nDescription: " + classified.getDescription() + "\nPrice: " + classified.getPrice();
+        Map<String, Object> modResult = aiAssistService.assist("moderate_ad", adContent, "en");
+        
+        classified.setStatus("pending"); // Default
+        
+        if (!Boolean.TRUE.equals(modResult.get("error")) && modResult.get("result") != null) {
+            String res = modResult.get("result").toString();
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(res);
+                if (root.has("isSafe") && !root.get("isSafe").asBoolean()) {
+                    classified.setStatus("flagged_for_review");
+                }
+            } catch (Exception e) {
+                // If parsing fails, fall back to simple string check
+                if (res.replace(" ", "").contains("\"isSafe\":false")) {
+                    classified.setStatus("flagged_for_review");
+                }
+            }
+        }
+        
         ClassifiedListing saved = classifiedService.createClassified(classified, images);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -289,5 +311,87 @@ public class ClassifiedController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
         }
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/ai-enhance")
+    public ResponseEntity<?> enhanceAiDescription(@RequestBody Map<String, String> payload) {
+        String text = payload.get("text");
+        String lang = payload.getOrDefault("lang", "en");
+        
+        if (text == null || text.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "result", "Text payload is required"));
+        }
+
+        Map<String, Object> result = aiAssistService.assist("enhance_ad_description", text, lang);
+        if (Boolean.TRUE.equals(result.get("error"))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/ai-categorize")
+    public ResponseEntity<?> autoCategorizeAd(@RequestBody Map<String, String> payload) {
+        String text = payload.get("text");
+        
+        if (text == null || text.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "result", "Text payload is required"));
+        }
+
+        // Fetch categories to pass as context
+        List<ClassifiedCategory> categories = classifiedService.getCategories();
+        StringBuilder catContext = new StringBuilder();
+        for (ClassifiedCategory cat : categories) {
+            catContext.append(cat.getName()).append(" (");
+            List<ClassifiedSubcategory> subcategories = classifiedService.getSubcategories(cat.getId());
+            if (subcategories != null) {
+                subcategories.forEach(sub -> catContext.append(sub.getName()).append(", "));
+            }
+            catContext.append("); ");
+        }
+
+        Map<String, Object> result = aiAssistService.assist("categorize_ad", text, catContext.toString());
+        if (Boolean.TRUE.equals(result.get("error"))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/smart-search")
+    public ResponseEntity<?> smartSearch(@RequestBody Map<String, String> payload,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "12") int size) {
+        String query = payload.get("query");
+        if (query == null || query.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Search query is required"));
+        }
+
+        Map<String, Object> aiResult = aiAssistService.assist("parse_search_intent", query, null);
+        if (Boolean.TRUE.equals(aiResult.get("error")) || aiResult.get("result") == null) {
+            // Fallback to normal search
+            Page<ClassifiedListing> ads = classifiedService.getClassifieds(query, null, null, null, null, null, null, null, "newest", PageRequest.of(page, size));
+            return ResponseEntity.ok(ads.getContent());
+        }
+
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(aiResult.get("result").toString());
+            
+            String parsedQuery = root.has("query") && !root.get("query").isNull() ? root.get("query").asText() : query;
+            Double priceMax = root.has("priceMax") && !root.get("priceMax").isNull() ? root.get("priceMax").asDouble() : null;
+            Double priceMin = root.has("priceMin") && !root.get("priceMin").isNull() ? root.get("priceMin").asDouble() : null;
+            String condition = root.has("condition") && !root.get("condition").isNull() && !root.get("condition").asText().equals("null") ? root.get("condition").asText() : null;
+
+            Page<ClassifiedListing> ads = classifiedService.getClassifieds(parsedQuery, null, null, null, priceMin, priceMax, condition, null, "newest", PageRequest.of(page, size));
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("results", ads.getContent());
+            response.put("intent", root); // Return the parsed intent for the UI
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            // Fallback to normal search
+            Page<ClassifiedListing> ads = classifiedService.getClassifieds(query, null, null, null, null, null, null, null, "newest", PageRequest.of(page, size));
+            return ResponseEntity.ok(ads.getContent());
+        }
     }
 }
