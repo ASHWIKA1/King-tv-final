@@ -26,6 +26,9 @@ public class ClassifiedController {
     private ClassifiedService classifiedService;
 
     @Autowired
+    private com.kingstv.services.AiAssistService aiAssistService;
+
+    @Autowired
     private com.kingstv.repository.ClassifiedRepository classifiedRepository;
 
     @Autowired
@@ -270,5 +273,21 @@ public class ClassifiedController {
         listing.setStatus("active");
         classifiedRepository.save(listing);
         return ResponseEntity.ok(Map.of("message", "Classified approved and is now active"));
+    }
+
+    @PostMapping("/ai-description")
+    public ResponseEntity<?> generateAiDescription(@RequestBody Map<String, String> payload) {
+        String text = payload.get("text");
+        String lang = payload.getOrDefault("lang", "en");
+        
+        if (text == null || text.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "result", "Text payload is required"));
+        }
+
+        Map<String, Object> result = aiAssistService.assist("generate_ad_description", text, lang);
+        if (Boolean.TRUE.equals(result.get("error"))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 }

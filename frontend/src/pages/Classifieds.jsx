@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
-import { fetchApi } from '../utils/api';
+import { fetchApi, getImageUrl } from '../utils/api';
 import './Classifieds.css';
 
 // DEFAULT CATEGORIES WITH SUBCATEGORIES
@@ -245,6 +245,24 @@ const Classifieds = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareAdObj, setShareAdObj] = useState(null);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kingstv_classifieds_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const toggleWishlist = (adId, e) => {
+    if (e) e.stopPropagation();
+    setWishlist(prev => {
+      const newWishlist = prev.includes(adId) ? prev.filter(id => id !== adId) : [...prev, adId];
+      localStorage.setItem('kingstv_classifieds_wishlist', JSON.stringify(newWishlist));
+      return newWishlist;
+    });
+  };
 
   // Form states
   const [newTitle, setNewTitle] = useState('');
@@ -265,22 +283,8 @@ const Classifieds = () => {
   const [newLatitude, setNewLatitude] = useState(null);
   const [newLongitude, setNewLongitude] = useState(null);
   const [isFree, setIsFree] = useState(false);
-
-  // Hot Deal Countdown
-  const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, mins: 36, secs: 58 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.secs > 0) return { ...prev, secs: prev.secs - 1 };
-        if (prev.mins > 0) return { ...prev, mins: prev.mins - 1, secs: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, mins: 59, secs: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, mins: 59, secs: 59 };
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [lastGeneratedDesc, setLastGeneratedDesc] = useState('');
 
   // Fetch categories & districts from API with automatic fallback
   useEffect(() => {
@@ -295,47 +299,37 @@ const Classifieds = () => {
         if (Array.isArray(data) && data.length > 0) setDistricts(data);
       })
       .catch(() => setDistricts(DEFAULT_DISTRICTS));
-
-    loadPendingAdsFromStorage();
   }, []);
 
-  // Load Pending Ads from localStorage and API
-  const loadPendingAdsFromStorage = () => {
-    try {
-      const stored = localStorage.getItem('kings_classifieds_pending');
-      const pendingList = stored ? JSON.parse(stored) : [];
-      setPendingAds(pendingList);
-    } catch {
-      setPendingAds([]);
-    }
-  };
+  // No longer loading pending ads from local storage since backend is fully integrated
 
-  // Load Ads (Combine API + Local Approved Ads)
+  // Load Ads from API
   const loadAds = () => {
     setLoading(true);
 
-    // Get locally approved ads
-    let localApproved = [];
-    try {
-      const storedAppr = localStorage.getItem('kings_classifieds_approved');
-      if (storedAppr) localApproved = JSON.parse(storedAppr);
-    } catch (e) {
-      localApproved = [];
-    }
-
-    let combinedList = [...localApproved, ...INITIAL_SAMPLE_ADS];
+    let combinedList = [...INITIAL_SAMPLE_ADS];
 
     fetchApi('/classifieds')
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          const formatted = data.map(item => ({
+          const FALLBACK_IMAGES = [
+            'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500',
+            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500',
+            'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=500',
+            'https://images.unsplash.com/photo-1511385348-a52b4a160dc2?w=500',
+            'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=500',
+            'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=500',
+            'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500'
+          ];
+          const formatted = data.map((item, index) => ({
             id: item.id,
             title: item.title,
             priceDetail: item.price === 0 ? 'FREE' : `₹${item.price.toLocaleString()}`,
             price: item.price,
             location: item.location || 'Tamil Nadu',
             status: item.status || 'active',
-            imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500',
+            imageUrl: item.imageUrl || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
             description: item.description,
             contactPhone: item.contactPhone,
             whatsappNumber: item.whatsappNumber,
@@ -376,6 +370,16 @@ const Classifieds = () => {
       filtered = filtered.filter(a => (a.price || 0) <= priceMax);
     }
 
+    // Condition filter (for demonstration, applying conditionNew/conditionUsed logic if added to ad objects)
+    // Here we'll skip it if both are true to avoid filtering out all if data is missing
+    if (!conditionNew || !conditionUsed) {
+      filtered = filtered.filter(a => {
+        const isNew = a.condition === 'new';
+        const isUsed = a.condition !== 'new'; // Simplify default assumption
+        return (conditionNew && isNew) || (conditionUsed && isUsed);
+      });
+    }
+
     if (selectedSort === 'price_asc') {
       filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
     } else if (selectedSort === 'price_desc') {
@@ -398,7 +402,7 @@ const Classifieds = () => {
       };
       return () => channel.close();
     } catch (e) {}
-  }, [selectedCat, selectedLoc, selectedSort, searchQuery, priceMax]);
+  }, [selectedCat, selectedLoc, selectedSort, searchQuery, priceMax, conditionNew, conditionUsed]);
 
   const handleOpenDetails = (ad) => {
     setSelectedAd(ad);
@@ -484,7 +488,6 @@ const Classifieds = () => {
     const displayImg = uploadedUrls[0] || imagePreviewUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500';
 
     const newAdObj = {
-      id: Date.now(),
       title: newTitle,
       description: newDesc,
       price: isFree ? 0 : parseFloat(newPrice || '0'),
@@ -499,30 +502,29 @@ const Classifieds = () => {
       email: newEmail,
       imageUrl: displayImg,
       status: 'pending',
-      createdAt: 'Just now'
     };
 
-    // Save to pending in localStorage
     try {
-      const existingPending = JSON.parse(localStorage.getItem('kings_classifieds_pending') || '[]');
-      const updatedPending = [newAdObj, ...existingPending];
-      localStorage.setItem('kings_classifieds_pending', JSON.stringify(updatedPending));
-      setPendingAds(updatedPending);
-      window.dispatchEvent(new Event('storage'));
+      // Attempt backend save first
+      const savedAd = await fetchApi('/classifieds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAdObj)
+      });
+      
+      // Update local state and notify admin portal through BroadcastChannel
+      setPendingAds(prev => [savedAd, ...prev]);
       try {
         const channel = new BroadcastChannel('kings_classifieds_channel');
-        channel.postMessage({ type: 'NEW_PENDING_AD', ad: newAdObj });
+        channel.postMessage({ type: 'NEW_PENDING_AD', ad: savedAd });
       } catch (bcErr) {}
+      
     } catch (err) {
-      console.warn("Storage warning", err);
+      console.warn("API Offline notice, failed to post ad", err);
+      alert(lang === 'en' ? 'Failed to submit ad. Please try again later.' : 'விளம்பரத்தை சமர்ப்பிக்க முடியவில்லை. பிறகு முயற்சிக்கவும்.');
+      setUploadingMedia(false);
+      return;
     }
-
-    // Attempt backend save
-    fetchApi('/classifieds', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAdObj)
-    }).catch(e => console.warn("API Offline notice, ad queued locally for approval", e));
 
     setUploadingMedia(false);
     setShowPreviewModal(false);
@@ -600,360 +602,150 @@ const Classifieds = () => {
     setShowShareModal(false);
   };
 
+  const generateAiDescription = async (force = false) => {
+    // Check if we should generate
+    if (!force && newDesc.trim() !== '' && newDesc.trim() !== lastGeneratedDesc) return;
+    if (!newTitle.trim() || !newCatId) return;
+
+    setIsGeneratingDesc(true);
+    try {
+      const cat = categories.find(c => c.id == newCatId);
+      const subcat = formSubcategories.find(s => s.id == newSubcatId);
+      const dist = districts.find(d => d.id == newDistrictId);
+      
+      const payloadText = `Title: ${newTitle}\nCategory: ${cat ? cat.name : ''}\nSubcategory: ${subcat ? subcat.name : ''}\nLocation: ${dist ? (dist.nameEn + ' ' + dist.nameTa) : ''}`;
+      
+      const response = await fetch('/api/classifieds/ai-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: payloadText, lang })
+      });
+      const data = await response.json();
+      if (!data.error && data.result) {
+        setNewDesc(data.result);
+        setLastGeneratedDesc(data.result);
+      }
+    } catch (e) {
+      console.error("AI Generation failed:", e);
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (showPostModal) generateAiDescription(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [newTitle, newCatId, newSubcatId, newDistrictId, showPostModal]);
+
   return (
     <main className="container class-module-container" style={{ paddingTop: '20px' }}>
       
-      {/* Breadcrumbs & Admin Panel Toggle */}
+      {/* Breadcrumbs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div className="breadcrumbs" style={{ fontSize: '13px', color: '#64748b' }}>
           <Link to="/" style={{ color: '#4f46e5', textDecoration: 'none' }}>{lang === 'en' ? 'Home' : 'முகப்பு'}</Link>
           <i className="fas fa-chevron-right" style={{ fontSize: '9px', margin: '0 8px' }}></i>
           <span>{lang === 'en' ? 'Classifieds' : 'வகைப்படுத்தப்பட்டவை'}</span>
         </div>
-
-        <button 
-          onClick={() => setShowAdminPanel(!showAdminPanel)}
-          style={{ background: showAdminPanel ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          <i className="fas fa-user-shield"></i>
-          {showAdminPanel ? 'Close Admin Queue' : `Admin Approval Queue (${pendingAds.length})`}
-        </button>
       </div>
 
-      {/* ADMIN APPROVAL QUEUE PANEL */}
-      {showAdminPanel && (
-        <div style={{ background: '#fffbe6', border: '2px solid #f59e0b', borderRadius: '16px', padding: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ margin: 0, color: '#b45309', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className="fas fa-clipboard-check"></i> 
-              {lang === 'en' ? 'Admin Moderation: Pending Ads Approval' : 'நிர்வாக ஒப்புதல் காத்திருப்பு விளம்பரங்கள்'}
-              <span style={{ background: '#f59e0b', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>{pendingAds.length}</span>
-            </h3>
-            <span style={{ fontSize: '12px', color: '#78350f' }}>{lang === 'en' ? 'Ads require admin confirmation before appearing live' : 'விளம்பரங்கள் வெளியிடப்படுவதற்கு முன் நிர்வாக ஒப்புதல் தேவை'}</span>
-          </div>
-
-          {pendingAds.length === 0 ? (
-            <p style={{ margin: 0, color: '#92400e', fontSize: '13px', fontStyle: 'italic' }}>
-              {lang === 'en' ? 'No ads currently pending approval. Post a new ad to test the preview & approval workflow!' : 'ஒப்புதலுக்குக் காத்திருக்கும் விளம்பரங்கள் எதுவுமில்லை.'}
-            </p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {pendingAds.map(ad => (
-                <div key={ad.id} style={{ background: '#ffffff', border: '1px solid #fde68a', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ width: '70px', height: '70px', borderRadius: '8px', backgroundImage: `url(${ad.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }}></div>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>{ad.title}</h4>
-                      <div style={{ color: '#4f46e5', fontWeight: 'bold', fontSize: '13px' }}>{ad.priceDetail}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>📍 {ad.location}</div>
-                    </div>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: '12px', color: '#475569', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ad.description}</p>
-
-                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
-                    <button 
-                      onClick={() => handleOpenDetails(ad)}
-                      style={{ flex: 1, background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-                    >
-                      👁️ Preview
-                    </button>
-                    <button 
-                      onClick={() => handleApproveAd(ad.id)}
-                      style={{ flex: 1, background: '#10b981', color: '#fff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-                    >
-                      ✅ Approve
-                    </button>
-                    <button 
-                      onClick={() => handleRejectAd(ad.id)}
-                      style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-                    >
-                      ❌ Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* SECTION 1: MASTHEAD */}
+      <section className="class-masthead">
+        <div className="class-masthead-left">
+          <span className="badge-tag" style={{ background: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', width: 'fit-content' }}>
+            {lang === 'en' ? 'Classifieds Desk' : 'வகைப்படுத்தப்பட்ட செய்திமையம்'}
+          </span>
+          <h1>{lang === 'en' ? 'Buy, Sell & Discover' : 'வாங்க, விற்க & சிறந்த சலுகைகளை அறிய'}</h1>
         </div>
-      )}
-
-      {/* HERO BANNER SECTION */}
-      <section className="class-hero-banner">
-        <div className="class-hero-left">
-          <h1 className="class-hero-title">
-            {lang === 'en' ? 'Buy, Sell & Discover Deals' : 'வாங்க, விற்க & சிறந்த சலுகைகளை அறிய'}
-          </h1>
-          <p className="class-hero-subtitle">
-            {lang === 'en'
-              ? 'Find verified deals around your Tamil Nadu district. Post your ad with preview and get instant buyer calls!'
-              : 'உங்கள் மாவட்டத்தில் உள்ள சிறந்த சலுகைகளைக் கண்டறியவும். முன்னோட்ட வசதியுடன் விளம்பரம் பதிவிடவும்!'}
-          </p>
-          <div className="class-hero-btns">
-            <button className="class-hero-btn-find" onClick={loadAds}>
-              {lang === 'en' ? 'Explore Ads' : 'விளம்பரங்களை ஆராய்க'}
-            </button>
-            <button className="class-hero-btn-post" onClick={() => setShowPostModal(true)}>
-              {lang === 'en' ? 'Post a Free Ad' : 'இலவச விளம்பரம்'}
-            </button>
+        <div className="class-masthead-right">
+          <div className="class-live-counter">
+             <span className="pulsing-dot"></span>
+             {lang === 'en' ? `${ads.length} ads live now` : `${ads.length} விளம்பரங்கள் நேரலையில்`}
           </div>
-        </div>
-
-        {/* Float stat badges overlay */}
-        <div className="class-stat-badge-float active-ads">
-          <i className="fas fa-tags"></i>
-          <div>
-            <div className="class-stat-number">100% Free</div>
-            <div className="class-stat-label">{lang === 'en' ? 'Post Ads Easily' : 'இலவச விளம்பரம்'}</div>
-          </div>
-        </div>
-        <div className="class-stat-badge-float verified-users">
-          <i className="fas fa-shield-alt"></i>
-          <div>
-            <div className="class-stat-number">Admin Verified</div>
-            <div className="class-stat-label">{lang === 'en' ? 'Safe & Trusted' : 'பாதுகாப்பானது'}</div>
-          </div>
-        </div>
-
-        {/* Right side illustration overlay */}
-        <div className="class-banner-illustration" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400")' }}></div>
-      </section>
-
-      {/* ADVANCED SEARCH FILTER PANEL */}
-      <div className="class-filter-panel">
-        <div className="class-filter-row">
-          <div className="class-filter-input-wrap" style={{ flex: 1.5 }}>
-            <i className="fas fa-search"></i>
-            <input 
-              type="text" 
-              placeholder={lang === 'en' ? 'What are you looking for?' : 'நீங்கள் என்ன தேடுகிறீர்கள்?'} 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="class-filter-input-wrap">
-            <i className="fas fa-tags"></i>
-            <select value={selectedCat} onChange={(e) => setSelectedCat(e.target.value)}>
-              <option value="all">{lang === 'en' ? 'All Categories (அனைத்து பிரிவுகள்)' : 'அனைத்துப் பிரிவுகள்'}</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.slug}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="class-filter-input-wrap">
-            <i className="fas fa-map-marker-alt"></i>
-            <select value={selectedLoc} onChange={(e) => setSelectedLoc(e.target.value)}>
-              <option value="all">{lang === 'en' ? 'All Districts (அனைத்து மாவட்டங்கள்)' : 'அனைத்து மாவட்டங்கள்'}</option>
-              {districts.map(d => (
-                <option key={d.id} value={d.id}>{d.nameEn} - {d.nameTa}</option>
-              ))}
-            </select>
-          </div>
-
-          <button className="class-search-action-btn" onClick={loadAds}>
-            {lang === 'en' ? 'Search' : 'தேடுக'}
+          <button 
+            className="class-post-btn-sidebar" 
+            style={{ width: 'auto', padding: '10px 16px' }}
+            onClick={() => setShowPostModal(true)}
+          >
+            <i className="fas fa-bullhorn"></i> {lang === 'en' ? 'Post a Free Ad' : 'இலவச விளம்பரம்'}
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* QUICK CATEGORIES CIRCLE ROW */}
-      <div className="class-quick-cats-row">
+      {/* CATEGORIES ROW */}
+      <div className="class-categories-row">
+        <div 
+          className={`class-category-card ${selectedCat === 'all' ? 'active' : ''}`}
+          onClick={() => setSelectedCat('all')}
+        >
+          <i className="fas fa-border-all"></i>
+          <span>{lang === 'en' ? 'All Categories' : 'அனைத்தும்'}</span>
+        </div>
+
         {categories.map(c => (
-          <button 
+          <div 
+            className={`class-category-card ${selectedCat === c.slug ? 'active' : ''}`}
             key={c.id} 
-            className={`class-quick-cat-btn ${selectedCat === c.slug ? 'active' : ''}`}
             onClick={() => setSelectedCat(c.slug)}
           >
             <i className={`fas ${c.iconClass}`}></i>
             <span>{c.name.split('/')[0]}</span>
-          </button>
+          </div>
         ))}
       </div>
 
-      {/* THREE COLUMN GRID LAYOUT */}
+      {/* SECTION 2 & 3: MAIN LAYOUT */}
       <div className="class-main-layout">
         
-        {/* Left Column: Categories List */}
-        <div className="class-sidebar-left">
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px' }}>
-            <h4 style={{ fontSize: '13.5px', fontWeight: '800', marginBottom: '12px' }}>{lang === 'en' ? 'Browse Categories' : 'வகைகளை உலாவுக'}</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div 
-                className="class-category-sidebar-item" 
-                style={{ background: selectedCat === 'all' ? '#f1f5f9' : 'none', borderRadius: '8px', cursor: 'pointer' }}
-                onClick={() => setSelectedCat('all')}
-              >
-                <div className="class-category-sidebar-item-left">
-                  <i className="fas fa-border-all"></i>
-                  <span>{lang === 'en' ? 'All Categories' : 'அனைத்தும்'}</span>
-                </div>
-              </div>
+        {/* Mobile overlay for sidebar drawer */}
+        <div 
+          className={`class-sidebar-overlay ${mobileDrawerOpen ? 'drawer-open' : ''}`}
+          onClick={() => setMobileDrawerOpen(false)}
+        ></div>
 
-              {categories.map(c => (
-                <div 
-                  className="class-category-sidebar-item" 
-                  key={c.id} 
-                  style={{ background: selectedCat === c.slug ? '#eff6ff' : 'none', borderLeft: selectedCat === c.slug ? '3px solid #4f46e5' : 'none', borderRadius: '6px', cursor: 'pointer' }}
-                  onClick={() => setSelectedCat(c.slug)}
-                >
-                  <div className="class-category-sidebar-item-left">
-                    <i className={`fas ${c.iconClass}`}></i>
-                    <span style={{ fontSize: '12.5px', fontWeight: selectedCat === c.slug ? 'bold' : 'normal' }}>{c.name}</span>
-                  </div>
-                  <span className="class-category-sidebar-item-right">{c.activeAdCount || 10}</span>
-                </div>
-              ))}
+        {/* SECTION 2: STICKY SIDEBAR */}
+        <aside className={`class-sidebar ${mobileDrawerOpen ? 'drawer-open' : ''}`}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', display: mobileDrawerOpen ? 'flex' : 'none' }}>
+            <h3 style={{ margin: 0 }}>{lang === 'en' ? 'Filters' : 'வடிகட்டிகள்'}</h3>
+            <button onClick={() => setMobileDrawerOpen(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px' }}>&times;</button>
+          </div>
+
+          <button 
+            className="class-post-btn-sidebar"
+            onClick={() => { setShowPostModal(true); setMobileDrawerOpen(false); }}
+          >
+            <i className="fas fa-pen"></i> {lang === 'en' ? 'Post a Free Ad' : 'புதிய விளம்பரம் பதிய'}
+          </button>
+
+          <div className="class-filter-group">
+            <h4 style={{ margin: '0', fontSize: '14px' }}>{lang === 'en' ? 'Search' : 'தேடல்'}</h4>
+            <div className="class-filter-input-wrap">
+              <i className="fas fa-search"></i>
+              <input 
+                type="text" 
+                placeholder={lang === 'en' ? 'What are you looking for?' : 'நீங்கள் என்ன தேடுகிறீர்கள்?'} 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-          </div>
-        </div>
 
-        {/* Middle Column: Main listings content */}
-        <div className="class-middle-content">
-          
-          {/* Featured Ads section */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '850', color: '#1e293b' }}>
-              {lang === 'en' ? 'Featured Ads' : 'சிறப்பு விளம்பரங்கள்'}
-            </h2>
-            <span style={{ fontSize: '12.5px', color: '#4f46e5', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setSelectedCat('all')}>
-              {lang === 'en' ? 'View all' : 'அனைத்தையும் பார்க்க'} &rarr;
-            </span>
-          </div>
-
-          <div className="featured-ads-grid">
-            {ads.slice(0, 4).map(ad => (
-              <div className="featured-ad-card" key={ad.id} onClick={() => handleOpenDetails(ad)}>
-                <div className="featured-ad-img-box" style={{ backgroundImage: `url(${ad.imageUrl})` }}>
-                  <span className="featured-ad-badge">Featured</span>
-                  <span className="featured-ad-heart" onClick={(e) => { e.stopPropagation(); alert('Ad Saved to Favorites!'); }}>
-                    <i className="far fa-heart"></i>
-                  </span>
-                </div>
-                <div className="featured-ad-body">
-                  <h3 className="featured-ad-title">{ad.title}</h3>
-                  <div className="featured-ad-price">{ad.priceDetail}</div>
-                  <div className="featured-ad-loc">
-                    <i className="fas fa-map-marker-alt"></i> {ad.location}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Latest Ads section */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 16px 0', flexWrap: 'wrap', gap: '10px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '850', color: '#1e293b' }}>
-              {lang === 'en' ? 'Confirmed & Active Ads' : 'உறுதிசெய்யப்பட்ட விளம்பரங்கள்'}
-            </h2>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <select 
-                value={selectedSort} 
-                onChange={(e) => setSelectedSort(e.target.value)}
-                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#475569', fontWeight: '600' }}
-              >
-                <option value="newest">{lang === 'en' ? 'Sort by: Newest First' : 'வரிசைப்படுத்து: சமீபத்தியது'}</option>
-                <option value="price_asc">{lang === 'en' ? 'Price: Low to High' : 'விலை: குறைவு முதல் அதிகம்'}</option>
-                <option value="price_desc">{lang === 'en' ? 'Price: High to Low' : 'விலை: அதிகம் முதல் குறைவு'}</option>
+            <div className="class-filter-input-wrap">
+              <i className="fas fa-map-marker-alt"></i>
+              <select value={selectedLoc} onChange={(e) => setSelectedLoc(e.target.value)}>
+                <option value="all">{lang === 'en' ? 'All Districts' : 'அனைத்து மாவட்டங்கள்'}</option>
+                {districts.map(d => (
+                  <option key={d.id} value={d.id}>{d.nameEn} - {d.nameTa}</option>
+                ))}
               </select>
             </div>
           </div>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <i className="fas fa-spinner fa-spin" style={{ fontSize: '28px', color: '#4f46e5' }}></i>
-              <p style={{ marginTop: '10px' }}>{lang === 'en' ? 'Loading classifieds list...' : 'விளம்பரங்கள் ஏற்றப்படுகின்றன...'}</p>
-            </div>
-          ) : ads.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-              <i className="fas fa-search" style={{ fontSize: '32px', color: '#94a3b8', marginBottom: '12px' }}></i>
-              <h3 style={{ margin: 0, fontSize: '15px' }}>{lang === 'en' ? 'No confirmed ads found in this selection.' : 'விளம்பரங்கள் எதுவும் கிடைக்கவில்லை.'}</h3>
-              <p style={{ fontSize: '12px', color: '#64748b' }}>{lang === 'en' ? 'Try changing filters or post a new ad!' : 'வடிகட்டிகளை மாற்றவும் அல்லது புதிய விளம்பரத்தைப் பதியவும்!'}</p>
-            </div>
-          ) : (
-            <div className="latest-ads-list">
-              {ads.map(ad => (
-                <div className="latest-ad-row" key={ad.id} onClick={() => handleOpenDetails(ad)}>
-                  <div className="latest-ad-left">
-                    <div className="latest-ad-img" style={{ backgroundImage: `url(${ad.imageUrl})` }}></div>
-                    <div className="latest-ad-details">
-                      <div className="latest-ad-title-row">
-                        <h3 style={{ fontSize: '14px', fontWeight: '800', margin: 0 }}>{ad.title}</h3>
-                        <span className="latest-ad-negotiable-badge">Verified</span>
-                      </div>
-                      <div className="latest-ad-pills-row">
-                        <span className="latest-ad-price-lbl">{ad.priceDetail}</span>
-                        <span><i className="fas fa-map-marker-alt"></i> {ad.location}</span>
-                        <span><i className="fas fa-clock"></i> {ad.createdAt || 'Active'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    <i className="far fa-heart" style={{ cursor: 'pointer', fontSize: '16px' }}></i>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Post Ad & Hot Deals */}
-        <div className="class-sidebar-right">
-          
-          {/* Post Free Ad CTA card */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
-            <i className="fas fa-bullhorn" style={{ fontSize: '36px', color: '#ec4899', marginBottom: '12px' }}></i>
-            <h4 style={{ fontSize: '14px', fontWeight: '800', margin: '0 0 4px 0' }}>Post Your Ad with Preview</h4>
-            <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 16px 0' }}>Preview your listing, submit for admin approval, and get published!</p>
-            <button 
-              onClick={() => setShowPostModal(true)}
-              style={{ width: '100%', background: '#ec4899', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              + Post New Ad
-            </button>
-          </div>
-
-          {/* Hot Deals */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#ef4444' }}><i className="fas fa-fire"></i> Hot Deals</span>
-              <span style={{ fontSize: '10.5px', color: '#4f46e5', fontWeight: 'bold' }}>View All</span>
-            </div>
-            
-            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="hot-deal-timer-row">
-                <div className="hot-deal-timer-box">
-                  <span className="hot-deal-timer-num">{timeLeft.days}</span>
-                  <span className="hot-deal-timer-lbl">Days</span>
-                </div>
-                <div className="hot-deal-timer-box">
-                  <span className="hot-deal-timer-num">{timeLeft.hours}</span>
-                  <span className="hot-deal-timer-lbl">Hrs</span>
-                </div>
-                <div className="hot-deal-timer-box">
-                  <span className="hot-deal-timer-num">{timeLeft.mins}</span>
-                  <span className="hot-deal-timer-lbl">Mins</span>
-                </div>
-                <div className="hot-deal-timer-box">
-                  <span className="hot-deal-timer-num">{timeLeft.secs}</span>
-                  <span className="hot-deal-timer-lbl">Secs</span>
-                </div>
-              </div>
-              
-              <div style={{ margin: '14px 0 8px 0', width: '100%', height: '90px', borderRadius: '8px', backgroundImage: 'url("https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=200")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-              <strong style={{ fontSize: '12px', textAlign: 'center' }}>Samsung 55" 4K Smart TV</strong>
-              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold', marginTop: '4px' }}>₹39,999 <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontWeight: 'normal', fontSize: '10px' }}>₹62,999</span></div>
-            </div>
-          </div>
-
-          {/* Search by Filters widget */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h4 style={{ fontSize: '12.5px', fontWeight: '800', margin: 0 }}>Price Range Filter</h4>
-              <span style={{ fontSize: '11px', color: '#4f46e5', cursor: 'pointer' }} onClick={() => setPriceMax(1000000)}>Reset</span>
+          <div className="class-filter-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={{ margin: '0', fontSize: '14px' }}>{lang === 'en' ? 'Price Range' : 'விலை வரம்பு'}</h4>
+              <span style={{ fontSize: '11px', color: 'var(--primary, #B3732A)', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setPriceMax(1000000)}>Reset</span>
             </div>
             
             <input 
@@ -961,71 +753,247 @@ const Classifieds = () => {
               min="0" 
               max="1000000" 
               value={priceMax} 
-              onChange={(e) => setPriceMax(parseInt(e.target.value))}
-              style={{ width: '100%', accentColor: '#4f46e5', marginTop: '6px' }}
+              onChange={(e) => {
+                setPriceMax(parseInt(e.target.value));
+                if (selectedSort === 'newest') setSelectedSort('price_asc');
+              }}
+              style={{ width: '100%', accentColor: 'var(--primary, #B3732A)', marginTop: '6px' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
               <span>₹0</span>
               <span>Max: ₹{priceMax.toLocaleString()}</span>
             </div>
           </div>
 
-        </div>
+          <div className="class-filter-group">
+            <h4 style={{ margin: '0', fontSize: '14px' }}>{lang === 'en' ? 'Condition' : 'நிலை'}</h4>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={conditionNew} onChange={(e) => setConditionNew(e.target.checked)} /> {lang === 'en' ? 'New' : 'புதியது'}
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={conditionUsed} onChange={(e) => setConditionUsed(e.target.checked)} /> {lang === 'en' ? 'Used' : 'பயன்படுத்தப்பட்டது'}
+            </label>
+          </div>
+        </aside>
+
+        {/* SECTION 4 & 5: FEED AREA & SORT HEADER */}
+        <section className="class-feed-area">
+          
+          <div className="class-sort-header">
+            <div className="class-sort-header-left">
+              <h2 style={{margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-dark)'}}>
+                {lang === 'en' ? 'CLASSIFIED ADS' : 'விளம்பரங்கள்'}
+              </h2>
+              <div style={{fontSize: '13px', marginTop: '4px'}}>{lang === 'en' ? `${ads.length} ads available` : `${ads.length} விளம்பரங்கள் உள்ளன`}</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button className="mobile-filter-toggle" onClick={() => setMobileDrawerOpen(true)}>
+                <i className="fas fa-sliders-h"></i> {lang === 'en' ? 'Filters' : 'வடிகட்டிகள்'}
+              </button>
+              
+              <select 
+                value={selectedSort} 
+                onChange={(e) => setSelectedSort(e.target.value)}
+                className="class-sort-select"
+              >
+                <option value="newest">{lang === 'en' ? 'Newest First' : 'சமீபத்தியது'}</option>
+                <option value="price_asc">{lang === 'en' ? 'Price: Low to High' : 'விலை: குறைவு முதல் அதிகம்'}</option>
+                <option value="price_desc">{lang === 'en' ? 'Price: High to Low' : 'விலை: அதிகம் முதல் குறைவு'}</option>
+              </select>
+            </div>
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <i className="fas fa-spinner fa-spin" style={{ fontSize: '28px', color: 'var(--primary, #B3732A)' }}></i>
+              <p style={{ marginTop: '10px' }}>{lang === 'en' ? 'Loading classifieds list...' : 'விளம்பரங்கள் ஏற்றப்படுகின்றன...'}</p>
+            </div>
+          ) : ads.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+              <i className="fas fa-search" style={{ fontSize: '32px', color: '#94a3b8', marginBottom: '12px' }}></i>
+              <h3 style={{ margin: 0, fontSize: '15px' }}>{lang === 'en' ? 'No confirmed ads found in this selection.' : 'விளம்பரங்கள் எதுவும் கிடைக்கவில்லை.'}</h3>
+              <p style={{ fontSize: '12px', color: '#64748b' }}>{lang === 'en' ? 'Try changing filters or post a new ad!' : 'வடிகட்டிகளை மாற்றவும் அல்லது புதிய விளம்பரத்தைப் பதியவும்!'}</p>
+            </div>
+          ) : (
+            <div className="class-ads-grid">
+              {ads.map(ad => (
+                <div className="class-ad-card" key={ad.id} onClick={() => handleOpenDetails(ad)}>
+                  <div className="class-ad-img-wrapper">
+                    <img src={getImageUrl(ad.imageUrl)} alt={ad.title} loading="lazy" />
+                    {ad.status === 'active' && (
+                       <span className="class-ad-badge" style={{ background: 'rgba(16, 185, 129, 0.9)' }}>
+                         {lang === 'en' ? 'Verified' : 'உறுதிசெய்யப்பட்டது'}
+                       </span>
+                    )}
+                    <span className="class-ad-heart" style={{ color: wishlist.includes(ad.id) ? '#ef4444' : 'var(--text-muted, #64748b)' }} onClick={(e) => toggleWishlist(ad.id, e)}>
+                      <i className={wishlist.includes(ad.id) ? "fas fa-heart" : "far fa-heart"}></i>
+                    </span>
+                  </div>
+                  <div className="class-ad-body">
+                    <h3 className="class-ad-price">{ad.priceDetail}</h3>
+                    <h4 className="class-ad-title" title={ad.title}>{ad.title}</h4>
+                    <div className="class-ad-meta">
+                      <i className="fas fa-map-marker-alt"></i> {ad.location.split('/')[0].trim()} • {ad.createdAt || 'Active'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </section>
       </div>
 
+      {/* SECTION 6: MODALS (UNCHANGED FUNCTIONALLY) */}
+      
       {/* CLASSIFIED DETAILS VIEW MODAL */}
       {selectedAd && (
         <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1000' }}>
-          <div className="modal-content" style={{ maxWidth: '750px', width: '90%', padding: '0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
-            <div className="modal-header" style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: 0 }}>{selectedAd.title}</h3>
-              <button className="modal-close" onClick={() => setSelectedAd(null)}>&times;</button>
+          <div className="modal-content" style={{ maxWidth: '900px', width: '90%', padding: '0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div className="modal-header" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color, #e2e8f0)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h3 style={{ margin: 0 }}>{selectedAd.title}</h3>
+                {selectedAd.conditionId ? (
+                  <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{selectedAd.conditionId === 1 ? (lang === 'en' ? 'Brand New' : 'புதியது') : (lang === 'en' ? 'Used' : 'பயன்படுத்தப்பட்டது')}</span>
+                ) : (
+                  <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{lang === 'en' ? 'Used' : 'பயன்படுத்தப்பட்டது'}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button onClick={(e) => toggleWishlist(selectedAd.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: wishlist.includes(selectedAd.id) ? '#ef4444' : 'var(--text-muted, #94a3b8)', transition: 'color 0.2s', padding: 0 }}>
+                  <i className={wishlist.includes(selectedAd.id) ? "fas fa-heart" : "far fa-heart"}></i>
+                </button>
+                <button className="modal-close" onClick={() => setSelectedAd(null)} style={{ margin: 0, padding: 0, display: 'flex', alignItems: 'center' }}>&times;</button>
+              </div>
             </div>
 
-            <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ height: '260px', borderRadius: '12px', backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${selectedAd.imageUrl})` }}></div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', background: '#f8fafc', padding: '16px', borderRadius: '12px', fontSize: '13px' }}>
-                <div><strong>Price:</strong> <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>{selectedAd.priceDetail}</span></div>
-                <div><strong>Location:</strong> {selectedAd.location}</div>
-                <div><strong>Category:</strong> {selectedAd.categoryName || 'Classifieds'}</div>
-                {selectedAd.whatsappNumber && (
-                   <div style={{ gridColumn: 'span 2' }}>
-                     <a href={`https://wa.me/${selectedAd.whatsappNumber}`} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#25D366', color: '#fff', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>
-                       <i className="fab fa-whatsapp"></i> Chat on WhatsApp
-                     </a>
-                   </div>
-                )}
+            <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+              {/* Left Side: Image */}
+              <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
+                <div style={{ height: '100%', minHeight: '350px', borderRadius: '12px', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: '#f8fafc', backgroundImage: `url('${getImageUrl(selectedAd.imageUrl)}')`, border: '1px solid #e2e8f0' }}></div>
               </div>
 
-              <div>
-                <h4 style={{ margin: '0 0 6px 0' }}>Product Description</h4>
-                <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: 0 }}>{selectedAd.description}</p>
-              </div>
+              {/* Right Side: Details */}
+              <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-light, #f8fafc)', padding: '20px', borderRadius: '12px', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{lang === 'en' ? 'Price:' : 'விலை:'}</span>
+                    <span style={{ color: 'var(--primary, #B3732A)', fontWeight: '800', fontSize: '18px' }}>{selectedAd.priceDetail}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{lang === 'en' ? 'Location:' : 'இடம்:'}</span>
+                    <span style={{ fontWeight: '600' }}>{selectedAd.location}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{lang === 'en' ? 'Category:' : 'வகை:'}</span>
+                    <span style={{ fontWeight: '600' }}>{selectedAd.categoryName || 'Classifieds'}</span>
+                  </div>
+                  
+                  {/* TAGS */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                    <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', padding: '4px 10px', borderRadius: '16px', fontWeight: '600' }}>#{selectedAd.categoryName ? selectedAd.categoryName.split(' ')[0] : 'Item'}</span>
+                    <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', padding: '4px 10px', borderRadius: '16px', fontWeight: '600' }}>#{selectedAd.location ? selectedAd.location.split(' ')[0] : 'Local'}</span>
+                  </div>
+                  
+                  {selectedAd.whatsappNumber && (
+                     <div style={{ marginTop: '8px' }}>
+                       <a href={`https://wa.me/${selectedAd.whatsappNumber}`} target="_blank" rel="noreferrer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: '#25D366', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '14px', textDecoration: 'none', fontWeight: 'bold', transition: 'background 0.2s' }}>
+                         <i className="fab fa-whatsapp" style={{ fontSize: '16px' }}></i> {lang === 'en' ? 'Chat on WhatsApp' : 'வாட்ஸ்அப்பில் சாட் செய்யவும்'}
+                       </a>
+                     </div>
+                  )}
+                </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                {phoneRevealed ? (
-                  <a 
-                    href={`tel:${selectedAd.contactPhone}`}
-                    style={{ flex: 1, textDecoration: 'none', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}
-                  >
-                    <i className="fas fa-phone-alt"></i> {selectedAd.contactPhone}
-                  </a>
-                ) : (
+                {/* SELLER PROFILE BLOCK */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #B3732A 0%, #d97706 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
+                    {selectedAd.sellerId ? "U" : "A"}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '15px', color: 'var(--text-dark)' }}>{lang === 'en' ? 'Verified Seller' : 'விற்பனையாளர்'}</h4>
+                      <i className="fas fa-check-circle" style={{ color: '#10b981', fontSize: '14px' }}></i>
+                    </div>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>{lang === 'en' ? 'Member since 2024' : '2024 முதல் உறுப்பினர்'}</p>
+                  </div>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-dark)', fontSize: '15px' }}>{lang === 'en' ? 'Product Description' : 'தயாரிப்பு விளக்கம்'}</h4>
+                  <div style={{ fontSize: '14px', color: 'var(--text-muted, #475569)', lineHeight: '1.6', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '120px' }}>
+                    {selectedAd.description}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', borderTop: '1px solid var(--border-color, #e2e8f0)', paddingTop: '16px' }}>
+                  {phoneRevealed ? (
+                    <a 
+                      href={`tel:${selectedAd.contactPhone}`}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', background: 'var(--primary, #B3732A)', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      <i className="fas fa-phone-alt"></i> {selectedAd.contactPhone}
+                    </a>
+                  ) : (
+                    <button 
+                      onClick={() => setPhoneRevealed(true)}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--primary, #B3732A)', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      <i className="fas fa-eye"></i> {lang === 'en' ? 'Show Phone Number' : 'தொலைபேசி எண்ணைக் காட்டு'}
+                    </button>
+                  )}
                   <button 
-                    onClick={() => setPhoneRevealed(true)}
-                    style={{ flex: 1, background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer' }}
+                    onClick={() => { setShareAdObj(selectedAd); setShowShareModal(true); }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--bg-light, #f1f5f9)', color: 'var(--text-dark, #334155)', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}
                   >
-                    <i className="fas fa-eye"></i> Show Phone Number
+                    <i className="far fa-share-square"></i> {lang === 'en' ? 'Share Deal' : 'பகிர்'}
                   </button>
-                )}
-                <button 
-                  onClick={() => { setShareAdObj(selectedAd); setShowShareModal(true); }}
-                  style={{ flex: 1, background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  <i className="far fa-share-square"></i> Share Deal
-                </button>
+                </div>
               </div>
+
+              {/* BOTTOM FULL WIDTH SECTION */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* SAFETY TIPS */}
+                <div style={{ background: '#fffbf1', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <div style={{ background: '#fef3c7', color: '#d97706', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>
+                    <i className="fas fa-shield-alt"></i>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '14px' }}>{lang === 'en' ? 'Safety Tips for Buyers' : 'பாதுகாப்பு குறிப்புகள்'}</h4>
+                    <ul style={{ margin: 0, paddingLeft: '20px', color: '#b45309', fontSize: '13px', lineHeight: '1.5' }}>
+                      <li>{lang === 'en' ? 'Meet in a public place for the transaction.' : 'பரிவர்த்தனைக்கு பொது இடத்தில் சந்திக்கவும்.'}</li>
+                      <li>{lang === 'en' ? 'Never pay in advance before receiving the item.' : 'பொருளைப் பெறுவதற்கு முன்பு பணம் செலுத்த வேண்டாம்.'}</li>
+                    </ul>
+                  </div>
+                  <button onClick={() => alert(lang === 'en' ? 'Ad Reported to Admins!' : 'நிர்வாகிகளுக்கு புகாரளிக்கப்பட்டது!')} style={{ background: 'none', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    <i className="fas fa-flag"></i> {lang === 'en' ? 'Report Ad' : 'புகாரளி'}
+                  </button>
+                </div>
+
+                {/* SIMILAR ADS */}
+                <div>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-dark)' }}>{lang === 'en' ? 'Similar Ads' : 'ஒத்த விளம்பரங்கள்'}</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                    {ads.filter(a => a.id !== selectedAd.id && a.categoryId === selectedAd.categoryId).slice(0, 4).map(ad => (
+                      <div key={ad.id} onClick={() => setSelectedAd(ad)} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s' }}>
+                         <div style={{ height: '120px', backgroundImage: `url('${getImageUrl(ad.imageUrl)}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                         <div style={{ padding: '8px' }}>
+                           <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-dark)' }}>{ad.priceDetail}</div>
+                           <div style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ad.title}</div>
+                         </div>
+                      </div>
+                    ))}
+                    {ads.filter(a => a.id !== selectedAd.id && a.categoryId === selectedAd.categoryId).length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', background: '#f8fafc', borderRadius: '8px' }}>
+                        {lang === 'en' ? 'No similar ads found.' : 'ஒத்த விளம்பரங்கள் இல்லை.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
             </div>
           </div>
         </div>
@@ -1035,9 +1003,9 @@ const Classifieds = () => {
       {showPostModal && (
         <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1000' }}>
           <div className="modal-content" style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '12px' }}>
-            <div className="modal-header" style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#ec4899', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '17px' }}>{lang === 'en' ? 'Post New Ad' : 'புதிய விளம்பரம் பதியவும்'}</h3>
-              <button className="modal-close" onClick={() => setShowPostModal(false)} style={{ color: 'white', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+            <div className="modal-header" style={{ padding: '16px 24px', borderBottom: 'none', background: 'rgba(0, 73, 144, 1)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{lang === 'en' ? 'Post New Ad' : 'புதிய விளம்பரம் பதியவும்'}</h3>
+              <button className="modal-close" onClick={() => setShowPostModal(false)} style={{ color: 'white', background: 'transparent', border: 'none', fontSize: '28px', cursor: 'pointer', lineHeight: '1' }}>&times;</button>
             </div>
 
             <div className="modal-body" style={{ padding: '24px' }}>
@@ -1053,7 +1021,7 @@ const Classifieds = () => {
                     onChange={(e) => setNewTitle(e.target.value)}
                     required 
                     placeholder={lang === 'en' ? 'e.g. iPhone 14 Pro Max / Honda City' : 'எ.கா: Splendor பைக் விற்பனைக்கு'}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                   />
                 </div>
 
@@ -1066,7 +1034,7 @@ const Classifieds = () => {
                       value={newCatId}
                       onChange={handleCategoryChange}
                       required
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                     >
                       {categories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -1080,7 +1048,7 @@ const Classifieds = () => {
                     <select 
                       value={newSubcatId}
                       onChange={(e) => setNewSubcatId(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                     >
                       {formSubcategories.map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
@@ -1091,9 +1059,9 @@ const Classifieds = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
-                    <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                       {lang === 'en' ? 'Price (INR) *' : 'விலை (INR) *'}
-                      <label style={{ fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <label style={{ fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                         <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} /> {lang === 'en' ? 'Free' : 'இலவசம்'}
                       </label>
                     </label>
@@ -1104,8 +1072,16 @@ const Classifieds = () => {
                       required={!isFree}
                       disabled={isFree}
                       placeholder={lang === 'en' ? 'e.g. 85000' : 'எ.கா: 85000'}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black', background: isFree ? '#f1f5f9' : 'white' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black', background: isFree ? '#f1f5f9' : 'white', marginBottom: '8px' }}
                     />
+                    <label style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={newNegotiable}
+                        onChange={(e) => setNewNegotiable(e.target.checked)}
+                      />
+                      {lang === 'en' ? 'Price is negotiable' : 'விலை பேசித் தீர்மானிக்கலாம்'}
+                    </label>
                   </div>
                   <div className="form-group">
                     <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
@@ -1115,24 +1091,13 @@ const Classifieds = () => {
                       value={newDistrictId}
                       onChange={(e) => setNewDistrictId(e.target.value)}
                       required
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                     >
                       {districts.map(d => (
                         <option key={d.id} value={d.id}>{d.nameEn} - {d.nameTa}</option>
                       ))}
                     </select>
                   </div>
-                </div>
-
-                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={newNegotiable}
-                      onChange={(e) => setNewNegotiable(e.target.checked)}
-                    />
-                    {lang === 'en' ? 'Price is negotiable' : 'விலை பேசித் தீர்மானிக்கலாம்'}
-                  </label>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1146,7 +1111,7 @@ const Classifieds = () => {
                       onChange={(e) => setNewPhone(e.target.value)}
                       required 
                       placeholder="e.g. 9876543210"
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                     />
                   </div>
                   <div className="form-group">
@@ -1158,22 +1123,32 @@ const Classifieds = () => {
                       value={newWhatsapp}
                       onChange={(e) => setNewWhatsapp(e.target.value)}
                       placeholder="e.g. 9876543210"
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
-                    {lang === 'en' ? 'Product Description *' : 'விளம்பரம் விளக்கம் *'}
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                      {lang === 'en' ? 'Product Description *' : 'விளம்பரம் விளக்கம் *'}
+                    </label>
+                    <button 
+                      type="button" 
+                      onClick={() => generateAiDescription(true)}
+                      disabled={isGeneratingDesc}
+                      style={{ background: 'transparent', border: 'none', color: '#EA580C', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {isGeneratingDesc ? (lang === 'en' ? 'Generating...' : 'உருவாக்குகிறது...') : (newDesc.trim() ? (lang === 'en' ? '✨ Improve with AI' : '✨ மேம்படுத்து') : (lang === 'en' ? '✨ Generate with AI' : '✨ AI உடன் உருவாக்கு'))}
+                    </button>
+                  </div>
                   <textarea 
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     required 
-                    rows="3"
+                    rows="6"
                     placeholder={lang === 'en' ? 'Provide details about condition, specifications...' : 'பொருளின் நிலை, மாடல் அல்லது நிபந்தனைகள்...'}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', color: 'black' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)', color: 'black' }}
                   ></textarea>
                 </div>
 
@@ -1186,7 +1161,7 @@ const Classifieds = () => {
                     multiple 
                     accept="image/*"
                     onChange={handleFileSelection}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1', color: 'black' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px dashed var(--border-color, #cbd5e1)', color: 'black' }}
                   />
                   {imagePreviewUrl && (
                     <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1199,7 +1174,7 @@ const Classifieds = () => {
                 <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                   <button 
                     type="submit"
-                    style={{ flex: 1, background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    style={{ flex: 1, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                   >
                     <i className="fas fa-eye"></i> {lang === 'en' ? 'Preview Ad First' : 'விளம்பரத்தை முன்னோட்டம் பார்க்க'}
                   </button>
@@ -1208,7 +1183,7 @@ const Classifieds = () => {
                     type="button"
                     onClick={handleConfirmSubmit}
                     disabled={uploadingMedia}
-                    style={{ flex: 1, background: '#ec4899', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}
+                    style={{ flex: 1, background: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.2)' }}
                   >
                     {uploadingMedia ? 'Posting...' : (lang === 'en' ? 'Submit Direct' : 'நேரடியாக சமர்ப்பிக்க')}
                   </button>
@@ -1223,7 +1198,7 @@ const Classifieds = () => {
       {showPreviewModal && (
         <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1100' }}>
           <div className="modal-content" style={{ maxWidth: '650px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '16px' }}>
-            <div className="modal-header" style={{ padding: '16px 24px', background: '#3b82f6', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="modal-header" style={{ padding: '16px 24px', background: 'var(--primary, #B3732A)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px' }}>👁️ {lang === 'en' ? 'Ad Preview Mode' : 'விளம்பர முன்னோட்டம்'}</h3>
                 <div style={{ fontSize: '11px', opacity: 0.9 }}>{lang === 'en' ? 'This is how your ad will appear to buyers once approved by Admin' : 'நிர்வாகி ஒப்புதல் அளித்த பின் விளம்பரம் இவ்வாறு தோன்றும்'}</div>
@@ -1236,33 +1211,33 @@ const Classifieds = () => {
                 <span style={{ position: 'absolute', top: '12px', left: '12px', background: '#f59e0b', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>PENDING ADMIN APPROVAL</span>
               </div>
 
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>{newTitle}</h2>
+              <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--text-dark, #1e293b)' }}>{newTitle}</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', background: '#f8fafc', padding: '14px', borderRadius: '12px', fontSize: '13px' }}>
-                <div><strong>Price:</strong> <span style={{ color: '#4f46e5', fontWeight: 'bold' }}>{isFree ? 'FREE' : `₹${parseFloat(newPrice || '0').toLocaleString()}`}</span> {newNegotiable && <span style={{ fontSize: '11px', color: '#10b981' }}>(Negotiable)</span>}</div>
-                <div><strong>Location:</strong> {districts.find(d => String(d.id) === String(newDistrictId))?.nameEn || 'Tamil Nadu'}</div>
-                <div><strong>Category:</strong> {categories.find(c => String(c.id) === String(newCatId))?.name || 'Classifieds'}</div>
-                <div><strong>Contact Phone:</strong> {newPhone}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', background: 'var(--bg-light, #f8fafc)', padding: '14px', borderRadius: '12px', fontSize: '13px' }}>
+                <div><strong>{lang === 'en' ? 'Price:' : 'விலை:'}</strong> <span style={{ color: 'var(--primary, #B3732A)', fontWeight: 'bold' }}>{isFree ? 'FREE' : `₹${parseFloat(newPrice || '0').toLocaleString()}`}</span> {newNegotiable && <span style={{ fontSize: '11px', color: '#10b981' }}>(Negotiable)</span>}</div>
+                <div><strong>{lang === 'en' ? 'Location:' : 'இடம்:'}</strong> {districts.find(d => String(d.id) === String(newDistrictId))?.nameEn || 'Tamil Nadu'}</div>
+                <div><strong>{lang === 'en' ? 'Category:' : 'வகை:'}</strong> {categories.find(c => String(c.id) === String(newCatId))?.name || 'Classifieds'}</div>
+                <div><strong>{lang === 'en' ? 'Contact Phone:' : 'தொடர்பு எண்:'}</strong> {newPhone}</div>
               </div>
 
               <div>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '14px' }}>Description</h4>
-                <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: 0 }}>{newDesc}</p>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '14px' }}>{lang === 'en' ? 'Description' : 'விளக்கம்'}</h4>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted, #475569)', lineHeight: '1.5', margin: 0 }}>{newDesc}</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', borderTop: '1px solid var(--border-color, #e2e8f0)', paddingTop: '16px' }}>
                 <button 
                   onClick={() => setShowPreviewModal(false)}
-                  style={{ flex: 1, background: '#cbd5e1', color: '#1e293b', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer' }}
+                  style={{ flex: 1, background: 'var(--border-color, #cbd5e1)', color: 'var(--text-dark, #1e293b)', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  ✏️ Edit Details
+                  ✏️ {lang === 'en' ? 'Edit Details' : 'விவரங்களை திருத்து'}
                 </button>
                 <button 
                   onClick={handleConfirmSubmit}
                   disabled={uploadingMedia}
                   style={{ flex: 1.5, background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  🚀 Confirm & Submit for Admin Approval
+                  🚀 {lang === 'en' ? 'Confirm & Submit for Admin Approval' : 'உறுதிசெய்து நிர்வாக ஒப்புதலுக்கு சமர்ப்பிக்கவும்'}
                 </button>
               </div>
             </div>
@@ -1274,7 +1249,7 @@ const Classifieds = () => {
       {showShareModal && shareAdObj && (
         <div className="modal open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '1100' }}>
           <div className="modal-content" style={{ maxWidth: '400px', width: '90%', padding: '24px' }}>
-            <div className="modal-header" style={{ paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+            <div className="modal-header" style={{ paddingBottom: '12px', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
               <h3 style={{ margin: 0 }}>{lang === 'en' ? 'Share Deal' : 'பகிர்'}</h3>
               <button className="modal-close" onClick={() => { setShowShareModal(false); setShareAdObj(null); }}>&times;</button>
             </div>

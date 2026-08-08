@@ -308,13 +308,15 @@ const Home = () => {
                 (pos) => {
                   if (resolved) return;
                   const { latitude, longitude } = pos.coords;
-                  fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
-                    .then(data => {
-                      const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                      if (list.length > 0) setArticles(list);
-                      safeResolve();
-                    })
-                    .catch(() => { safeResolve(); });
+                  try {
+                    fetchApi(`${generalNewsUrl}&lat=${latitude}&lon=${longitude}`)
+                      .then(data => {
+                        const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                        if (list.length > 0) setArticles(list);
+                        safeResolve();
+                      })
+                      .catch(() => { safeResolve(); });
+                  } catch (e) { safeResolve(); }
                 },
                 () => {
                   if (resolved) return;

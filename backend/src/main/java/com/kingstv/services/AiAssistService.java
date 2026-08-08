@@ -182,6 +182,42 @@ public class AiAssistService {
                         Text: """.formatted(style) + text;
             }
 
+            case "generate_ad_description" -> {
+                yield """
+                        You are an AI Product Description Assistant for a classifieds marketplace.
+                        Your purpose is to generate a READY-MADE FILLABLE DESCRIPTION TEMPLATE.
+                        DO NOT automatically write a complete advertisement.
+                        
+                        Details provided by the user:
+                        """ + text + """
+                        
+                        STRICT RULES:
+                        1. IDENTIFY PRODUCT: Understand what the user is trying to sell based on Product Title, Category, Subcategory, and any text they already typed. The strongest signals are Title + Category + Subcategory.
+                        
+                        2. DETERMINE FIELDS: Generate fields relevant ONLY to the identified product. Do not ask for Battery Health for a house, or Engine Capacity for a sofa.
+                           - VEHICLES (CARS): Brand, Model, Variant, Manufacturing Year, Registration Year, Fuel Type, Transmission, Mileage, Number of Owners, Condition, Insurance, Service History, Color, Location, Key Features, Reason for Selling.
+                           - VEHICLES (BIKES/SCOOTERS): Brand, Model, Variant, Year, Mileage, Fuel Type, Engine Capacity, Ownership, Condition, Insurance, Service History, Registration, Accessories, Key Features, Reason for Selling.
+                           - REAL ESTATE: Property Type, BHK, Area / Sq.ft, Location, Floor, Total Floors, Bedrooms, Bathrooms, Parking, Furnishing, Age of Property, Facing, Amenities, Availability, Nearby Locations, Price / Rent, Additional Details.
+                           - ELECTRONICS (MOBILE): Brand, Model, Storage, RAM, Color, Purchase Date, Age, Condition, Battery Health, Warranty, Bill Available, Original Accessories, Repair History, Features, Reason for Selling.
+                           - ELECTRONICS (LAPTOP): Brand, Model, Processor, RAM, Storage, Graphics, Screen Size, Purchase Year, Condition, Battery Condition, Warranty, Bill Available, Accessories, Reason for Selling.
+                           - FURNITURE: Product Type, Brand, Material, Dimensions, Color, Age, Condition, Usage, Features, Reason for Selling, Additional Information.
+                           - AGRICULTURE (Seeds): Crop, Variety, Quantity, Brand, Suitable Season, Quality, Packaging, Location.
+                           - AGRICULTURE (Farm Equip): Brand, Model, Year, Condition, Usage Hours, Capacity, Fuel Type, Accessories, Service History.
+                           
+                        3. SMART PLACEHOLDERS: Use context-aware placeholders in brackets instead of fabricating info.
+                           - DO NOT use confusing technical placeholders like {vehicle_model_name}.
+                           - DO USE: [Enter brand], [Enter model], [Enter year], [Enter mileage in km], [Enter battery health percentage], [Enter property area in sq.ft], etc.
+                           
+                        4. REUSE EXISTING INFO: If the user provided information in their text (e.g. "2022 Honda Activa, first owner, 18000 km, excellent condition"), FILL IN THOSE DETAILS in the template instead of making them placeholders. Do NOT ask for info they already provided.
+                           
+                        5. FORMAT: Clean, professional, marketplace friendly, not overwhelming. Use headings and bullet points. Output the language requested (English, Tamil, or Mixed).
+                        
+                        6. NO FABRICATION: NEVER invent Price, Model year, Mileage, Brand, Condition, Specifications, Warranty, Ownership, Location, Features, or Measurements. If unknown, use a placeholder.
+                        
+                        7. Output ONLY the generated template without any conversational prefix, suffix, or explanation.
+                        """;
+            }
+
             default -> "You are a helpful assistant. " + text;
         };
     }
