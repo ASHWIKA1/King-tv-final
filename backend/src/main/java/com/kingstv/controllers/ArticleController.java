@@ -115,13 +115,6 @@ public class ArticleController {
         return articleRepository.findByAuthorNameInAndStatusOrderByPublishedAtDesc(names, "published");
     }
 
-    /**
-     * Retrieves an article by numeric ID or slug and enriches it with view, author, category, subcategory, and structured-data information.
-     *
-     * @param idOrSlug the article ID or slug used for lookup
-     * @param request  the HTTP request used to obtain request-specific metadata
-     * @return the article when found; otherwise, a 404 response
-     */
     @GetMapping("/{idOrSlug}")
     public ResponseEntity<?> getArticleById(@PathVariable String idOrSlug, HttpServletRequest request) {
         Optional<Article> artOpt = Optional.empty();
@@ -131,12 +124,9 @@ public class ArticleController {
             artOpt = articleRepository.findById(Long.parseLong(idOrSlug));
         }
         
-        // Fall back to slug lookup (exact and lowercased case-insensitive fallback)
+        // Fall back to slug lookup
         if (artOpt.isEmpty()) {
             artOpt = articleRepository.findBySlug(idOrSlug);
-        }
-        if (artOpt.isEmpty() && idOrSlug != null) {
-            artOpt = articleRepository.findBySlug(idOrSlug.toLowerCase());
         }
         
         if (artOpt.isEmpty()) {
@@ -220,19 +210,11 @@ public class ArticleController {
 
         return ResponseEntity.ok(article);
     }
-    /**
-     * Creates an article after processing its images, validating required content, populating SEO data,
-     * checking applicable content for profanity, and saving it.
-     *
-     * @param article the article to create
-     * @param request the HTTP request used to derive SEO data
-     * @return a created article, or an error response when required content is missing or profanity is detected
-     */
+
     @PostMapping
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
     public ResponseEntity<?> createArticle(@RequestBody Article article, HttpServletRequest request) {
-        processAndRegisterArticleImages(article, request);
         if ((article.getTitleTa() == null || article.getTitleTa().trim().isEmpty()) && article.getTitleEn() != null) {
             article.setTitleTa(article.getTitleEn());
         }
@@ -265,30 +247,13 @@ public class ArticleController {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        // Automatically set authorName to the logged in user's full name to ensure consistency
-        var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        Long authorId = null;
-        String authorNameStr = "Unknown";
-        if (authCtx != null && authCtx.isAuthenticated() && !"anonymousUser".equals(authCtx.getPrincipal())) {
-            try {
-                authorId = Long.parseLong(String.valueOf(authCtx.getDetails()));
-                Optional<User> uOpt = userRepository.findById(authorId);
-                if (uOpt.isPresent()) {
-                    authorNameStr = uOpt.get().getFullName();
-                    // Only override if the client didn't explicitly send a custom author, or if it's the default
-                    if (article.getAuthorName() == null || article.getAuthorName().isEmpty() || "Kings TV News Desk".equals(article.getAuthorName())) {
-                        article.setAuthorName(authorNameStr);
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore
-            }
-        }
-
         // Profanity Check
         if ("published".equalsIgnoreCase(article.getStatus()) || "pending".equalsIgnoreCase(article.getStatus())) {
+            var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Long authorId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
+            String authorName = authCtx != null ? authCtx.getName() : "Unknown";
             com.kingstv.services.ProfanityService.ProfanityCheckResult check = profanityService.checkContent(
-                "ARTICLE", null, article.getTitleEn(), authorId, authorNameStr, 
+                "ARTICLE", null, article.getTitleEn(), authorId, authorName, 
                 article.getTitleTa(), article.getTitleEn(), article.getContentTa(), article.getContentEn()
             );
             if (!check.isClean()) {
@@ -302,19 +267,16 @@ public class ArticleController {
         populateSeoFields(article, request);
         Article saved = articleRepository.save(article);
         if ("published".equals(saved.getStatus()) && !saved.getTelegramSent()) {
-            try {
-                telegramBotService.pushArticleToChannel(saved);
-                saved.setTelegramSent(true);
-                saved = articleRepository.save(saved);
-            } catch (Exception e) {
-                System.err.println("Warning: Telegram push failed for article " + saved.getId() + ": " + e.getMessage());
-            }
+            telegramBotService.pushArticleToChannel(saved);
+            saved.setTelegramSent(true);
+            saved = articleRepository.save(saved);
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     // --- NEW Standardized API Standard Endpoints ---
     @GetMapping("/getAll")
+    @Cacheable(value = "articles_all", key = "T(java.util.Objects).hash(#search, #status, #categoryId, #districtId, #authorId, #tag, #startDateStr, #endDateStr, #year, #month, #page, #size, #sortBy, #direction)")
     public Page<Article> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
@@ -341,19 +303,6 @@ public class ArticleController {
             }
         }
 
-        // Map numeric authorId to fullName to match how it's stored in the database
-        if (authorId != null && !authorId.isEmpty()) {
-            try {
-                Long id = Long.parseLong(authorId);
-                Optional<com.kingstv.models.User> uOpt = userRepository.findById(id);
-                if (uOpt.isPresent()) {
-                    authorId = uOpt.get().getFullName();
-                }
-            } catch (NumberFormatException e) {
-                // If it's not a number, it might already be a name, so leave it as is
-            }
-        }
-
         LocalDateTime startDate = null;
         LocalDateTime endDate = null;
         if (startDateStr != null && !startDateStr.isEmpty()) {
@@ -374,6 +323,7 @@ public class ArticleController {
     }
 
     @GetMapping("/getAllWeb")
+    @Cacheable(value = "articles_web", key = "T(java.util.Objects).hash(#search, #categoryId, #districtId, #tag, #startDateStr, #endDateStr, #year, #month, #page, #size, #sortBy, #direction)")
     public Page<Article> getAllWeb(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String categoryId,
@@ -434,13 +384,6 @@ public class ArticleController {
     @Autowired
     private com.kingstv.services.ContentEditService contentEditService;
 
-    /**
-     * Updates an existing article, including its content, media, metadata, publication fields, and revision history.
-     *
-     * @param entity  the article data to apply to the existing article
-     * @param request the HTTP request used to populate SEO information
-     * @return the updated article, or an error response when the ID is missing, the article is unavailable, editing limits are exceeded, or the content fails the profanity check
-     */
     @PutMapping("/saveUpdate")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
@@ -448,7 +391,6 @@ public class ArticleController {
         if (entity.getId() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Id is required for update"));
         }
-        processAndRegisterArticleImages(entity, request);
         
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean isLimitedEditor = auth != null && auth.getAuthorities().stream().anyMatch(a -> 
@@ -589,13 +531,9 @@ public class ArticleController {
         populateSeoFields(article, request);
         Article updated = articleRepository.save(article);
         if ("published".equals(updated.getStatus()) && !updated.getTelegramSent()) {
-            try {
-                telegramBotService.pushArticleToChannel(updated);
-                updated.setTelegramSent(true);
-                updated = articleRepository.save(updated);
-            } catch (Exception e) {
-                System.err.println("Warning: Telegram push failed for article " + updated.getId() + ": " + e.getMessage());
-            }
+            telegramBotService.pushArticleToChannel(updated);
+            updated.setTelegramSent(true);
+            updated = articleRepository.save(updated);
         }
         return ResponseEntity.ok(updated);
     }
@@ -636,14 +574,9 @@ public class ArticleController {
         }
         Article existing = opt.get();
         existing.setStatus(status);
-        if ("published".equals(status)) {
-            if (existing.getPublishedAt() == null) {
-                existing.setPublishedAt(LocalDateTime.now());
-            }
-            if (!existing.getTelegramSent()) {
-                telegramBotService.pushArticleToChannel(existing);
-                existing.setTelegramSent(true);
-            }
+        if ("published".equals(status) && !existing.getTelegramSent()) {
+            telegramBotService.pushArticleToChannel(existing);
+            existing.setTelegramSent(true);
         }
         articleRepository.save(existing);
         return ResponseEntity.ok(Map.of("message", "Status updated successfully", "id", id, "status", status));
@@ -1021,13 +954,6 @@ public class ArticleController {
         return ResponseEntity.ok(articleRevisionRepository.findByArticleIdOrderByRevisionNumberDesc(id));
     }
 
-    /**
-     * Retrieves a specific revision of an article.
-     *
-     * @param id     the article identifier
-     * @param revNum the revision number
-     * @return the requested revision, or a not-found response when it does not exist
-     */
     @GetMapping("/{id}/revisions/{revNum}")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.SECTION_EDITOR, Role.SUB_EDITOR})
     public ResponseEntity<?> getRevision(@PathVariable Long id, @PathVariable Integer revNum) {
@@ -1037,286 +963,5 @@ public class ArticleController {
             .<ResponseEntity<?>>map(ResponseEntity::ok)
             .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Revision not found")));
     }
-
-    // --- Helper classes and methods for auto-uploading and registering article images ---
-
-    private static class BytesMultipartFile implements org.springframework.web.multipart.MultipartFile {
-        private final byte[] content;
-        private final String name;
-        private final String originalFilename;
-        private final String contentType;
-
-        /**
-         * Creates a multipart file backed by the specified byte content.
-         *
-         * @param content the file content
-         * @param name the multipart field name
-         * @param originalFilename the original client-side filename
-         * @param contentType the file's MIME type
-         */
-        public BytesMultipartFile(byte[] content, String name, String originalFilename, String contentType) {
-            this.content = content;
-            this.name = name;
-            this.originalFilename = originalFilename;
-            this.contentType = contentType;
-        }
-
-        @Override public String getName() { return name; }
-        @Override public String getOriginalFilename() { return originalFilename; }
-        @Override public String getContentType() { return contentType; }
-        /**
- * Determines whether the multipart content is empty.
- *
- * @return {@code true} if the content is null or has zero length, {@code false} otherwise
- */
-@Override public boolean isEmpty() { return content == null || content.length == 0; }
-        @Override public long getSize() { return content.length; }
-        @Override public byte[] getBytes() { return content; }
-        @Override public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(content); }
-        /**
-         * Writes the file content to the specified destination.
-         *
-         * @param dest the destination file
-         * @throws java.io.IOException if the destination cannot be written
-         */
-        @Override public void transferTo(java.io.File dest) throws java.io.IOException {
-            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
-                fos.write(content);
-            }
-        }
-    }
-
-    /**
-     * Determines the MIME type associated with an image filename.
-     *
-     * @param filename the image filename, or {@code null}
-     * @return the matching image MIME type, defaulting to {@code image/jpeg}
-     */
-    private String guessMimeType(String filename) {
-        if (filename == null) return "image/jpeg";
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".gif")) return "image/gif";
-        if (lower.endsWith(".webp")) return "image/webp";
-        if (lower.endsWith(".svg")) return "image/svg+xml";
-        if (lower.endsWith(".bmp")) return "image/bmp";
-        return "image/jpeg";
-    }
-
-    private void saveMediaAssetRecord(String filename, String url, String mimeType, long size, Long uploaderId) {
-        try {
-            MediaAsset asset = new MediaAsset();
-            asset.setFilename(filename);
-            asset.setUrl(url);
-            asset.setMimeType(mimeType);
-            asset.setFileSize(size);
-            asset.setCategory("image");
-            asset.setUploaderId(uploaderId);
-            mediaAssetRepository.save(asset);
-        } catch (Exception e) {
-            System.err.println("Warning: Failed to save MediaAsset record: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Builds the request's base URL from its scheme, host, and non-default port.
-     *
-     * @param request the HTTP request providing the URL components
-     * @return the base URL, or an empty string when the request is {@code null}
-     */
-    private String getBaseUrl(HttpServletRequest request) {
-        if (request == null) return "";
-        String scheme = request.getScheme();
-        String serverName = request.getServerName();
-        int serverPort = request.getServerPort();
-        
-        StringBuilder builder = new StringBuilder();
-        builder.append(scheme).append("://").append(serverName);
-        
-        if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
-            builder.append(":").append(serverPort);
-        }
-        
-        return builder.toString();
-    }
-
-    /**
-     * Builds an absolute frontend URL from a relative path.
-     *
-     * @param path the URL path or absolute URL
-     * @return the original absolute URL or a URL resolved against the request's base URL; an empty string when {@code path} is {@code null}
-     */
-    private String getFullUrlForFrontend(String path, HttpServletRequest request) {
-        if (path == null) return "";
-        if (path.startsWith("http://") || path.startsWith("https://")) return path;
-        String baseUrl = getBaseUrl(request);
-        return baseUrl + (path.startsWith("/") ? path : "/" + path);
-    }
-
-    /**
-     * Processes an image source and registers or uploads it when applicable.
-     *
-     * @param src        the image source URL or base64 data URL
-     * @param uploaderId the ID of the user associated with the media asset
-     * @param request    the request used to construct a frontend-accessible URL
-     * @return the processed public URL, or the original source when processing is unnecessary or fails
-     */
-    private String registerSingleImageUrl(String src, Long uploaderId, HttpServletRequest request) {
-        if (src == null || src.trim().isEmpty()) {
-            return src;
-        }
-        src = src.trim();
-
-        // 1. Check if it's base64 data URL
-        if (src.startsWith("data:image/") && src.contains(";base64,")) {
-            try {
-                int mimeStart = 5; // length of "data:"
-                int mimeEnd = src.indexOf(";");
-                String mimeType = src.substring(mimeStart, mimeEnd);
-                String extension = mimeType.substring(mimeType.indexOf("/") + 1);
-                if (extension.contains("+")) {
-                    extension = extension.substring(0, extension.indexOf("+"));
-                }
-                
-                String base64Data = src.substring(src.indexOf("base64,") + 7);
-                byte[] bytes = java.util.Base64.getDecoder().decode(base64Data.trim());
-                
-                String filename = "image_" + java.util.UUID.randomUUID().toString() + "." + extension;
-                BytesMultipartFile file = new BytesMultipartFile(bytes, "file", filename, mimeType);
-                
-                String uploadedUrl = storageService.uploadFile(file, "articles");
-                
-                // Save to Media Asset Library
-                saveMediaAssetRecord(filename, uploadedUrl, mimeType, bytes.length, uploaderId);
-                
-                // Return public url
-                return getFullUrlForFrontend(uploadedUrl, request);
-            } catch (Exception e) {
-                System.err.println("Error processing base64 image: " + e.getMessage());
-                return src;
-            }
-        }
-
-        // 2. Check if it is an internal URL (contains "/uploads/")
-        int uploadsIdx = src.indexOf("/uploads/");
-        if (uploadsIdx != -1) {
-            String relPath = src.substring(uploadsIdx);
-            // Check if already registered
-            boolean exists = mediaAssetRepository.findByUrl(relPath).isPresent() || 
-                             mediaAssetRepository.findByUrl(src).isPresent();
-            if (!exists) {
-                // Register it!
-                String filename = relPath.substring(relPath.lastIndexOf("/") + 1);
-                String mimeType = guessMimeType(filename);
-                saveMediaAssetRecord(filename, relPath, mimeType, 500000L, uploaderId); // Guess size 500KB
-            }
-            return src;
-        }
-
-        // 3. It's an external image URL. Let's download and upload it!
-        if (src.startsWith("http://") || src.startsWith("https://")) {
-            try {
-                java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .connectTimeout(java.time.Duration.ofSeconds(5))
-                    .build();
-                java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(src))
-                    .timeout(java.time.Duration.ofSeconds(10))
-                    .GET()
-                    .build();
-                
-                java.net.http.HttpResponse<byte[]> response = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofByteArray());
-                if (response.statusCode() == 200) {
-                    byte[] bytes = response.body();
-                    String contentType = response.headers().firstValue("Content-Type").orElse("image/jpeg");
-                    String extension = contentType.substring(contentType.indexOf("/") + 1);
-                    if (extension.contains(";")) {
-                        extension = extension.substring(0, extension.indexOf(";"));
-                    }
-                    if (extension.contains("+")) {
-                        extension = extension.substring(0, extension.indexOf("+"));
-                    }
-                    
-                    String filename = "downloaded_" + java.util.UUID.randomUUID().toString() + "." + extension;
-                    BytesMultipartFile file = new BytesMultipartFile(bytes, "file", filename, contentType);
-                    
-                    String uploadedUrl = storageService.uploadFile(file, "articles");
-                    saveMediaAssetRecord(filename, uploadedUrl, contentType, bytes.length, uploaderId);
-                    
-                    return getFullUrlForFrontend(uploadedUrl, request);
-                }
-            } catch (Exception e) {
-                System.err.println("Warning: Failed to download external image: " + src + ". Error: " + e.getMessage());
-            }
-        }
-
-        return src;
-    }
-
-    /**
-     * Processes image sources in HTML content and returns the content with registered URLs.
-     *
-     * @param html       the HTML content containing image elements
-     * @param uploaderId the identifier of the user associated with image registration
-     * @param request    the current HTTP request used to construct public URLs
-     * @return the HTML content with each image source replaced by its registered URL
-     */
-    private String processHtmlContentForImages(String html, Long uploaderId, HttpServletRequest request) {
-        if (html == null || html.trim().isEmpty()) {
-            return html;
-        }
-        
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-            "(<img[^>]+src=[\"'])([^\"']+)([\"'][^>]*>)", 
-            java.util.regex.Pattern.CASE_INSENSITIVE
-        );
-        java.util.regex.Matcher matcher = pattern.matcher(html);
-        StringBuilder sb = new StringBuilder();
-        
-        while (matcher.find()) {
-            String prefix = matcher.group(1);
-            String src = matcher.group(2);
-            String suffix = matcher.group(3);
-            
-            String newSrc = registerSingleImageUrl(src, uploaderId, request);
-            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(prefix + newSrc + suffix));
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
-    }
-
-    /**
-     * Processes and registers images referenced by an article's content and image fields.
-     *
-     * @param article the article whose image references are processed and updated
-     * @param request the request context used to construct public image URLs
-     */
-    private void processAndRegisterArticleImages(Article article, HttpServletRequest request) {
-        var authCtx = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        Long uploaderId = authCtx != null && authCtx.getDetails() instanceof Long ? (Long) authCtx.getDetails() : null;
-
-        if (article.getContentTa() != null) {
-            String processedTa = processHtmlContentForImages(article.getContentTa(), uploaderId, request);
-            article.setContentTa(processedTa);
-        }
-        if (article.getContentEn() != null) {
-            String processedEn = processHtmlContentForImages(article.getContentEn(), uploaderId, request);
-            article.setContentEn(processedEn);
-        }
-        if (article.getImageUrl() != null && !article.getImageUrl().trim().isEmpty()) {
-            String processedImg = registerSingleImageUrl(article.getImageUrl(), uploaderId, request);
-            article.setImageUrl(processedImg);
-            article.setFeaturedImage(processedImg);
-        }
-        if (article.getFeaturedImage() != null && !article.getFeaturedImage().trim().isEmpty()) {
-            String processedImg = registerSingleImageUrl(article.getFeaturedImage(), uploaderId, request);
-            article.setFeaturedImage(processedImg);
-            if (article.getImageUrl() == null || article.getImageUrl().trim().isEmpty()) {
-                article.setImageUrl(processedImg);
-            }
-        }
-    }
 }
-
-
 

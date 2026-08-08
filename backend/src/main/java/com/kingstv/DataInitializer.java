@@ -127,7 +127,7 @@ public class DataInitializer {
             {"Kallakurichi", "கள்ளக்குறிச்சி"}, {"Ariyalur", "அரியலூர்"}, {"Perambalur", "பெரம்பலூர்"},
             {"Karur", "கரூர்"}, {"Dindigul", "திண்டுக்கல்"}, {"Nilgiris", "நீலகிரி"},
             {"Tiruvarur", "திருவாரூர்"}, {"Mayiladuthurai", "மயிலாடுதுறை"}, {"Theni", "தேனி"},
-            {"Tenkasi", "தென்காசி"}, {"Kanyakumari", "கன்னியாகுமரி"}, {"Puducherry", "புதுச்சேரி"}
+            {"Tenkasi", "தென்காசி"}, {"Kanyakumari", "கன்னியாகுமரி"}
         };
         for (String[] dist : allDistricts) {
             try {
@@ -244,9 +244,9 @@ public class DataInitializer {
         roleRepository.save(reader);
 
         seedBreakingNews();
-        // seedFiftyArticlesPerCategory(); (Disabled as requested to keep database clear of demo articles)
+        seedFiftyArticlesPerCategory();
 
-        if (categoryRepository.count() > 0) {
+        if (categoryRepository.count() > 0 && articleRepository.count() >= 300) {
             System.out.println("Database already has data. Skipping database seeding to preserve dynamic data.");
             return;
         }
@@ -302,6 +302,7 @@ public class DataInitializer {
             jdbcTemplate.execute("TRUNCATE TABLE classified_listings;");
             jdbcTemplate.execute("TRUNCATE TABLE local_obituaries;");
             jdbcTemplate.execute("TRUNCATE TABLE video_contents;");
+            jdbcTemplate.execute("TRUNCATE TABLE articles;");
             jdbcTemplate.execute("TRUNCATE TABLE districts;");
             jdbcTemplate.execute("TRUNCATE TABLE sub_categories;");
             jdbcTemplate.execute("TRUNCATE TABLE categories;");
@@ -407,8 +408,7 @@ public class DataInitializer {
         seedDistrict("Kanyakumari", "கன்னியாகுமரி");
 
         // 4. Seed Articles
-        System.out.println("Skipping Article Seeding (database cleared as requested)...");
-        /*
+        System.out.println("Seeding Articles...");
         seedArticle(polId, null,
                 "தமிழக சட்டமன்றக் கூட்டத்தொடர் புதிய பட்ஜெட் அறிவிப்புகள் – நேரடித் தகவல்கள்",
                 "TN assembly budget session new announcements - live reports",
@@ -452,13 +452,12 @@ public class DataInitializer {
         seedArticle(cinId, null,
                 "தளபதி விஜய்யின் இறுதித் திரைப்படம்: ரசிகர்களிடையே பெரும் எதிர்பார்ப்பு",
                 "Thalapathy Vijay final movie: Huge expectations among fans",
-                "அரசியல் பிரவேசத்திற்கு முன்னதாக நடிகர் விஜய் நடிக்கும் இறுதித் திரைப்படம் என்பதால் உலகம் முழுவதும் பெரும் எதிர்பார்ப்பு நிலவி வருகின்றது.",
+                "அரசியல் பிரவேசத்திற்கு முன்னதாக நடிகர் விஜய் நடிக்கும் இறுதித் திரைப்படம் என்பதால் உலகம் முழுவதும் பெரும் எதிர்பார்ப்பு நிலவி வருகிறது.",
                 "As it marks the final cinematic outing of Thalapathy Vijay before his political entry, expectations are running high globally.",
                 "விஜய்யின் இறுதித் திரைப்படம் பெரும் எதிர்பார்ப்பு.",
                 "Vijay's final movie expectations.",
                 "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800",
                 500, "vijay-final-movie-grand-news");
-        */
 
         // 5. Seed VideoContent
         System.out.println("Seeding Videos...");
@@ -666,9 +665,6 @@ public class DataInitializer {
     }
 
     private void seedSystemConfig(String key, String val, String group, String desc) {
-        if (systemConfigRepository.findByConfigKey(key).isPresent()) {
-            return;
-        }
         SystemConfig sc = new SystemConfig();
         sc.setConfigKey(key);
         sc.setConfigValue(val);
@@ -679,12 +675,10 @@ public class DataInitializer {
     }
 
     private void seedProfanity(String term) {
-        try {
-            ProfanityWord w = new ProfanityWord();
-            w.setTerm(term);
-            w.setLanguage("ALL");
-            profanityWordRepository.save(w);
-        } catch (Exception ignored) {}
+        ProfanityWord w = new ProfanityWord();
+        w.setTerm(term);
+        w.setLanguage("ALL");
+        profanityWordRepository.save(w);
     }
 
     private void seedLayoutSection(String key, String label, int order, String type) {
@@ -998,7 +992,6 @@ public class DataInitializer {
     }
 
     private void seedFiftyArticlesPerCategory() {
-        if (true) return; // Disabled as requested
         try {
             List<Category> categories = categoryRepository.findAll();
             if (categories.isEmpty()) return;

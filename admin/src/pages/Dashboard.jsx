@@ -79,7 +79,7 @@ const QuickPublishWidget = ({ onPublished }) => {
       }
       
       try {
-        await api.post("/articles", { ...form, contentTa: "", status: "published", expiresAt: null });
+        await api.post("/articles", { ...form, contentTa: "", status: "published" });
       } catch (articleErr) {
         if (createdBreakingId) {
           await api.delete(`/breaking-news/${createdBreakingId}`).catch(err => {

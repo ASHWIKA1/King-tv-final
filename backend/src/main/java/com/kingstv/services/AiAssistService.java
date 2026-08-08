@@ -38,20 +38,20 @@ public class AiAssistService {
                     "AI Assistant is not configured. Please click Set API Key in AI Settings.");
         }
 
-        // Permit features by default if enableAi is active
-        if ("seo".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSeo()) && activeConfig.getEnableSeo() != null) {
+        // Enforce individual feature toggles (permit if null or true when enableAi is true)
+        if ("seo".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSeo())) {
             return Map.of("error", true, "result", "SEO generation AI is disabled in settings.");
         }
-        if ("translate".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTranslation()) && activeConfig.getEnableTranslation() != null) {
+        if ("translate".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTranslation())) {
             return Map.of("error", true, "result", "Translation AI is disabled in settings.");
         }
-        if ("summarize".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSummary()) && activeConfig.getEnableSummary() != null) {
+        if ("summarize".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableSummary())) {
             return Map.of("error", true, "result", "Summarization AI is disabled in settings.");
         }
-        if ("rewrite".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableRewrite()) && activeConfig.getEnableRewrite() != null) {
+        if ("rewrite".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableRewrite())) {
             return Map.of("error", true, "result", "AI rewrite is disabled in settings.");
         }
-        if ("tags".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTags()) && activeConfig.getEnableTags() != null) {
+        if ("tags".equalsIgnoreCase(action) && Boolean.FALSE.equals(activeConfig.getEnableTags())) {
             return Map.of("error", true, "result", "Auto tags AI is disabled in settings.");
         }
 
@@ -163,13 +163,19 @@ public class AiAssistService {
             case "translate" -> {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
-                        You are a professional news translator for KINGS 24x7. Translate the following text from %s.
-                        If the input contains section headers (like TITLE:, EXCERPT:, CONTENT:), translate each section and preserve the corresponding headers (TITLE:, EXCERPT:, CONTENT:).
-                        If a section is empty or missing in the input, omit that section header from your response.
-                        If no section headers are present, return ONLY the direct translation of the text.
-                        Do NOT include any extra notes, explanations, or placeholder text.
+                        You are a professional news translator for KINGS 24x7. Translate the following news content from %s.
+                        Maintain the exact format structure with TITLE:, EXCERPT:, and CONTENT: headers as shown below:
 
-                        Text to Translate:
+                        TITLE:
+                        [Translated Title]
+
+                        EXCERPT:
+                        [Translated Excerpt]
+
+                        CONTENT:
+                        [Translated HTML Content]
+
+                        Content to Translate:
                         """.formatted(direction) + text;
             }
 

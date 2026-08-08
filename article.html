@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ta" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>செய்தி வாசிப்பு - KING 24x7 | Tamil News Portal</title>
+  <link rel="stylesheet" href="css/styles.css?v=8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-light.png" id="favicon">
+</head>
+
+<body class="theme-politics" id="articlePageBody">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-bar-left">
+        <span><i class="far fa-calendar-alt"></i> <span id="tamilDate"></span></span>
+        <span><i class="far fa-clock"></i> <span id="currentTime"></span></span>
+        <span><i class="fas fa-map-marker-alt"></i> 
+          <select id="districtSelector" class="district-select-top" aria-label="District">
+            <option value="சென்னை" selected>சென்னை</option>
+            <option value="கோயம்புத்தூர்">கோயம்புத்தூர்</option>
+            <option value="மதுரை">மதுரை</option>
+            <option value="சேலம்">சேலம்</option>
+            <option value="திருச்சி">திருச்சி</option>
+          </select>
+        </span>
+        <span><i class="fas fa-thermometer-half"></i> <span id="topTemp">32°C</span></span>
+      </div>
+      <div class="top-bar-right">
+        <a href="#" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-icon" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode"><i class="fas fa-moon"></i> இருள்</button>
+        <select class="lang-switcher" aria-label="Language">
+          <option value="ta" selected>தமிழ்</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+        <!-- HEADER MAIN -->
+  <header class="header-main">
+    <div class="container">
+      <div class="header-left">
+        <a href="index.html" class="logo-link">
+          <img src="assets/images/logo-banner-light.png" alt="KING 24x7" class="main-logo-img logo-light-only">
+          <img src="assets/images/logo-banner-dark.png" alt="KING 24x7" class="main-logo-img logo-dark-only">
+          <span class="logo-sub-text">LIVE • TRUE • TAMIL</span>
+        </a>
+      </div>
+      <div class="header-center"></div>
+      <div class="header-right">
+        <a href="index.html#section-livetv" class="livetv-btn">
+          <i class="fas fa-play-circle"></i> LIVE TV WATCH NOW
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="main-nav" id="mainNav">
+    <div class="container">
+      <div class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <i class="fas fa-bars"></i>
+      </div>
+            <ul class="nav-menu" id="navMenu">
+        <li class="nav-item" id="nav-home"><a href="index.html" class="nav-link">முகப்பு</a></li>
+        <li class="nav-item" id="nav-politics"><a href="category.html?cat=politics" class="nav-link">அரசியல்</a></li>
+        <li class="nav-item" id="nav-business"><a href="category.html?cat=business" class="nav-link">வணிகம்</a></li>
+        <li class="nav-item" id="nav-sports"><a href="category.html?cat=sports" class="nav-link">விளையாட்டு</a></li>
+        <li class="nav-item" id="nav-cinema"><a href="category.html?cat=cinema" class="nav-link">பொழுதுபோக்கு</a></li>
+        <li class="nav-item" id="nav-tech"><a href="category.html?cat=tech" class="nav-link">தொழில்நுட்பம்</a></li>
+        <li class="nav-item" id="nav-state"><a href="directory.html" class="nav-link">மாநிலம்</a></li>
+        <li class="nav-item" id="nav-world"><a href="category.html?cat=politics" class="nav-link">சர்வதேசம்</a></li>
+        <li class="nav-item"><a href="index.html#section-video" class="nav-link">வீдео</a></li>
+        <li class="nav-item"><a href="index.html#section-stories" class="nav-link">வெப் ஸ்டோரிஸ்</a></li>
+      </ul>
+      <div class="nav-search" id="searchToggle" aria-label="Search"><i class="fas fa-search"></i></div>
+    </div>
+  </nav>
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <!-- BREAKING NEWS -->
+  <div class="breaking-news">
+    <div class="container">
+      <div class="breaking-label" style="background-color: #FFD700; color: #000;"><i class="fas fa-bolt"></i> BREAKING NEWS</div>
+      <div class="breaking-ticker">
+        <div class="breaking-track" id="breakTrack">
+          <a href="#">🌧️ தமிழகத்தில் அடுத்த 3 நாட்களுக்கு மழைக்கு வாய்ப்பு – வானிலை ஆய்வு மையம்</a>
+          <a href="#">🏏 IPL 2025: சென்னை அணி அபார வெற்றி – ரசிகர்கள் உற்சாகம்</a>
+          <a href="#">📈 பங்குச்சந்தை உயர்வு – முதலீட்டாளர்கள் பெரும் மகிழ்ச்சி</a>
+        </div>
+      </div>
+      <div class="breaking-controls">
+        <button id="breakPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+        <button id="breakNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTAINER -->
+  <div class="container">
+    <div class="article-container">
+      
+      <!-- Floating Share Sidebar -->
+      <aside class="share-sidebar" id="shareSidebar">
+        <button class="share-btn whatsapp" id="shareWA" aria-label="Share on WhatsApp"><i class="fab fa-whatsapp"></i></button>
+        <button class="share-btn facebook" id="shareFB" aria-label="Share on Facebook"><i class="fab fa-facebook-f"></i></button>
+        <button class="share-btn twitter" id="shareTW" aria-label="Share on Twitter"><i class="fab fa-twitter"></i></button>
+        <button class="share-btn telegram" id="shareTG" aria-label="Share on Telegram"><i class="fab fa-telegram-plane"></i></button>
+        <button class="share-btn copy" id="shareCopy" aria-label="Copy Link" title="நகலெடு"><i class="fas fa-link"></i></button>
+      </aside>
+
+      <!-- Main Article Column -->
+      <main class="article-main">
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+          <a href="index.html">முகப்பு</a>
+          <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+          <a href="#" id="breadCategoryLink">அரசியல்</a>
+          <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+          <span id="breadArticleTitle">கட்டுரை</span>
+        </div>
+
+        <!-- Headlines -->
+        <div class="article-headlines">
+          <h1 id="artTitleTa">தமிழக சட்டமன்றக் கூட்டத்தொடர் புதிய பட்ஜெட் அறிவிப்புகள் – நேரடித் தகவல்கள்</h1>
+          <h2 id="artTitleEn">Tamil Nadu Assembly Session New Budget Declarations: Live Updates and Key Announcements</h2>
+        </div>
+
+        <!-- Meta Info & Byline -->
+        <div class="article-meta-info">
+          <div class="author-profile">
+            <!-- Round photo placeholder using linear-gradient -->
+            <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--category-color, var(--primary)), #8B5CF6); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;" id="authorPhoto">ந</div>
+            <div class="author-details">
+              <h4 id="authorName">செல்வகுமார்</h4>
+              <span>தலைமைச் செய்தி நிருபர்</span>
+            </div>
+          </div>
+          <div class="article-time">
+            <div><i class="far fa-calendar-alt"></i> வெளியிடப்பட்டது: <span id="pubDate">20 மே 2025 | 10:30 AM</span></div>
+            <div><i class="fas fa-history"></i> புதுப்பிக்கப்பட்டது: <span id="updDate">21 மே 2025 | 09:15 AM</span></div>
+            <div style="font-weight:600; color:var(--category-color, var(--primary)); margin-top:4px;"><i class="far fa-clock"></i> <span id="readTime">3 நிமிட வாசிப்பு</span></div>
+          </div>
+        </div>
+
+        <!-- Full Width Hero Image -->
+        <div class="article-hero-img-container" style="display: none;">
+          <div style="width: 100%; height: 350px; border-radius: var(--radius-md); background: #0f172a;" id="heroImgGradient"></div>
+          <div class="caption" id="imgCaption"></div>
+        </div>
+
+        <!-- Article Body -->
+        <article class="article-body-text" id="articleBody">
+          <p>தமிழக அரசின் 2026 பட்ஜெட் கூட்டத்தொடரில் பல முக்கிய அறிவிப்புகள் வெளியிடப்பட்டுள்ளன. குறிப்பாக, கல்வி, விவசாயம் மற்றும் உள்கட்டமைப்பு மேம்பாட்டிற்கு இந்த பட்ஜெட்டில் முக்கியத்துவம் அளிக்கப்பட்டுள்ளது. முதலமைச்சர் சட்டப்பேரவையில் இன்று ஆற்றிய உரையில், ஏழை எளிய மக்களின் வாழ்வாதாரத்தை மேம்படுத்தும் பல புதிய திட்டங்களை அறிவித்தார்.</p>
+          <p>அமைச்சர் நிதி ஒதுக்கீடு குறித்துப் பேசுகையில், "மாநிலத்தின் நிதிநிலையைக் கருத்தில் கொண்டு, அதே சமயம் மக்கள் நலத் திட்டங்கள் முடங்கிவிடாமல் இருக்க தகுந்த நடவடிக்கைகள் எடுக்கப்பட்டுள்ளன. அடுத்த சில மாதங்களில் இந்த திட்டங்கள் அனைத்தும் செயல்பாட்டிற்கு வரும்" என்றார்.</p>
+          <p>எதிர்க்கட்சிகள் பட்ஜெட் நிதிப் பகிர்வு குறித்து சில விமர்சனங்களை எழுப்பிய போதிலும், பெரும்பான்மையான சட்டமன்ற உறுப்பினர்கள் இந்த அறிவிப்புகளுக்கு வரவேற்பு தெரிவித்துள்ளனர். பட்ஜெட் கூட்டத்தொடரின் மீதான விவாதம் இன்னும் சில நாட்களுக்குத் தொடரும் என்று சபாநாயகர் அறிவித்துள்ளார்.</p>
+        </article>
+
+        <!-- Tags -->
+        <div class="article-tags" id="articleTags">
+          <span class="article-tag">சட்டமன்றம்</span>
+          <span class="article-tag">தமிழக பட்ஜெட்</span>
+          <span class="article-tag">அரசு கொள்கை</span>
+        </div>
+
+        <!-- Related Articles Grid -->
+        <div class="related-articles">
+          <h3 class="related-title">தொடர்புடைய செய்திகள்</h3>
+          <div class="news-grid-3" id="relatedArticlesGrid">
+            <!-- Dynamic related articles insert -->
+          </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section">
+          <h3 class="comments-count" id="commentCountTitle">3 கருத்துக்கள்</h3>
+          <div class="comments-list" id="commentsList">
+            <div class="comment-item">
+              <div class="comment-avatar">கு</div>
+              <div class="comment-content">
+                <div class="comment-header">
+                  <h5>குமரன்</h5>
+                  <span>10 மணி நேரத்திற்கு முன்</span>
+                </div>
+                <p class="comment-text">அருமையான பட்ஜெட் அறிவிப்புகள். குறிப்பாக கல்விக்கான நிதி ஒதுக்கீடு உயர்த்தப்பட்டுள்ளது பாராட்டத்தக்கது.</p>
+              </div>
+            </div>
+            <div class="comment-item">
+              <div class="comment-avatar">ம</div>
+              <div class="comment-content">
+                <div class="comment-header">
+                  <h5>மகேஷ்வரன்</h5>
+                  <span>8 மணி நேரத்திற்கு முன்</span>
+                </div>
+                <p class="comment-text">விவசாயிகளுக்கான இலவச மின்சாரம் மற்றும் மானியங்கள் தொடருமா என்பதில் சட்டமன்றத்தில் தெளிவுபடுத்த வேண்டும்.</p>
+              </div>
+            </div>
+            <div class="comment-item">
+              <div class="comment-avatar">க</div>
+              <div class="comment-content">
+                <div class="comment-header">
+                  <h5>கவிதா</h5>
+                  <span>5 மணி நேரத்திற்கு முன்</span>
+                </div>
+                <p class="comment-text">புதிய சாலை மேம்பாட்டுத் திட்டங்கள் போக்குவரத்தை சீரமைக்கும் என நம்புகிறேன்.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Comment Form -->
+          <div class="comment-form-container">
+            <h4>கருத்துக்களைப் பகிரவும்</h4>
+            <form class="comment-form" id="commentForm">
+              <input type="text" placeholder="உங்கள் பெயர் (கட்டாயமானது)" id="commentorName" required>
+              <input type="email" placeholder="மின்னஞ்சல் முகவரி (வெளியிடப்படாது)" id="commentorEmail" required>
+              <textarea placeholder="உங்கள் கருத்துக்களை இங்கு எழுதவும்..." id="commentText" required></textarea>
+              <button type="submit">பதிவு செய்க</button>
+            </form>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Sidebar Area -->
+      <aside style="display:flex; flex-direction:column; gap:20px;">
+        <!-- Weather Widget (Reused) -->
+        <div class="weather-widget">
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px"><i
+              class="fas fa-cloud-sun" style="color:var(--primary)"></i> சென்னை வானிலை</h4>
+          <div class="weather-current">
+            <div class="temp">32°C</div>
+            <div class="details">
+              <strong>மேகமூட்டம்</strong>
+              <span>ஈரப்பதம்: 72%</span>
+              <span>காற்று: 18 km/h</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Trending Widget -->
+        <div class="trending-list">
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i
+              class="fas fa-fire" style="color:#EF4444"></i> ட்ரெண்டிங் செய்திகள்</h4>
+          <div class="trending-item">
+            <span class="rank top3">1</span>
+            <div class="info">
+              <h5>சென்னை மெட்ரோ புதிய மெட்ரோ ரயில் திட்டம்</h5>
+            </div>
+          </div>
+          <div class="trending-item">
+            <span class="rank top3">2</span>
+            <div class="info">
+              <h5>தங்கம் விலை அதிரடி வீழ்ச்சி</h5>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Alert -->
+  <div class="toast-alert" id="toastAlert">நகலெடுக்கப்பட்டது! (Link Copied!)</div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="assets/icons/logo-icon-light.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-light-only">
+            <img src="assets/icons/logo-icon-dark.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-dark-only">
+            <span style="font-size:24px; font-weight:800; color:white;">KING 24x7</span>
+          </div>
+          <div class="tagline" style="color:rgba(255,255,255,0.5); margin-top:8px;">உண்மை. பொறுப்புடன். தமிழ்.</div>
+          <p>KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி,
+            நம்பகமான செய்திகளை வழங்குகிறோம்.</p>
+        </div>
+<div class="footer-col">
+          <h5>செய்திகள்</h5>
+          <a href="category.html?cat=politics">அரசியல்</a>
+          <a href="category.html?cat=business">வணிகம்</a>
+          <a href="category.html?cat=sports">விளையாட்டு</a>
+          <a href="category.html?cat=cinema">சினிமா</a>
+          <a href="category.html?cat=tech">தொழில்நுட்பம்</a>
+        </div>
+        <div class="footer-col">
+          <h5>கூடுதல்</h5>
+          <a href="index.html#section-video">வீடியோக்கள்</a>
+          <a href="index.html#section-livetv">லைவ் டிவி</a>
+          <a href="index.html#section-stories">வெப் ஸ்டோரிஸ்</a>
+        </div>
+        <div class="footer-col">
+          <h5>தகவல்</h5>
+          <a href="#">எங்களைப் பற்றி</a>
+          <a href="#">தொடர்புக்கு</a>
+          <a href="#">தனியுரிமைக் கொள்கை</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2025 <strong>KING 24x7</strong> - All Rights Reserved.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+  <script src="js/main.js?v=4" charset="UTF-8"></script>
+
+  <!-- ARTICLE DYNAMIC POPULATION & COMMENTS/SHARE SCRIPT -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+      // 1. Get Query Parameters
+      const params = new URLSearchParams(window.location.search);
+      let cat = params.get('cat') || 'politics';
+      cat = cat.toLowerCase();
+      let artId = parseInt(params.get('id')) || 1;
+
+      // API Base
+      const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8080'
+        : 'https://kings-tv.onrender.com';
+
+      // Category config maps
+      const catConfigs = {
+        politics: { name: 'அரசியல்', themeClass: 'theme-politics', color: '#3B82F6' },
+        business: { name: 'வணிகம்', themeClass: 'theme-business', color: '#22C55E' },
+        sports: { name: 'விளையாட்டு', themeClass: 'theme-sports', color: '#F97316' },
+        cinema: { name: 'பொழுதுபோக்கு', themeClass: 'theme-cinema', color: '#EC4899' },
+        tech: { name: 'தொழில்நுட்பம்', themeClass: 'theme-tech', color: '#A855F7' }
+      };
+
+      const currentConfig = catConfigs[cat] || catConfigs['politics'];
+      document.body.className = currentConfig.themeClass;
+
+      // Set category breadcrumb link
+      const catLink = document.getElementById('breadCategoryLink');
+      catLink.textContent = currentConfig.name;
+      catLink.href = 'category.html?cat=' + cat;
+
+      // Keep reference to fetched article
+      let currentArticle = null;
+
+      function renderArticleContent() {
+        if (!currentArticle) return;
+        const lang = localStorage.getItem('king24x7_lang') ? JSON.parse(localStorage.getItem('king24x7_lang')) : 'ta';
+        const bodyContainer = document.getElementById('articleBody');
+        
+        let contentHtml = '';
+        if (lang === 'en') {
+          contentHtml = currentArticle.contentEn || currentArticle.contentTa || '';
+        } else {
+          contentHtml = currentArticle.contentTa || currentArticle.contentEn || '';
+        }
+        
+        // Resolve relative upload paths inside the HTML content
+        contentHtml = contentHtml.replace(/(src|href)="\/uploads\//g, `$1="${API_BASE}/uploads/`);
+
+        // Strip duplicate hero/thumbnail image from body using DOMParser
+        try {
+          // Collect ALL possible featured/thumbnail image URLs
+          const featuredUrls = [];
+          [currentArticle.imageUrl, currentArticle.featuredImage, currentArticle.ogImage].forEach(u => {
+            if (u && typeof u === 'string' && u.trim()) featuredUrls.push(u.trim());
+          });
+
+          const featuredBasenames = new Set();
+          const featuredPaths = new Set();
+          featuredUrls.forEach(url => {
+            const lowerUrl = url.toLowerCase();
+            featuredPaths.add(lowerUrl);
+            const basename = lowerUrl.split('/').pop().split('?')[0].split('#')[0].trim();
+            if (basename && basename.length >= 3) featuredBasenames.add(basename);
+            try {
+              const urlObj = new URL(url, window.location.origin);
+              featuredPaths.add(urlObj.pathname.toLowerCase());
+            } catch(e) {
+              const pathMatch = url.match(/\/uploads\/[^\s?#]+/i);
+              if (pathMatch) featuredPaths.add(pathMatch[0].toLowerCase());
+            }
+          });
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString('<div>' + contentHtml + '</div>', 'text/html');
+          const wrapper = doc.body.firstChild;
+          const imgs = wrapper.querySelectorAll('img');
+
+          imgs.forEach((img) => {
+            const src = (img.getAttribute('src') || '').trim();
+            let shouldRemove = false;
+
+            // Condition 1: base64 image from failed TinyMCE upload
+            if (src.startsWith('data:image/')) {
+              shouldRemove = true;
+            }
+
+            // Condition 2: Match against ANY featured image URL
+            if (!shouldRemove && featuredBasenames.size > 0 && !src.startsWith('data:')) {
+              const srcLower = src.toLowerCase();
+              const srcBasename = srcLower.split('/').pop().split('?')[0].split('#')[0].trim();
+              
+              if (srcBasename && featuredBasenames.has(srcBasename)) {
+                shouldRemove = true;
+              }
+              if (!shouldRemove) {
+                for (const fp of featuredPaths) {
+                  if (srcLower === fp || srcLower.endsWith(fp) || fp.endsWith(srcLower.replace(/^https?:\/\/[^\/]+/, ''))) {
+                    shouldRemove = true;
+                    break;
+                  }
+                }
+              }
+              if (!shouldRemove) {
+                try {
+                  const srcPath = new URL(src, window.location.origin).pathname.toLowerCase();
+                  if (featuredPaths.has(srcPath)) shouldRemove = true;
+                } catch(e) {}
+              }
+            }
+
+            if (shouldRemove) {
+              const parent = img.parentElement;
+              img.remove();
+              if (parent && parent !== wrapper && !parent.textContent.trim() && !parent.querySelector('img,video,iframe')) {
+                parent.remove();
+              }
+            }
+          });
+
+          contentHtml = wrapper.innerHTML.trim();
+        } catch(e) {
+          // fallback: use raw content if DOMParser fails
+        }
+
+        bodyContainer.innerHTML = contentHtml;
+      }
+
+      // Fetch dynamic article from backend
+      try {
+        const response = await fetch(`${API_BASE}/api/v1/articles/${artId}`);
+        if (!response.ok) {
+          throw new Error('Article not found');
+        }
+        currentArticle = await response.json();
+
+        // Update titles
+        document.getElementById('artTitleTa').textContent = currentArticle.titleTa || '';
+        document.getElementById('artTitleEn').textContent = currentArticle.titleEn || '';
+        document.getElementById('breadArticleTitle').textContent = (currentArticle.titleTa || currentArticle.titleEn || '').substring(0, 25) + '...';
+        document.title = (currentArticle.titleTa || currentArticle.titleEn || 'செய்தி') + ' - KING 24x7';
+
+        // Update author byline info
+        document.getElementById('authorName').textContent = currentArticle.authorName || 'Kings TV News Desk';
+        document.getElementById('authorPhoto').textContent = (currentArticle.authorName || 'K').charAt(0).toUpperCase();
+        document.getElementById('authorPhoto').style.background = 'linear-gradient(135deg, ' + currentConfig.color + ', #8B5CF6)';
+        
+        // Dates formatting
+        const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+        const pubDateStr = currentArticle.publishedAt ? new Date(currentArticle.publishedAt).toLocaleString('en-US', options) : '';
+        const updDateStr = currentArticle.updatedAt ? new Date(currentArticle.updatedAt).toLocaleString('en-US', options) : pubDateStr;
+        
+        document.getElementById('pubDate').textContent = pubDateStr;
+        document.getElementById('updDate').textContent = updDateStr;
+
+        // Reading time
+        const wordCount = ((currentArticle.contentTa || '') + ' ' + (currentArticle.contentEn || '')).split(/\s+/).filter(w => w).length;
+        const readTimeMins = Math.max(1, Math.ceil(wordCount / 200));
+        document.getElementById('readTime').innerHTML = `<i class="far fa-clock"></i> ${readTimeMins} நிமிட வாசிப்பு (${readTimeMins} mins read)`;
+
+        // Featured Image is used as thumbnail externally only. We hide the internal hero image container.
+        const heroContainer = document.querySelector('.article-hero-img-container');
+        if (heroContainer) heroContainer.style.display = 'none';
+
+        // Render main content body
+        renderArticleContent();
+
+        // Render tags
+        const tagsContainer = document.getElementById('articleTags');
+        tagsContainer.innerHTML = '';
+        if (currentArticle.metaKeywords) {
+          const tags = currentArticle.metaKeywords.split(',').map(t => t.trim()).filter(t => t);
+          tags.forEach(tag => {
+            const span = document.createElement('span');
+            span.className = 'article-tag';
+            span.textContent = tag;
+            tagsContainer.appendChild(span);
+          });
+        }
+
+        // Render related articles
+        const relatedGrid = document.getElementById('relatedArticlesGrid');
+        relatedGrid.innerHTML = '';
+        try {
+          const relRes = await fetch(`${API_BASE}/api/v1/articles/getAllWeb?size=4&categoryId=${currentArticle.categoryId || ''}`);
+          if (relRes.ok) {
+            const relData = await relRes.json();
+            const relatedList = (relData.content || []).filter(a => a.id !== currentArticle.id).slice(0, 3);
+            relatedList.forEach(item => {
+              const card = document.createElement('div');
+              card.className = 'news-card';
+              card.onclick = function() {
+                window.location.href = 'article.html?cat=' + cat + '&id=' + item.id;
+              };
+              const itemTitle = item.titleTa || item.titleEn || '';
+              const itemImg = item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE}${item.imageUrl}`) : '';
+              const cardImgStyle = itemImg ? `background: url('${itemImg}') center/cover no-repeat;` : `background: ${currentConfig.gradient || 'linear-gradient(135deg, #3B82F6, #60A5FA)'};`;
+              card.innerHTML = `
+                <div class="card-img" style="${cardImgStyle} height: 120px;">
+                  <span class="cat-badge" style="background: var(--category-color, var(--primary));">${currentConfig.name}</span>
+                </div>
+                <div class="card-body" style="padding:10px;">
+                  <h3 style="font-size:13px; line-height:1.4;">${itemTitle}</h3>
+                  <div class="card-meta" style="font-size:10px; margin-top:6px;">
+                    <span><i class="far fa-clock"></i> 1 நாள் முன்</span>
+                  </div>
+                </div>
+              `;
+              relatedGrid.appendChild(card);
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to load related articles', err);
+        }
+
+      } catch (err) {
+        console.error('Failed to load article from backend API', err);
+        document.getElementById('artTitleTa').textContent = 'செய்தி காணப்படவில்லை (Article Not Found)';
+        document.getElementById('articleBody').innerHTML = '<p style="text-align: center; color: var(--text-secondary); margin: 2rem 0;">மன்னிக்கவும், நீங்கள் தேடும் செய்தி காணப்படவில்லை அல்லது நீக்கப்பட்டிருக்கலாம்.</p>';
+      }
+
+      // Add listener to lang switchers so we re-render the appropriate language content body
+      document.querySelectorAll('.lang-switcher').forEach(function(select) {
+        select.addEventListener('change', function() {
+          setTimeout(renderArticleContent, 50);
+        });
+      });
+
+      // 2. Floating Social Share Button Functionality
+      const shareUrl = window.location.href;
+      
+      document.getElementById('shareWA').onclick = function() {
+        const titleText = currentArticle ? (currentArticle.titleTa || currentArticle.titleEn) : document.title;
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(titleText + ' - ' + shareUrl), '_blank');
+      };
+      document.getElementById('shareFB').onclick = function() {
+        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl), '_blank');
+      };
+      document.getElementById('shareTW').onclick = function() {
+        const titleText = currentArticle ? (currentArticle.titleTa || currentArticle.titleEn) : document.title;
+        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(titleText) + '&url=' + encodeURIComponent(shareUrl), '_blank');
+      };
+      document.getElementById('shareTG').onclick = function() {
+        const titleText = currentArticle ? (currentArticle.titleTa || currentArticle.titleEn) : document.title;
+        window.open('https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(titleText), '_blank');
+      };
+      
+      // Copy Link
+      document.getElementById('shareCopy').onclick = function() {
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          const toast = document.getElementById('toastAlert');
+          toast.classList.add('show');
+          setTimeout(function() {
+            toast.classList.remove('show');
+          }, 2000);
+        });
+      };
+
+      // 3. Dynamic Comment Section posting & retrieving
+      const commentForm = document.getElementById('commentForm');
+      const commentsList = document.getElementById('commentsList');
+      const commentCountTitle = document.getElementById('commentCountTitle');
+
+      async function fetchComments() {
+        try {
+          const res = await fetch(`${API_BASE}/api/v1/comments/article/${artId}`);
+          if (res.ok) {
+            const comments = await res.json();
+            commentCountTitle.textContent = comments.length + ' கருத்துக்கள்';
+            commentsList.innerHTML = '';
+            comments.forEach(c => {
+              const item = document.createElement('div');
+              item.className = 'comment-item';
+              const initial = (c.commentorName || 'K').charAt(0).toUpperCase();
+              const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'இப்போது';
+              item.innerHTML = `
+                <div class="comment-avatar" style="background: var(--category-color, var(--primary)); color: white;">${initial}</div>
+                <div class="comment-content">
+                  <div class="comment-header">
+                    <h5>${c.commentorName}</h5>
+                    <span>${dateStr}</span>
+                  </div>
+                  <p class="comment-text">${c.commentText}</p>
+                </div>
+              `;
+              commentsList.appendChild(item);
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to fetch comments', e);
+        }
+      }
+
+      // Initial comment fetch
+      fetchComments();
+
+      commentForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const nameVal = document.getElementById('commentorName').value.trim();
+        const emailVal = document.getElementById('commentorEmail').value.trim();
+        const textVal = document.getElementById('commentText').value.trim();
+
+        if (!nameVal || !textVal) return;
+
+        try {
+          const commentRes = await fetch(`${API_BASE}/api/v1/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              articleId: artId,
+              commentorName: nameVal,
+              commentorEmail: emailVal,
+              commentText: textVal
+            })
+          });
+
+          if (commentRes.ok) {
+            // Clear input form
+            document.getElementById('commentorName').value = '';
+            document.getElementById('commentorEmail').value = '';
+            document.getElementById('commentText').value = '';
+            
+            // Refresh comments list
+            fetchComments();
+
+            // Trigger toast confirmation
+            const toast = document.getElementById('toastAlert');
+            toast.textContent = 'உங்கள் கருத்து வெற்றிகரமாக பகிரப்பட்டது!';
+            toast.style.background = '#10B981';
+            toast.classList.add('show');
+            setTimeout(function() {
+              toast.classList.remove('show');
+            }, 2500);
+          }
+        } catch (err) {
+          console.error('Failed to post comment', err);
+        }
+      });
+    });
+  </script>
+
+</html>

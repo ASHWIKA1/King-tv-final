@@ -144,7 +144,6 @@ public class ClassifiedController {
         if (classified.getTitle() == null || classified.getDescription() == null || classified.getPrice() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Title, description, and price are required."));
         }
-        classified.setStatus("pending");
         ClassifiedListing saved = classifiedService.createClassified(classified, images);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -252,23 +251,5 @@ public class ClassifiedController {
         }
         classifiedReportRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "Report dismissed"));
-    }
-
-    @GetMapping("/admin/pending")
-    public ResponseEntity<?> getPendingClassifieds() {
-        List<ClassifiedListing> pending = classifiedRepository.findByStatus("pending");
-        return ResponseEntity.ok(pending);
-    }
-
-    @PutMapping("/admin/{id}/approve")
-    public ResponseEntity<?> approveClassified(@PathVariable Long id) {
-        Optional<ClassifiedListing> listingOpt = classifiedRepository.findById(id);
-        if (listingOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Classified not found"));
-        }
-        ClassifiedListing listing = listingOpt.get();
-        listing.setStatus("active");
-        classifiedRepository.save(listing);
-        return ResponseEntity.ok(Map.of("message", "Classified approved and is now active"));
     }
 }

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comments - NewsCMS Pro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3 z-3"></div>
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <div class="wrapper">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-newspaper"></i></div><span class="brand-text">NewsCMS Pro</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-grid-1x2-fill"></i><span class="nav-text">Dashboard</span></a></li>
+          <li class="nav-item"><a href="news.html" class="nav-link"><i class="nav-icon bi bi-file-text"></i><span class="nav-text">News</span><span class="nav-badge badge bg-danger rounded-pill">12</span></a></li>
+          <li class="nav-item"><a href="add-news.html" class="nav-link"><i class="nav-icon bi bi-plus-circle"></i><span class="nav-text">Add News</span></a></li>
+        </ul>
+        <div class="nav-label">Content</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="categories.html" class="nav-link"><i class="nav-icon bi bi-collection"></i><span class="nav-text">Categories</span></a></li>
+          <li class="nav-item"><a href="hero-slider.html" class="nav-link"><i class="nav-icon bi bi-images"></i><span class="nav-text">Hero Slider</span></a></li>
+          <li class="nav-item"><a href="media.html" class="nav-link"><i class="nav-icon bi bi-folder"></i><span class="nav-text">Media Library</span><span class="nav-badge badge bg-primary rounded-pill">48</span></a></li>
+          <li class="nav-item"><a href="comments.html" class="nav-link active"><i class="nav-icon bi bi-chat-dots"></i><span class="nav-text">Comments</span><span class="nav-badge badge bg-warning rounded-pill">7</span></a></li>
+        </ul>
+        <div class="nav-label">Monetization</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="advertisements.html" class="nav-link"><i class="nav-icon bi bi-megaphone"></i><span class="nav-text">Advertisements</span></a></li>
+        </ul>
+        <div class="nav-label">SEO</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="seo.html" class="nav-link"><i class="nav-icon bi bi-search-heart"></i><span class="nav-text">SEO</span></a></li>
+        </ul>
+        <div class="nav-label">Administration</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><span class="nav-text">Users</span></a></li>
+          <li class="nav-item"><a href="settings.html" class="nav-link"><i class="nav-icon bi bi-gear"></i><span class="nav-text">Settings</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer"><a href="#" class="nav-link btn-logout"><i class="nav-icon bi bi-box-arrow-left"></i><span class="nav-text">Logout</span></a></div>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+          <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Home</a></li><li class="breadcrumb-item active">Comments</li></ol></nav>
+        </div>
+        <div class="header-right">
+          <div class="theme-switch"><input type="checkbox" id="themeToggle" aria-label="Toggle dark mode"><span class="slider"></span></div>
+          <div class="dropdown">
+            <button class="btn-icon" data-bs-toggle="dropdown" aria-label="Notifications"><i class="bi bi-bell"></i><span class="badge-dot"></span></button>
+            <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+              <div class="dropdown-header d-flex justify-content-between align-items-center"><span>Notifications</span><span class="badge bg-primary rounded-pill">3</span></div>
+              <div class="notif-item"><div class="notif-icon bg-soft-primary text-primary"><i class="bi bi-file-text"></i></div><div class="notif-content"><div class="notif-title">New article published</div><div class="notif-text">"Breaking: Tech Innovation 2026" has been published.</div><div class="notif-time">2 minutes ago</div></div></div>
+              <a href="#" class="dropdown-item text-center py-2 border-top small">View all notifications</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <div class="user-profile" data-bs-toggle="dropdown" role="button"><div class="avatar">JD</div><div class="user-info"><div class="user-name">John Doe</div><div class="user-role">Senior Editor</div></div><i class="bi bi-chevron-down text-muted" style="font-size: 12px;"></i></div>
+            <ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="#"><i class="bi bi-person dropdown-icon"></i> Profile</a></li><li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear dropdown-icon"></i> Settings</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item btn-logout" href="#"><i class="bi bi-box-arrow-left dropdown-icon"></i> Logout</a></li></ul>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div><h4>Comments</h4><p>Moderate reader comments across all articles.</p></div>
+          <div class="page-actions d-flex gap-2">
+            <select class="form-select form-select-sm" style="width: auto;">
+              <option>All Status</option>
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Spam</option>
+            </select>
+            <div class="input-group input-group-sm" style="max-width: 250px;">
+              <span class="input-group-text bg-transparent"><i class="bi bi-search text-muted"></i></span>
+              <input type="search" class="form-control table-search" placeholder="Search comments...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-primary text-primary"><i class="bi bi-chat-dots"></i></div>
+              <div class="stat-label">Total Comments</div>
+              <div class="stat-value">3,452</div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-success text-success"><i class="bi bi-check-circle"></i></div>
+              <div class="stat-label">Approved</div>
+              <div class="stat-value">2,890</div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-warning text-warning"><i class="bi bi-clock"></i></div>
+              <div class="stat-label">Pending</div>
+              <div class="stat-value">237</div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-soft-danger text-danger"><i class="bi bi-exclamation-triangle"></i></div>
+              <div class="stat-label">Spam</div>
+              <div class="stat-value">325</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments List -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Comments</span>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Filter: All</button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#">All Comments</a></li>
+                <li><a class="dropdown-item" href="#">Pending</a></li>
+                <li><a class="dropdown-item" href="#">Approved</a></li>
+                <li><a class="dropdown-item" href="#">Spam</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/2563EB/FFFFFF?text=AR" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">Alex Rivera</span>
+                    <span class="badge bg-warning-soft ms-2">Pending</span>
+                  </div>
+                  <span class="comment-meta">2 hours ago</span>
+                </div>
+                <div class="comment-text">Great article! The analysis on market trends was very insightful. I particularly enjoyed the section on emerging technologies.</div>
+                <div class="comment-meta mt-1">on "Global Markets Rally on Strong Tech Earnings"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/16A34A/FFFFFF?text=MS" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">Maria Santos</span>
+                    <span class="badge bg-success-soft ms-2">Approved</span>
+                  </div>
+                  <span class="comment-meta">5 hours ago</span>
+                </div>
+                <div class="comment-text">This is exactly what I needed to read today. Thank you for this wonderful perspective on health and wellness.</div>
+                <div class="comment-meta mt-1">on "Health Benefits of Meditation"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/F59E0B/FFFFFF?text=KO" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">Kevin O'Brien</span>
+                    <span class="badge bg-warning-soft ms-2">Pending</span>
+                  </div>
+                  <span class="comment-meta">8 hours ago</span>
+                </div>
+                <div class="comment-text">I disagree with some points made in this article. The data from recent studies shows a different trend altogether. Let me share my perspective...</div>
+                <div class="comment-meta mt-1">on "AI Breakthrough 2026"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/DC2626/FFFFFF?text=JT" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">Jane Thompson</span>
+                    <span class="badge bg-danger-soft ms-2">Spam</span>
+                  </div>
+                  <span class="comment-meta">12 hours ago</span>
+                </div>
+                <div class="comment-text">Check out this amazing deal at our website! You won't believe what we have for you!!! Click here now!!!</div>
+                <div class="comment-meta mt-1">on "Earthquake Hits Coastal Region"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/0891B2/FFFFFF?text=DW" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">David Wang</span>
+                    <span class="badge bg-success-soft ms-2">Approved</span>
+                  </div>
+                  <span class="comment-meta">1 day ago</span>
+                </div>
+                <div class="comment-text">Excellent coverage of the championship finals. The play-by-play analysis was spot on!</div>
+                <div class="comment-meta mt-1">on "Championship Finals Recap"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+            <div class="comment-item d-flex gap-3 align-items-start">
+              <img src="https://placehold.co/40x40/8B5CF6/FFFFFF?text=RP" class="comment-avatar" alt="Avatar">
+              <div class="comment-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="comment-author">Rachel Park</span>
+                    <span class="badge bg-warning-soft ms-2">Pending</span>
+                  </div>
+                  <span class="comment-meta">1 day ago</span>
+                </div>
+                <div class="comment-text">Could you provide more details on the sources used for this article? I'd like to read the original research.</div>
+                <div class="comment-meta mt-1">on "New Study Health Benefits of Meditation"</div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-soft-success btn-icon-only" data-bs-toggle="tooltip" title="Approve"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-sm btn-soft-danger btn-icon-only" data-bs-toggle="tooltip" title="Reject"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-sm btn-soft-warning btn-icon-only" data-bs-toggle="tooltip" title="Mark as Spam"><i class="bi bi-flag"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <nav>
+              <ul class="pagination mb-0 justify-content-center">
+                <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">...</a></li>
+                <li class="page-item"><a class="page-link" href="#">58</a></li>
+                <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>&copy; <span id="currentYear"></span> NewsCMS Pro. All rights reserved.</span>
+          <span class="d-flex gap-3"><a href="#" class="text-muted">Privacy Policy</a><a href="#" class="text-muted">Terms of Service</a><a href="#" class="text-muted">Support</a></span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

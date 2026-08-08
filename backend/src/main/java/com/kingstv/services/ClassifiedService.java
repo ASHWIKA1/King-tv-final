@@ -116,9 +116,7 @@ public class ClassifiedService {
         listing.setCreatedAt(LocalDateTime.now());
         listing.setViewCount(0);
         listing.setFavouriteCount(0);
-        if (listing.getStatus() == null) {
-            listing.setStatus("pending");
-        }
+        listing.setStatus("active");
         ClassifiedListing saved = classifiedRepository.save(listing);
 
         if (images != null) {

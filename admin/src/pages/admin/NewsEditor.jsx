@@ -19,7 +19,7 @@ export let activeAiConfig = {
 };
 
 export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
-  const model = modelOverride || 'gemini-2.0-flash';
+  const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
   const key = apiKeyOverride 
     || activeAiConfig.apiKey 
     || localStorage.getItem('gemini_api_key') 
@@ -31,20 +31,6 @@ export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
 };
 
 const callGemini = async (prompt) => {
-  // 1. Try Backend AI Service (/articles/ai-assist) first — uses OpenRouter / Gemini / active backend provider!
-  try {
-    const res = await api.post('/articles/ai-assist', {
-      action: 'generate',
-      text: prompt,
-      context: 'news'
-    });
-    if (res.data && res.data.result && !res.data.error) {
-      return res.data.result;
-    }
-  } catch (backendErr) {
-    console.warn("Backend AI assist failed, trying direct provider fallback...", backendErr);
-  }
-
   const apiKey = activeAiConfig.apiKey 
     || localStorage.getItem('gemini_api_key') 
     || localStorage.getItem('ai.llm_api_key') 
@@ -53,15 +39,21 @@ const callGemini = async (prompt) => {
     || (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY)
     || DEFAULT_GEMINI_KEY;
   if (!apiKey) {
-    throw new Error('AI Service connection failed. Please check AI Configuration in Admin Settings.');
+    throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-  let primaryError = null;
+  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
+  const modelsToTry = [
+    configuredModel,
+    'gemini-flash-latest',
+    'gemini-1.5-flash',
+    'gemini-2.5-flash'
+  ];
+  
+  const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
   let lastError = null;
 
-  for (let i = 0; i < modelsToTry.length; i++) {
-    const model = modelsToTry[i];
+  for (const model of uniqueModels) {
     try {
       const url = getGeminiUrl(model, apiKey);
       const res = await fetch(url, {
@@ -77,13 +69,9 @@ const callGemini = async (prompt) => {
         const errorData = await res.json().catch(() => ({}));
         let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 429) {
-          errorMsg = 'Google AI API rate limit exceeded or payment credits depleted. Please try again later or verify your key at https://aistudio.google.com';
-        } else if (res.status === 400 || res.status === 403) {
-          errorMsg = errorData?.error?.message || 'Gemini API Key is invalid or Generative Language API is blocked/disabled for this key.';
+          errorMsg = errorData?.error?.message || 'Google AI Prepayment credits depleted or rate limit exceeded. Please top up credits or create a free key at https://aistudio.google.com';
         }
-        const errObj = new Error(`Gemini (${model}): ${errorMsg}`);
-        if (i === 0) primaryError = errObj;
-        lastError = errObj;
+        lastError = new Error(`Gemini (${model}): ${errorMsg}`);
         console.warn(`Model ${model} failed:`, errorMsg);
         continue;
       }
@@ -92,58 +80,35 @@ const callGemini = async (prompt) => {
       const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
       if (resultText) return resultText;
     } catch (err) {
-      if (i === 0) primaryError = err;
       lastError = err;
       console.warn(`Model ${model} error:`, err);
     }
   }
 
-  throw primaryError || lastError || new Error('Gemini API call failed on all model endpoints.');
+  throw lastError || new Error('Gemini API call failed on all model endpoints.');
 };
 
 const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
-  const apiKey = activeAiConfig.apiKey 
-    || localStorage.getItem('gemini_api_key') 
-    || localStorage.getItem('ai.llm_api_key') 
-    || localStorage.getItem('ai_llm_api_key') 
-    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
-    || DEFAULT_GEMINI_KEY;
+  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || '';
   if (!apiKey) throw new Error('API Key missing. Click "🔑 Set API Key" to enter key.');
   if (!base64Data || !base64Data.trim()) throw new Error('Source file data is empty or invalid.');
   
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-  let primaryError = null;
-
-  for (let i = 0; i < modelsToTry.length; i++) {
-    const model = modelsToTry[i];
-    try {
-      const url = getGeminiUrl(model, apiKey);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inlineData: { data: base64Data, mimeType: mimeType } },
-              { text: prompt }
-            ]
-          }]
-        }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const errObj = new Error(`Multimodal (${model}) failed: ${errorData?.error?.message || res.status}`);
-        if (i === 0) primaryError = errObj;
-        continue;
-      }
-      const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-      if (text) return text;
-    } catch (e) {
-      if (i === 0) primaryError = e;
-    }
-  }
-  throw primaryError || new Error('Gemini Multimodal API call failed.');
+  const url = getGeminiUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { data: base64Data, mimeType: mimeType } },
+          { text: prompt }
+        ]
+      }]
+    }),
+  });
+  if (!res.ok) throw new Error(`Multimodal failed: ${res.status}`);
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 };
 
 const slugify = (text) => {
@@ -362,7 +327,7 @@ const NewsEditor = () => {
   const videoInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const docInputRef = useRef(null);
-
+  const galleryInputRef = useRef(null);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [videoUrlInput, setVideoUrlInput] = useState('');
@@ -371,7 +336,58 @@ const NewsEditor = () => {
   const [isCustomAuthor, setIsCustomAuthor] = useState(false);
   const [aiProofreading, setAiProofreading] = useState(false);
 
+  // Gallery Creator Modal State
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [galleryTitle, setGalleryTitle] = useState('Media & Document Vault');
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
+  // Media Library Integration inside Gallery Modal
+  const [mediaLibraryItems, setMediaLibraryItems] = useState([]);
+  const [loadingMediaLibrary, setLoadingMediaLibrary] = useState(false);
+  const [galleryModalTab, setGalleryModalTab] = useState('library'); // 'library' | 'upload'
+  const [mediaLibrarySearch, setMediaLibrarySearch] = useState('');
+  const [mediaLibraryCategory, setMediaLibraryCategory] = useState('all');
+
+  const fetchMediaLibraryItems = async () => {
+    setLoadingMediaLibrary(true);
+    try {
+      const res = await api.get('/media/list');
+      const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
+      const formatted = list.map(m => {
+        const fileType = m.mimeType || m.type || '';
+        const fileName = m.filename || m.name || m.url?.split('/').pop() || 'file';
+        let cat = 'document';
+        if (fileType.startsWith('image/')) cat = 'image';
+        else if (fileType.startsWith('video/')) cat = 'video';
+        else if (fileType.startsWith('audio/')) cat = 'audio';
+
+        const ext = fileName.split('.').pop()?.toUpperCase() || 'FILE';
+        const sizeMb = m.fileSize ? (m.fileSize / (1024 * 1024)).toFixed(2) : (m.size ? (m.size / (1024 * 1024)).toFixed(2) : '0.50');
+
+        return {
+          id: m.id || m.url,
+          url: m.url || m.path,
+          name: fileName,
+          type: fileType,
+          ext,
+          sizeMb,
+          category: cat
+        };
+      });
+      setMediaLibraryItems(formatted);
+    } catch (err) {
+      console.warn('Failed to load media library items', err);
+    } finally {
+      setLoadingMediaLibrary(false);
+    }
+  };
+
+  useEffect(() => {
+    if (galleryModalOpen) {
+      fetchMediaLibraryItems();
+    }
+  }, [galleryModalOpen]);
 
   // API Key Modal State
   const [keyModalOpen, setKeyModalOpen] = useState(false);
@@ -592,7 +608,111 @@ const NewsEditor = () => {
     }
   };
 
+  // 5. Interactive Gallery Modal Upload Handler (Images, Videos, Audio, Docs)
+  const handleUploadGalleryModalFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
+    setGalleryUploading(true);
+    try {
+      const newItems = [];
+      for (const file of files) {
+        const url = await uploadSingleFile(file);
+        const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        let category = 'image';
+        if (file.type.startsWith('video/')) category = 'video';
+        else if (file.type.startsWith('audio/')) category = 'audio';
+        else if (!file.type.startsWith('image/')) category = 'document';
+
+        newItems.push({
+          id: Date.now() + Math.random(),
+          url,
+          name: file.name,
+          type: file.type,
+          ext,
+          sizeMb,
+          category
+        });
+      }
+      setGalleryItems(prev => [...prev, ...newItems]);
+      showMsg(`Added ${newItems.length} file(s) to gallery modal!`);
+    } catch (err) {
+      console.error(err);
+      showMsg('Failed to upload gallery item.', true);
+    } finally {
+      setGalleryUploading(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+    }
+  };
+
+  // Insert complete gallery HTML card into article content
+  const handleInsertGalleryModal = () => {
+    if (!galleryItems.length) return showMsg('Please upload at least one image, video, audio, or document to the gallery.', true);
+
+    const images = galleryItems.filter(i => i.category === 'image');
+    const videos = galleryItems.filter(i => i.category === 'video');
+    const audios = galleryItems.filter(i => i.category === 'audio');
+    const docs = galleryItems.filter(i => i.category === 'document');
+
+    let html = `
+      <div class="interactive-gallery-container" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; margin: 24px 0; font-family: sans-serif;">
+        <h4 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+          📂 ${galleryTitle || 'Media & Document Gallery'}
+        </h4>
+    `;
+
+    // Images Grid
+    if (images.length > 0) {
+      html += `
+        <div class="article-gallery" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          ${images.map(img => `<div style="overflow:hidden; border-radius:10px; height:180px;"><img src="${img.url}" alt="${img.name}" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:10px;" /></div>`).join('')}
+        </div>
+      `;
+    }
+
+    // Videos
+    if (videos.length > 0) {
+      videos.forEach(v => {
+        html += `<p><video controls style="max-width: 100%; width: 100%; border-radius: 8px; margin: 12px 0;" src="${v.url}"><source src="${v.url}" type="${v.type}"></video></p>`;
+      });
+    }
+
+    // Audio Clips
+    if (audios.length > 0) {
+      audios.forEach(a => {
+        html += `<p><audio controls style="width: 100%; margin: 8px 0;" src="${a.url}"></audio></p>`;
+      });
+    }
+
+    // Document Downloads
+    if (docs.length > 0) {
+      html += `<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">`;
+      docs.forEach(d => {
+        html += `
+          <div class="document-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
+            <div style="font-size: 24px;">📄</div>
+            <div style="flex: 1; overflow: hidden;">
+              <strong style="display: block; font-size: 14px; color: #0f172a; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${d.name}</strong>
+              <span style="font-size: 11px; color: #64748b; font-weight: 500;">${d.ext} Document • ${d.sizeMb} MB</span>
+            </div>
+            <a href="${d.url}" target="_blank" download style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 600;">
+              ⬇ Download
+            </a>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div><p>&nbsp;</p>`;
+
+    insertIntoActiveContent(html);
+    setGalleryModalOpen(false);
+    setGalleryItems([]);
+    setGalleryTitle('Media & Document Vault');
+    showMsg('Interactive Gallery attached to article successfully!');
+  };
 
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {});
@@ -641,7 +761,7 @@ const NewsEditor = () => {
     if (isEdit) {
       api.get(`/articles/${id}`).then(r => {
         const a = r.data;
-        const newForm = {
+        setForm({
           ...a,
           publishedAt: a.publishedAt ? a.publishedAt.substring(0, 16) : '',
           showRightColumn: a.showRightColumn !== false,
@@ -650,15 +770,7 @@ const NewsEditor = () => {
           allowPingbacks: a.allowPingbacks !== false,
           authorName: a.authorName || 'Kings TV News Desk',
           status: a.status || 'draft'
-        };
-        setForm(newForm);
-        // Force sync content to TinyMCE if editor instances are already initialized
-        if (editorRefTa.current && a.contentTa) {
-          try { editorRefTa.current.setContent(a.contentTa); } catch (e) {}
-        }
-        if (editorRefEn.current && a.contentEn) {
-          try { editorRefEn.current.setContent(a.contentEn); } catch (e) {}
-        }
+        });
       }).catch(() => {});
     }
   }, [id, isEdit]);
@@ -925,56 +1037,7 @@ const NewsEditor = () => {
       metaTitleTa = `${metaTitleTa || titleEn || 'செய்திகள்'} | கிங்ஸ் 24x7 தமிழ் செய்திகள்`.slice(0, 68);
     }
 
-    // Helper function to extract meaningful terms by sorting by frequency & filtering stop words
-    const extractKeywords = (title, content, isTamil = false) => {
-      const stopWordsEn = new Set([
-        'the', 'and', 'for', 'with', 'that', 'this', 'from', 'about', 'which', 'their', 'there',
-        'would', 'could', 'should', 'have', 'been', 'has', 'had', 'here', 'were', 'they', 'them',
-        'your', 'some', 'more', 'then', 'than', 'also', 'only', 'will', 'into', 'other', 'these',
-        'those', 'after', 'before', 'says', 'said', 'when', 'where', 'who', 'what', 'how', 'been'
-      ]);
-      const stopWordsTa = new Set([
-        'மற்றும்', 'மேலும்', 'எனவே', 'ஆனால்', 'அங்கு', 'இங்கு', 'இருந்து', 'என்று', 'ஒரு', 'பல',
-        'சில', 'அவர்', 'அவர்கள்', 'அது', 'அவை', 'இந்த', 'அந்த', 'இருந்த', 'செய்து', 'கொண்டு',
-        'உள்ள', 'எனவும்', 'உள்ளது', 'ஆகிய', 'மூலம்', 'வழியாக', 'தொடர்பான', 'விவரங்கள்', 'குறித்து',
-        'வழங்கப்பட்டது', 'கொண்டுள்ளது', 'செய்யும்', 'செய்த', 'கூறியதாவது'
-      ]);
-
-      const stopWords = isTamil ? stopWordsTa : stopWordsEn;
-      const freq = {};
-
-      const addWords = (text, weight = 1) => {
-        if (!text) return;
-        const clean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"' \t]/g, ' ');
-        const words = clean.split(/\s+/);
-        words.forEach(w => {
-          let word = w.trim();
-          if (!isTamil) {
-            word = word.toLowerCase();
-          }
-          if (word.length > 3 && !stopWords.has(word)) {
-            if (isTamil && /^[\x00-\x7F]+$/.test(word)) return;
-            if (!isTamil && !/^[a-zA-Z0-9]+$/.test(word)) return;
-            freq[word] = (freq[word] || 0) + weight;
-          }
-        });
-      };
-
-      // Add words from title with high priority (weight 3)
-      addWords(title, 3);
-      // Add words from content upload (weight 1)
-      addWords(content, 1);
-
-      const sorted = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
-      return sorted.map(w => {
-        if (!isTamil) {
-          return w.charAt(0).toUpperCase() + w.slice(1);
-        }
-        return w;
-      });
-    };
-
-    const wordsTaRaw = extractKeywords(titleTa, cleanTa, true);
+    const wordsTaRaw = `${titleTa} ${cleanTa}`.split(/\s+/).filter(w => w.length > 3 && !/^[\x00-\x7F]+$/.test(w));
     const setTa = new Set(wordsTaRaw);
     if (catTa) setTa.add(catTa);
     if (distTa) setTa.add(distTa);
@@ -983,8 +1046,8 @@ const NewsEditor = () => {
     setTa.add('தமிழ்நாடு');
 
     const keywordsTaArr = Array.from(setTa).filter(Boolean);
-    const keywordsTa = keywordsTaArr.slice(0, 10).join(', ');
-    const focusTa = keywordsTaArr.slice(0, 4).join(', ');
+    const keywordsTa = keywordsTaArr.slice(0, 8).join(', ');
+    const focusTa = keywordsTaArr.slice(0, 3).join(', ');
 
     // 2. English SEO Generation
     let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : (titleTa ? `${titleTa} - Kings 24x7 Latest News` : ''));
@@ -997,7 +1060,7 @@ const NewsEditor = () => {
       metaTitleEn = `${metaTitleEn || 'Kings 24x7 News'} | Kings 24x7 Breaking Updates`.slice(0, 68);
     }
 
-    const wordsEnRaw = extractKeywords(titleEn, cleanEn, false);
+    const wordsEnRaw = `${titleEn} ${cleanEn}`.split(/\s+/).filter(w => w.length > 3 && /^[a-zA-Z0-9]+$/.test(w) && !/^(the|and|for|with|that|this|from|about|which|their|there|would|could|should|have|been|has|had)$/i.test(w));
     const setEn = new Set(wordsEnRaw);
     if (catEn) setEn.add(catEn);
     if (distEn) setEn.add(distEn);
@@ -1012,8 +1075,8 @@ const NewsEditor = () => {
     setEn.add('Latest Updates');
 
     const keywordsEnArr = Array.from(setEn).filter(Boolean);
-    const keywordsEn = keywordsEnArr.slice(0, 10).join(', ');
-    const focusEn = keywordsEnArr.slice(0, 4).join(', ');
+    const keywordsEn = keywordsEnArr.slice(0, 8).join(', ');
+    const focusEn = keywordsEnArr.slice(0, 3).join(', ');
 
     // 3. Search Slug Generation & Dual-Language Combining
     const generatedSlug = form.slug ? slugify(form.slug) : slugify(titleEn || titleTa);
@@ -1301,52 +1364,48 @@ const NewsEditor = () => {
   };
 
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
-  const handleAutoTranslate = async (requestedDirection) => {
+  const handleAutoTranslate = async (direction) => {
     setIsTranslating(true);
-
-    let taTitle = (form.titleTa || '').trim();
-    let taExcerpt = (form.shortDescTa || '').trim();
-    let taContent = (editorRefTa.current ? editorRefTa.current.getContent() : (form.contentTa || '')).trim();
-
-    let enTitle = (form.titleEn || '').trim();
-    let enExcerpt = (form.shortDescEn || '').trim();
-    let enContent = (editorRefEn.current ? editorRefEn.current.getContent() : (form.contentEn || '')).trim();
-
-    const direction = requestedDirection; // 'ta2en' translates TO English, 'en2ta' translates TO Tamil
-    let sourceTitle = direction === 'ta2en' ? (taTitle || enTitle) : (enTitle || taTitle);
-    let sourceExcerpt = direction === 'ta2en' ? (taExcerpt || enExcerpt) : (enExcerpt || taExcerpt);
-    let sourceContent = direction === 'ta2en' ? (taContent || enContent) : (enContent || taContent);
-
-    const parts = [];
-    if (sourceTitle && sourceTitle.trim()) parts.push(`TITLE:\n${sourceTitle.trim()}`);
-    if (sourceExcerpt && sourceExcerpt.trim()) parts.push(`EXCERPT:\n${sourceExcerpt.trim()}`);
-    if (sourceContent && sourceContent.trim()) parts.push(`CONTENT:\n${sourceContent.trim()}`);
-
-    const baseRaw = parts.length > 0 ? parts.join('\n\n') : (sourceTitle || sourceExcerpt || sourceContent || '').trim();
-    if (!baseRaw || baseRaw.length < 2) {
-      showMsg('Please write some title or content to translate first.', true);
-      setIsTranslating(false);
-      return;
-    }
-
     showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
     try {
+      const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
+      const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
+      const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+
+      const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
+      if (!baseRaw || baseRaw.length < 5) {
+        showMsg('Please write some content to translate first.', true);
+        setIsTranslating(false);
+        return;
+      }
+
       let translatedText = '';
+      let isFallback = false;
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
           context: direction,
           text: baseRaw
         });
-        if (res.data && !res.data.error && res.data.result) {
-          translatedText = res.data.result;
+        if (res.data && !res.data.error && res.data.result && !res.data.isFallback) {
+          const resStr = res.data.result;
+          if (direction === 'en2ta' && !/[\u0B80-\u0BFF]/.test(resStr)) {
+            isFallback = true;
+          } else if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
+            isFallback = true;
+          } else {
+            translatedText = resStr;
+          }
+        } else {
+          isFallback = true;
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct fallback...', backendErr);
+        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
+        isFallback = true;
       }
 
-      if (!translatedText) {
-        const prompt = `Translate the following text into ${direction === 'ta2en' ? 'English' : 'Tamil'}.\n\nOriginal Text:\n${baseRaw}`;
+      if (isFallback || !translatedText) {
+        const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
         translatedText = await callGemini(prompt);
       }
       
@@ -1354,7 +1413,7 @@ const NewsEditor = () => {
       let newExcerpt = '';
       let newContent = '';
 
-      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|\n\nCONTENT:|$)/i);
+      const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
       const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
       const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
 
@@ -1363,11 +1422,7 @@ const NewsEditor = () => {
       if (contentMatch) newContent = contentMatch[1].trim();
 
       if (!newTitle && !newExcerpt && !newContent) {
-        if (sourceTitle && !sourceExcerpt && !sourceContent) {
-          newTitle = translatedText.trim();
-        } else {
-          newContent = translatedText.trim();
-        }
+        newContent = translatedText.trim();
       }
 
       if (direction === 'ta2en') {
@@ -1380,7 +1435,6 @@ const NewsEditor = () => {
           metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
         if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
-        setActiveTab(1); // Auto switch to English tab
       } else {
         setForm(f => ({
           ...f,
@@ -1391,10 +1445,9 @@ const NewsEditor = () => {
           metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
         if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
-        setActiveTab(0); // Auto switch to Tamil tab
       }
       
-      showMsg(`✅ Content translated to ${direction === 'ta2en' ? 'English' : 'Tamil'}! Switched to ${direction === 'ta2en' ? 'English' : 'Tamil'} tab.`);
+      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
     } catch (err) {
       console.error(err);
       const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
@@ -1442,17 +1495,8 @@ const NewsEditor = () => {
 
     // Clean out highlight spans before saving
     const cleanContent = (html) => html ? html.replace(/<span class="profanity-highlight"[^>]*>(.*?)<\/span>/gi, '$1') : html;
-    
-    let rawTa = (editorRefTa.current && typeof editorRefTa.current.getContent === 'function') 
-      ? editorRefTa.current.getContent() : '';
-    let rawEn = (editorRefEn.current && typeof editorRefEn.current.getContent === 'function') 
-      ? editorRefEn.current.getContent() : '';
-    
-    // Strip empty HTML tags to verify if editor actually holds real content
-    const stripTags = (str) => (str || '').replace(/<[^>]*>/g, '').trim();
-    
-    let finalContentTa = cleanContent(stripTags(rawTa) ? rawTa : (form.contentTa || rawTa));
-    let finalContentEn = cleanContent(stripTags(rawEn) ? rawEn : (form.contentEn || rawEn));
+    let finalContentTa = cleanContent(editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa);
+    let finalContentEn = cleanContent(editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
 
     let finalTitleTa = (form.titleTa || '').trim();
     let finalTitleEn = (form.titleEn || '').trim();
@@ -1468,7 +1512,7 @@ const NewsEditor = () => {
     if (!finalDescEn && finalDescTa) finalDescEn = finalDescTa;
 
     // 3. Ensure valid unique slug
-    let finalSlug = form.slug ? slugify(form.slug) : slugify(finalTitleEn || finalTitleTa);
+    let finalSlug = form.slug ? slugify(form.slug) : slugify(title);
     if (!finalSlug) finalSlug = `article-${Date.now()}`;
 
     const toCommaString = (val) => {
@@ -1550,10 +1594,8 @@ const NewsEditor = () => {
       .then(res => {
         if (res.data && res.data.url) {
           let imgUrl = res.data.url;
-          const apiBase = api.defaults.baseURL || '';
-          const serverBase = apiBase.replace('/api/v1', '');
-          if (imgUrl.startsWith('/uploads')) {
-            imgUrl = `${serverBase}${imgUrl}`;
+          if (imgUrl.startsWith('http://localhost:8080')) {
+            imgUrl = imgUrl.replace('http://localhost:8080', '');
           }
           resolve(imgUrl);
         } else {
@@ -1711,7 +1753,7 @@ const NewsEditor = () => {
       <input type="file" ref={videoInputRef} onChange={handleAddVideoFile} accept="video/*" style={{ display: 'none' }} />
       <input type="file" ref={audioInputRef} onChange={handleAddAudio} accept="audio/*" style={{ display: 'none' }} />
       <input type="file" ref={docInputRef} onChange={handleAddDocument} accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx" style={{ display: 'none' }} />
-
+      <input type="file" ref={galleryInputRef} onChange={handleUploadGalleryModalFiles} accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx" multiple style={{ display: 'none' }} />
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -1961,7 +2003,19 @@ const NewsEditor = () => {
                         <FileText size={15} color="#F59E0B" /> Add Document
                       </button>
 
-
+                      <button
+                        type="button"
+                        onClick={() => setGalleryModalOpen(true)}
+                        disabled={mediaUploading}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
+                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <LayoutTemplate size={15} color="#10B981" /> Create Gallery
+                      </button>
 
                       <button
                         type="button"
@@ -2655,10 +2709,10 @@ const NewsEditor = () => {
                     background: 'var(--bg-secondary, #fff)'
                   }}
                 >
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Recommended Fast & Multimodal)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (High-Speed Standard)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (High-Capacity Reasoning)</option>
-                  <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Experimental Endpoint)</option>
+                  <option value="gemini-flash-latest">gemini-flash-latest (Recommended Fast & Multimodal)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Next Generation High-Speed)</option>
+                  <option value="gemini-3.6-flash">gemini-3.6-flash (Latest Interactions API Model)</option>
+                  <option value="gemini-2.0-flash-001">gemini-2.0-flash-001 (Stable 2.0 Endpoint)</option>
                 </select>
               </div>
 
@@ -2685,7 +2739,292 @@ const NewsEditor = () => {
         </div>
       )}
 
+      {/* Interactive Gallery & Media Vault Creator Modal */}
+      {galleryModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-surface, #ffffff)', borderRadius: '16px',
+            border: '1px solid var(--border-color, #e2e8f0)', width: '100%', maxWidth: '680px',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+          }}>
+            {/* Modal Header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#10B981', color: '#ffffff', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                  <LayoutTemplate size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Interactive Gallery & Media Vault Creator</h3>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Combine images, videos, audio clips, and documents into a clean interactive reader gallery.</p>
+                </div>
+              </div>
+              <button onClick={() => setGalleryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
+                <X size={20} />
+              </button>
+            </div>
 
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #1e293b)', marginBottom: '6px' }}>Gallery Title / Header</label>
+                <input
+                  type="text"
+                  value={galleryTitle}
+                  onChange={e => setGalleryTitle(e.target.value)}
+                  placeholder="e.g. Event Photo Album & Downloadable Press Release"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border-color, #cbd5e1)', fontSize: '14px', background: 'var(--bg-secondary, #ffffff)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              {/* Source Tab Selector */}
+              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color, #e2e8f0)', pb: '8px' }}>
+                <button
+                  onClick={() => setGalleryModalTab('library')}
+                  style={{
+                    padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none',
+                    background: galleryModalTab === 'library' ? '#2563EB' : 'var(--bg-secondary, #f1f5f9)',
+                    color: galleryModalTab === 'library' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                    fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <FolderIcon size={16} /> Choose from Media Library ({mediaLibraryItems.length})
+                </button>
+                <button
+                  onClick={() => setGalleryModalTab('upload')}
+                  style={{
+                    padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none',
+                    background: galleryModalTab === 'upload' ? '#2563EB' : 'var(--bg-secondary, #f1f5f9)',
+                    color: galleryModalTab === 'upload' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                    fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <UploadCloud size={16} /> Upload New Files
+                </button>
+              </div>
+
+              {/* Tab 1: Media Library Picker */}
+              {galleryModalTab === 'library' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-secondary, #f8fafc)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                  {/* Search and Category Filter Bar */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <input
+                      type="text"
+                      placeholder="Search media library..."
+                      value={mediaLibrarySearch}
+                      onChange={e => setMediaLibrarySearch(e.target.value)}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', width: '200px', background: '#ffffff' }}
+                    />
+
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {['all', 'image', 'video', 'audio', 'document'].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setMediaLibraryCategory(cat)}
+                          style={{
+                            padding: '4px 10px', borderRadius: '12px', border: 'none', fontSize: '11px', fontWeight: 600, textTransform: 'capitalize', cursor: 'pointer',
+                            background: mediaLibraryCategory === cat ? '#2563EB' : '#e2e8f0',
+                            color: mediaLibraryCategory === cat ? '#ffffff' : '#475569'
+                          }}
+                        >
+                          {cat === 'all' ? 'All' : cat === 'image' ? 'Photos 🖼️' : cat === 'video' ? 'Videos 🎥' : cat === 'audio' ? 'Audio 🎙️' : 'Docs 📄'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Media Library Items Grid */}
+                  {loadingMediaLibrary ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#2563eb', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <Loader2 size={18} className="spin" /> Loading Media Library...
+                    </div>
+                  ) : (
+                    (() => {
+                      const itemsToShow = mediaLibraryItems.filter(item => {
+                        const matchesCat = mediaLibraryCategory === 'all' || item.category === mediaLibraryCategory;
+                        const matchesSearch = !mediaLibrarySearch || item.name.toLowerCase().includes(mediaLibrarySearch.toLowerCase());
+                        return matchesCat && matchesSearch;
+                      });
+
+                      if (itemsToShow.length === 0) {
+                        return (
+                          <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px', background: '#ffffff', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                            No files found in Media Library under this filter. Switch to "Upload New Files" to add files.
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', maxHeight: '210px', overflowY: 'auto', paddingRight: '4px' }}>
+                          {itemsToShow.map(item => {
+                            const isAdded = galleryItems.some(i => i.id === item.id || i.url === item.url);
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => {
+                                  if (isAdded) {
+                                    setGalleryItems(prev => prev.filter(i => i.id !== item.id && i.url !== item.url));
+                                  } else {
+                                    setGalleryItems(prev => [...prev, item]);
+                                  }
+                                }}
+                                style={{
+                                  border: `2px solid ${isAdded ? '#10B981' : '#cbd5e1'}`,
+                                  borderRadius: '8px', padding: '8px', background: isAdded ? '#ecfdf5' : '#ffffff',
+                                  cursor: 'pointer', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', gap: '6px',
+                                  position: 'relative'
+                                }}
+                              >
+                                {item.category === 'image' && (
+                                  <div style={{ height: '70px', borderRadius: '4px', overflow: 'hidden', background: '#f1f5f9' }}>
+                                    <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  </div>
+                                )}
+                                {item.category === 'video' && (
+                                  <div style={{ height: '70px', borderRadius: '4px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+                                    <Video size={24} />
+                                  </div>
+                                )}
+                                {item.category === 'audio' && (
+                                  <div style={{ height: '70px', borderRadius: '4px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                                    <Mic size={24} />
+                                  </div>
+                                )}
+                                {item.category === 'document' && (
+                                  <div style={{ height: '70px', borderRadius: '4px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '24px' }}>
+                                    📄
+                                  </div>
+                                )}
+
+                                <div style={{ overflow: 'hidden' }}>
+                                  <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
+                                  <span style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase' }}>{item.category}</span>
+                                </div>
+
+                                <button
+                                  style={{
+                                    width: '100%', padding: '4px', borderRadius: '4px', border: 'none',
+                                    background: isAdded ? '#10B981' : '#2563EB', color: '#ffffff',
+                                    fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px'
+                                  }}
+                                >
+                                  {isAdded ? <Check size={12} /> : <Plus size={12} />}
+                                  {isAdded ? 'Added' : 'Select'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Upload Dropzone */}
+              {galleryModalTab === 'upload' && (
+                <div
+                  onClick={() => galleryInputRef.current?.click()}
+                  style={{
+                    border: '2px dashed #3b82f6', borderRadius: '12px', padding: '24px',
+                    textAlign: 'center', background: '#eff6ff', cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                >
+                  <UploadCloud size={36} color="#2563eb" style={{ marginBottom: '8px' }} />
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1e40af', fontWeight: 600 }}>Click or Drag Files to Add to Gallery</h4>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#3b82f6' }}>Supports Photos, Videos (MP4), Audio (MP3), Documents (PDF, DOCX, TXT)</p>
+                  {galleryUploading && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '12px', color: '#2563eb', fontSize: '13px', fontWeight: 600 }}>
+                      <Loader2 size={16} className="spin" /> Uploading media files...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Items Selected Preview Grid */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #334155)' }}>Selected Gallery Vault Items ({galleryItems.length})</h4>
+                  {galleryItems.length > 0 && (
+                    <button onClick={() => setGalleryItems([])} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                {galleryItems.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', background: 'var(--bg-secondary, #f8fafc)', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', color: '#94a3b8', fontSize: '12px' }}>
+                    No files added to gallery yet. Select files from Media Library above or upload new files.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {galleryItems.map((item) => (
+                      <div key={item.id} style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px', background: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {item.category === 'image' && (
+                          <div style={{ height: '70px', borderRadius: '4px', overflow: 'hidden', background: '#f1f5f9' }}>
+                            <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        )}
+                        {item.category === 'video' && (
+                          <div style={{ height: '70px', borderRadius: '4px', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+                            <Video size={24} />
+                          </div>
+                        )}
+                        {item.category === 'audio' && (
+                          <div style={{ height: '70px', borderRadius: '4px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                            <Mic size={24} />
+                          </div>
+                        )}
+                        {item.category === 'document' && (
+                          <div style={{ height: '70px', borderRadius: '4px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: '24px' }}>
+                            📄
+                          </div>
+                        )}
+
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
+                          <span style={{ fontSize: '9px', color: '#64748b', textTransform: 'uppercase' }}>{item.category} • {item.sizeMb} MB</span>
+                        </div>
+
+                        <button
+                          onClick={() => setGalleryItems(prev => prev.filter(i => i.id !== item.id && i.url !== item.url))}
+                          style={{ position: 'absolute', top: '4px', right: '4px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          title="Remove item"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc' }}>
+              <button onClick={() => setGalleryModalOpen(false)} style={{ padding: '9px 18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleInsertGalleryModal}
+                disabled={!galleryItems.length}
+                style={{
+                  padding: '9px 20px', background: galleryItems.length ? '#10B981' : '#cbd5e1',
+                  color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '14px',
+                  fontWeight: 600, cursor: galleryItems.length ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <Check size={16} /> Insert Gallery to Article ({galleryItems.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Configure Gemini API Key Modal */}
       {keyModalOpen && (
@@ -2722,8 +3061,9 @@ const NewsEditor = () => {
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                 >
                   <option value="gemini-2.0-flash">gemini-2.0-flash (Fast & Recommended)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (High-Speed Standard)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (High-Capacity Reasoning)</option>
+                  <option value="gemini-flash-latest">gemini-flash-latest</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
                 </select>
               </div>
             </div>

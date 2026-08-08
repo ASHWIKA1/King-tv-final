@@ -2,7 +2,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { DistrictContext } from '../context/DistrictContext';
+import districtDummyNews from '../data/districtDummyNews';
 import { fetchApi, getImageUrl } from '../utils/api';
+import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -11,6 +14,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
   const { widgetWidth, slideSpeed, sections } = useContext(ThemeContext);
+  const { district } = useContext(DistrictContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [articles, setArticles] = useState([]);
@@ -20,6 +24,7 @@ const Home = () => {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [topSliderIndex, setTopSliderIndex] = useState(0);
   const [categoriesMap, setCategoriesMap] = useState({});
+  const [quickAccessMenus, setQuickAccessMenus] = useState([]);
   const [layoutSections, setLayoutSections] = useState([]);
   const [crowdReports, setCrowdReports] = useState([]);
   const [institutionNews, setInstitutionNews] = useState([]);
@@ -70,6 +75,14 @@ const Home = () => {
 
   useEffect(() => {
     // Primary fetches wrapped in promises for loading state coordination
+    fetchApi('/public/menus')
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuickAccessMenus(data.filter(i => (i.slug || i.linkUrl) !== 'home' && i.linkUrl !== '/'));
+        }
+      })
+      .catch(() => {});
+
     const pCategories = fetchApi('/categories')
       .then(data => {
         if (Array.isArray(data)) {
@@ -86,7 +99,7 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load categories", err));
 
-    const pArticles = fetchApi('/articles/getAllWeb?size=200&sortBy=publishedAt&direction=desc')
+    const pArticles = fetchApi('/articles/getAll?size=50&sortBy=publishedAt&direction=desc')
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.content || []);
         setArticles(list);
@@ -100,7 +113,13 @@ const Home = () => {
       .then(data => {
         const list = data && Array.isArray(data.content) ? data.content : [];
         if (list.length > 0) {
-          const formatted = list.map(item => (lang === 'en' ? item.title : item.titleTa) || item.title);
+          const formatted = list.map(item => {
+            if (lang === 'en') {
+              return item.titleEn || item.title || item.titleTa;
+            } else {
+              return item.titleTa || item.title || item.titleEn;
+            }
+          });
           setTickers(formatted);
         } else {
           setTickers([]);
@@ -133,6 +152,9 @@ const Home = () => {
         console.warn("Could not load web stories from API, using fallback", err);
         setStories(storiesList);
       });
+
+    Promise.allSettled([pCategories, pArticles, pBreakingNews, pWebStories])
+      .finally(() => setLoading(false));
 
     const categorizeVideo = (title = '', description = '') => {
       const text = `${title} ${description}`.toLowerCase();
@@ -183,9 +205,16 @@ const Home = () => {
       }
     })();
 
+    const DEFAULT_LIVE_VIDEO = {
+      title: lang === 'en' ? 'KINGS 24x7 Live TV News Stream' : 'கிங்ஸ் 24x7 நேரலை செய்தி',
+      description: lang === 'en' ? 'Watch continuous Tamil and English live news coverage, debates and special updates.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
+      isLiveTv: 1
+    };
+
     const pLiveVideo = fetchApi('/videos/live')
       .then(data => {
-        if (data && data.youtubeUrl) {
+        if (data && (data.youtubeUrl || data.videoUrl)) {
           let titleVal = data.title;
           let descVal = data.description;
           if (lang === 'en') {
@@ -193,43 +222,57 @@ const Home = () => {
             descVal = 'Watch continuous Tamil and English live news coverage, debates and special updates.';
           }
           setLiveVideo({ ...data, title: titleVal, description: descVal });
+        } else {
+          setLiveVideo(DEFAULT_LIVE_VIDEO);
         }
       })
-      .catch(err => console.warn("Could not load live video from API", err));
+      .catch(err => {
+        console.warn("Could not load live video from API, using default stream", err);
+        setLiveVideo(DEFAULT_LIVE_VIDEO);
+      });
 
     const pLayout = fetchApi('/public/layout/web')
       .then(data => {
-        // Check localStorage first — admin builder preview overrides API
-        try {
-          const previewData = localStorage.getItem('dummy_layout_config');
-          if (previewData) {
-            const parsed = JSON.parse(previewData);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLayoutSections(parsed.filter(s => s.isVisible !== false));
-              setIsPreviewMode(true);
-              return;
+        // Check localStorage first — ONLY if explicitly in preview mode via ?preview=true
+        const searchParams = new URLSearchParams(window.location.search);
+        const isExplicitPreview = searchParams.get('preview') === 'true';
+
+        if (isExplicitPreview) {
+          try {
+            const previewData = localStorage.getItem('dummy_layout_config');
+            if (previewData) {
+              const parsed = JSON.parse(previewData);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setLayoutSections(parsed.filter(s => s.isVisible !== false));
+                setIsPreviewMode(true);
+                return;
+              }
             }
-          }
-        } catch (e) { /* ignore */ }
-        // No preview config — use API data
+          } catch (e) { /* ignore */ }
+        }
+
+        // Production mode — filter out dummy navigation test sections and use live API layout
         if (Array.isArray(data)) {
-          setLayoutSections(data);
+          const cleanSections = data.filter(s => s.sectionKey !== 'website_navigation' && s.titleEn !== 'Website Navigation');
+          setLayoutSections(cleanSections);
           setIsPreviewMode(false);
         }
       })
-
       .catch(() => {
-        // Even if API fails, try localStorage
-        try {
-          const previewData = localStorage.getItem('dummy_layout_config');
-          if (previewData) {
-            const parsed = JSON.parse(previewData);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLayoutSections(parsed.filter(s => s.isVisible !== false));
-              setIsPreviewMode(true);
+        const searchParams = new URLSearchParams(window.location.search);
+        const isExplicitPreview = searchParams.get('preview') === 'true';
+        if (isExplicitPreview) {
+          try {
+            const previewData = localStorage.getItem('dummy_layout_config');
+            if (previewData) {
+              const parsed = JSON.parse(previewData);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setLayoutSections(parsed.filter(s => s.isVisible !== false));
+                setIsPreviewMode(true);
+              }
             }
-          }
-        } catch (e) { /* ignore */ }
+          } catch (e) { /* ignore */ }
+        }
       });
 
     // Listen for localStorage changes from the admin builder (real-time preview)
@@ -260,12 +303,14 @@ const Home = () => {
       })
       .catch(() => {});
 
-    const pRss = fetchApi('/rss-aggregator/latest?page=0&size=5')
+    const pRss = fetchApi('/rss-aggregator')
       .then(data => {
         if (data && Array.isArray(data.content)) {
           setAggregatedNews(data.content);
         }
       })
+      .catch(err => console.warn("Could not load RSS aggregated news", err));
+
     const pInstitution = fetchApi('/articles/public/institution-news')
       .then(data => {
         if (Array.isArray(data)) {
@@ -282,9 +327,12 @@ const Home = () => {
       })
       .catch(() => {});
 
-    // Always fetch general 100 articles first so homepage is never blank
-    const generalNewsUrl = '/articles/getAllWeb?size=100&sortBy=publishedAt&direction=desc';
+    // Geolocation Personalized Articles
     const selectedDistId = localStorage.getItem('selectedDistrictId');
+    let newsUrl = '/public/news?limit=12';
+    if (selectedDistId) {
+      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=12`;
+    }
 
     const pPersonalized = new Promise((resolve) => {
       let resolved = false;
@@ -295,71 +343,63 @@ const Home = () => {
         }
       };
 
-      fetchApi(generalNewsUrl)
-        .then(generalData => {
-          const generalList = generalData && Array.isArray(generalData.content) ? generalData.content : (Array.isArray(generalData) ? generalData : []);
-          if (generalList.length > 0) {
-            setArticles(generalList);
-          }
+      // Safety timeout: if geolocation hangs (e.g. user ignores prompt), resolve anyway after 3s
+      setTimeout(() => {
+        if (!resolved) {
+          fetchApi(newsUrl)
+            .then(data => {
+              const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+              if (list.length > 0) setArticles(list);
+              safeResolve();
+            })
+            .catch(() => safeResolve());
+        }
+      }, 3000);
 
-          try {
-            if (navigator.geolocation && window.isSecureContext) {
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  if (resolved) return;
-                  const { latitude, longitude } = pos.coords;
-                  fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
-                    .then(data => {
-                      const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-                      if (list.length > 0) setArticles(list);
-                      safeResolve();
-                    })
-                    .catch(() => { safeResolve(); });
-                },
-                () => {
-                  if (resolved) return;
-                  if (selectedDistId) {
-                    fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
-                      .then(distData => {
-                        const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
-                        if (distList.length > 0) setArticles(distList);
-                        safeResolve();
-                      })
-                      .catch(() => safeResolve());
-                  } else {
-                    safeResolve();
-                  }
-                },
-                { timeout: 3000 }
-              );
-            } else {
-              if (selectedDistId) {
-                fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
-                  .then(distData => {
-                    const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
-                    if (distList.length > 0) setArticles(distList);
-                    safeResolve();
-                  })
-                  .catch(() => safeResolve());
-              } else {
-                safeResolve();
-              }
-            }
-          } catch (geoErr) {
-            if (selectedDistId) {
-              fetchApi(`/articles/getAllWeb?districtId=${selectedDistId}&size=50`)
-                .then(distData => {
-                  const distList = distData && Array.isArray(distData.content) ? distData.content : (Array.isArray(distData) ? distData : []);
-                  if (distList.length > 0) setArticles(distList);
+      try {
+        if (navigator.geolocation && window.isSecureContext) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (resolved) return;
+              const { latitude, longitude } = pos.coords;
+              fetchApi(`${newsUrl}&lat=${latitude}&lon=${longitude}`)
+                .then(data => {
+                  const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                  if (list.length > 0) setArticles(list);
+                  safeResolve();
+                })
+                .catch(() => { safeResolve(); });
+            },
+            () => {
+              if (resolved) return;
+              fetchApi(newsUrl)
+                .then(data => {
+                  const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+                  if (list.length > 0) setArticles(list);
                   safeResolve();
                 })
                 .catch(() => safeResolve());
-            } else {
+            },
+            { timeout: 3000 }
+          );
+        } else {
+          fetchApi(newsUrl)
+            .then(data => {
+              const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+              if (list.length > 0) setArticles(list);
               safeResolve();
-            }
-          }
-        })
-        .catch(() => safeResolve());
+            })
+            .catch(() => safeResolve());
+        }
+      } catch (geoErr) {
+        fetchApi(newsUrl)
+          .then(data => {
+            const list = data && Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+            if (list.length > 0) setArticles(list);
+            safeResolve();
+          })
+          .catch(() => safeResolve());
+      }
     });
 
     // 7. Fetch Weather Forecast from backend for Chennai
@@ -440,7 +480,6 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (!tickers || tickers.length === 0) return;
     const timer = setInterval(() => {
       setTickerIndex(prev => (prev + 1) % tickers.length);
     }, slideSpeed * 1000);
@@ -450,9 +489,8 @@ const Home = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCommodityPrices(prev => prev.map(item => {
-        if (!item || !item.price || typeof item.price !== 'string') return item;
         const numericStr = item.price.replace(/[^\d]/g, '');
-        const currentPrice = parseInt(numericStr) || 1000;
+        const currentPrice = parseInt(numericStr);
         const changeVal = Math.floor(Math.random() * 21) - 10;
         const newPrice = currentPrice + changeVal;
         const changeSign = changeVal >= 0 ? '+' : '';
@@ -546,7 +584,8 @@ const Home = () => {
     });
   };
 
-  const displayArticles = articles || [];
+  const districtNewsPool = districtDummyNews[district] || districtDummyNews['சென்னை'] || [];
+  const displayArticles = districtNewsPool.length > 0 ? [...districtNewsPool, ...articles] : (articles || []);
   const displayVideos = videos || [];
   const displayCrowd = crowdReports || [];
   const displayInstitution = institutionNews || [];
@@ -717,65 +756,42 @@ const Home = () => {
       : displayArticles;
     const activeHeroPool = heroPool.length > 0 ? heroPool : displayArticles;
 
-    if (!activeHeroPool || activeHeroPool.length === 0 || !activeHeroPool[0]) return null;
+    if (!activeHeroPool || activeHeroPool.length === 0) return null;
 
     const heroFeatured = activeHeroPool[0];
     const heroCat = getCategoryDetails(heroFeatured.categoryId);
-    const heroSideItems = activeHeroPool.slice(1, 5).filter(Boolean);
+    const heroSideItems = activeHeroPool.slice(1, 5);
 
 
     return (
-      <section className="hero-section" id="section-hero" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
+      <section className="hero-section" id="section-hero" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '20px', alignItems: 'stretch' }}>
+          <div className="hero-lead-card-grid">
             
             {/* Main Big Featured News Card (Left) */}
             <div 
               className="hero-lead-card"
               style={{ 
-                position: 'relative', 
-                borderRadius: '16px', 
-                overflow: 'hidden', 
-                minHeight: '440px', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'flex-end',
-                background: heroFeatured.imageUrl 
-                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured.imageUrl)}) center/cover`
-                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`,
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                padding: '30px'
+                background: getImageUrl(heroFeatured) 
+                  ? `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%), url(${getImageUrl(heroFeatured)}) center/cover`
+                  : `linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)`
               }}
             >
-              <span 
-                style={{ 
-                  position: 'absolute', 
-                  top: '20px', 
-                  left: '20px', 
-                  background: '#EF4444', 
-                  color: '#FFFFFF', 
-                  padding: '6px 14px', 
-                  borderRadius: '20px', 
-                  fontSize: '12px', 
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}
-              >
+              <span className="hero-lead-badge">
                 {lang === 'en' ? heroCat.en : heroCat.ta}
               </span>
 
-              <h1 style={{ color: '#FFFFFF', fontSize: '26px', fontWeight: 800, lineHeight: 1.4, margin: '0 0 12px 0', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`} style={{ color: '#FFFFFF', textDecoration: 'none' }}>
+              <h1 className="hero-lead-title">
+                <Link to={`/article/${heroFeatured.id || heroFeatured.article_id}`}>
                   {lang === 'en' ? (heroFeatured.titleEn || heroFeatured.titleTa) : (heroFeatured.titleTa || heroFeatured.titleEn)}
                 </Link>
               </h1>
 
-              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: 1.5, margin: '0 0 16px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <p className="hero-lead-desc">
                 {lang === 'en' ? (heroFeatured.shortDescEn || heroFeatured.shortDescTa) : (heroFeatured.shortDescTa || heroFeatured.shortDescEn)}
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: 600 }}>
+              <div className="hero-lead-meta">
                 <span><i className="far fa-user" style={{ marginRight: '6px' }}></i> {heroFeatured.authorName || (lang === 'en' ? 'Selvakumar' : 'செல்வகுமார்')}</span>
                 <span><i className="far fa-clock" style={{ marginRight: '6px' }}></i> {lang === 'en' ? '2 hours ago' : '2 மணி நேரத்திற்கு முன்'}</span>
                 <span><i className="far fa-eye" style={{ marginRight: '6px' }}></i> {heroFeatured.viewsCount ? `${(heroFeatured.viewsCount / 1000).toFixed(1)}K` : '12.5K'}</span>
@@ -813,7 +829,7 @@ const Home = () => {
                         height: '70px', 
                         borderRadius: '10px', 
                         flexShrink: 0,
-                        background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length]
+                        background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length]
                       }}
                     ></div>
 
@@ -841,72 +857,37 @@ const Home = () => {
     );
   };
 
-  const renderQuickAccess = () => null;
-
-  const getArticlesForSection = (config = {}, customLabel = null, sectionKey = '') => {
-    const keyLower = (sectionKey || '').toLowerCase();
-    const labelLower = (customLabel || '').toLowerCase();
-
-    // 1. Direct config categoryId
-    let targetCatId = config.categoryId ? String(config.categoryId) : null;
-
-    // 2. Map section key or section label to Category ID
-    if (!targetCatId) {
-      if (keyLower.includes('politi') || labelLower.includes('அரசியல்') || keyLower.includes('election') || labelLower.includes('தேர்தல்') || labelLower.includes('election center') || labelLower.includes('opinion poll') || labelLower.includes('கருத்துக் கணிப்பு')) {
-        targetCatId = '1';
-      } else if (keyLower.includes('agri') || labelLower.includes('agriculture') || labelLower.includes('விவசாயம்') || labelLower.includes('market rates') || labelLower.includes('சந்தை')) {
-        targetCatId = '2';
-      } else if (keyLower.includes('busine') || labelLower.includes('business') || labelLower.includes('வணிகம்')) {
-        targetCatId = '2';
-      } else if (keyLower.includes('sport') || labelLower.includes('விளையாட்டு') || labelLower.includes('sports')) {
-        targetCatId = '3';
-      } else if (keyLower.includes('cinema') || labelLower.includes('சினிமா') || labelLower.includes('பொழுதுபோக்கு') || labelLower.includes('cinema')) {
-        targetCatId = '4';
-      } else if (keyLower.includes('tech') || labelLower.includes('தொழில்நுட்பம்') || labelLower.includes('technology')) {
-        targetCatId = '5';
-      } else if (keyLower.includes('inter') || labelLower.includes('சர்வதேசம்') || labelLower.includes('international')) {
-        targetCatId = '6';
-      } else if (keyLower.includes('distr') || keyLower.includes('regio') || labelLower.includes('நம்ம ஊர்') || labelLower.includes('மாவட்ட') || labelLower.includes('மண்டலம்') || labelLower.includes('district news')) {
-        targetCatId = '7';
-      }
-    }
-
-    let categoryMatches = [];
-    if (targetCatId) {
-      categoryMatches = displayArticles.filter(a => String(a.categoryId) === targetCatId);
-    }
-
-    // 3. Keyword / Topic Filtering for precise title matching
-    if (labelLower || keyLower) {
-      const topicMatches = displayArticles.filter(a => {
-        const text = ((a.titleEn || '') + ' ' + (a.titleTa || '') + ' ' + (a.shortDescEn || '') + ' ' + (a.shortDescTa || '')).toLowerCase();
-        if (labelLower.includes('agriculture') || labelLower.includes('விவசாயம்') || labelLower.includes('market rates')) {
-          return text.includes('agri') || text.includes('farmer') || text.includes('budget') || text.includes('பட்ஜெட்') || text.includes('விவசாயி') || text.includes('நெல்') || text.includes('விலை') || text.includes('சந்தை') || String(a.categoryId) === '2';
-        }
-        if (labelLower.includes('election') || labelLower.includes('தேர்தல்') || labelLower.includes('poll') || labelLower.includes('opinion')) {
-          return text.includes('election') || text.includes('voter') || text.includes('vote') || text.includes('தேர்தல்') || text.includes('வாக்காளர்') || text.includes('கட்சி') || text.includes('அரசியல்') || String(a.categoryId) === '1';
-        }
-        if (labelLower.includes('district') || labelLower.includes('மாவட்ட') || labelLower.includes('நம்ம ஊர்')) {
-          return text.includes('district') || text.includes('chennai') || text.includes('tn') || text.includes('சென்னை') || text.includes('மாவட்டம்') || text.includes('தமிழகம்') || String(a.categoryId) === '7';
-        }
-        if (labelLower.includes('business') || labelLower.includes('வணிகம்')) {
-          return text.includes('stock') || text.includes('market') || text.includes('gold') || text.includes('sensex') || text.includes('பங்கு') || text.includes('தங்கம்') || text.includes('வணிகம்') || String(a.categoryId) === '2';
-        }
-        return false;
-      });
-      if (topicMatches.length > 0) return topicMatches;
-    }
-
-    if (categoryMatches.length > 0) return categoryMatches;
-
-    // 4. Default for general sections (Latest News, Hero)
-    return displayArticles;
+  const categoryIconMap = {
+    politics: 'fas fa-landmark',
+    business: 'fas fa-chart-line',
+    sports: 'fas fa-trophy',
+    cinema: 'fas fa-film',
+    tech: 'fas fa-microchip',
+    technology: 'fas fa-microchip',
+    regional: 'fas fa-map-marker-alt',
+    directory: 'fas fa-map-marker-alt',
+    international: 'fas fa-globe',
+    world: 'fas fa-globe',
+    videos: 'fas fa-video',
+    video: 'fas fa-video',
+    'web-stories': 'fas fa-sticky-note',
+    news: 'fas fa-newspaper',
+    wishes: 'fas fa-heart',
+    obituaries: 'fas fa-ribbon',
+    jobs: 'fas fa-briefcase',
+    classifieds: 'fas fa-tags',
+    'buy-sell': 'fas fa-shopping-cart'
   };
 
-  const renderLatestNews = (config = {}, customLabel = null, sectionKey = '') => {
-    const activeArticles = getArticlesForSection(config, customLabel, sectionKey);
+  const renderQuickAccess = () => null;
+
+  const renderLatestNews = (config = {}, customLabel = null) => {
+    const filterCatId = config.categoryId ? parseInt(config.categoryId) : null;
+    const filtered = filterCatId
+      ? displayArticles.filter(a => String(a.categoryId) === String(filterCatId))
+      : displayArticles;
     const limit = config.limit ? parseInt(config.limit) : 6;
-    const activeGrid = activeArticles.slice(0, limit);
+    const activeGrid = (filtered && filtered.length > 0 ? filtered : displayArticles).slice(0, limit);
     const titleText = customLabel || (lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்');
 
     return (
@@ -922,7 +903,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[idx % gradients.length] 
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length] 
                   }}
                 >
                   <span className="cat-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
@@ -1175,19 +1156,15 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    if (!liveVideo || (!liveVideo.videoUrl && !liveVideo.youtubeUrl)) return null;
-    let liveStreamUrl = liveVideo.videoUrl || liveVideo.youtubeUrl;
-    
-    // Intercept dead dummy video from DB
-    if (liveStreamUrl && liveStreamUrl.includes('2g811Eo7K8U')) {
-       liveStreamUrl = 'https://www.youtube.com/embed/hw7Fjh6mncQ';
-    }
-
-    // Convert standard watch links to embed format
+    const activeVideo = liveVideo || {
+      youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U'
+    };
+    const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
+    let embedUrl = liveStreamUrl;
     if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
       const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
       if (videoIdMatch && videoIdMatch[1]) {
-        liveStreamUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
       }
     }
 
@@ -1199,7 +1176,7 @@ const Home = () => {
         </h4>
         <div style={{ width: '100%', height: '210px', background: '#000000', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
           <iframe 
-            src={liveStreamUrl} 
+            src={embedUrl} 
             title="Live Stream" 
             style={{ width: '100%', height: '100%', border: 'none' }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1255,7 +1232,7 @@ const Home = () => {
               <div 
                 className="card-img" 
                 style={{ 
-                  background: report.imageUrl ? `url(${getImageUrl(report.imageUrl)}) center/cover` : gradients[idx % gradients.length]
+                  background: getImageUrl(report) ? `url(${getImageUrl(report)}) center/cover` : gradients[idx % gradients.length]
                 }}
               >
                 <span className="cat-badge" style={{ background: '#F59E0B' }}>
@@ -1298,7 +1275,7 @@ const Home = () => {
                 <div 
                   className="card-img" 
                   style={{ 
-                    background: art.imageUrl ? `url(${getImageUrl(art.imageUrl)}) center/cover` : gradients[(idx + 4) % gradients.length]
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[(idx + 4) % gradients.length]
                   }}
                 >
                   <span className="cat-badge" style={{ background: '#1E40AF' }}>
@@ -1464,6 +1441,8 @@ const Home = () => {
 
     const renderContent = () => {
       switch (key) {
+        case 'website_navigation':
+          return null;
         case 'news_ticker':
           return (
             <>
@@ -1476,7 +1455,7 @@ const Home = () => {
         case 'quick_access':
           return renderQuickAccess();
         case 'latest_news':
-          return renderLatestNews(config, customLabel, key);
+          return renderLatestNews(config, customLabel);
         case 'video_news':
           return renderVideoNews(config, customLabel);
         case 'web_stories':
@@ -1501,7 +1480,7 @@ const Home = () => {
         case 'newsletter':
           return renderNewsletterStrip();
         default:
-          return renderLatestNews(config, customLabel, key);
+          return renderLatestNews(config, customLabel);
       }
     };
 
@@ -1523,10 +1502,21 @@ const Home = () => {
 
   const hasDynamicLayout = Array.isArray(layoutSections) && layoutSections.length > 0;
 
-  const sortedTopSections = getSortedSections(topKeys);
-  const sortedLeftSections = getSortedSections(leftKeys);
-  const sortedSidebarSections = getSortedSections(sidebarKeys);
-  const sortedBottomSections = getSortedSections(bottomKeys);
+  const sortedTopSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && topKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedLeftSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && !topKeys.includes(s.sectionKey) && !sidebarKeys.includes(s.sectionKey) && !bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedSidebarSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && sidebarKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
+
+  const sortedBottomSections = hasDynamicLayout
+    ? layoutSections.filter(s => s.isVisible !== false && bottomKeys.includes(s.sectionKey)).sort((a, b) => a.displayOrder - b.displayOrder)
+    : [];
 
   return (
     <div style={{ width: '100%' }}>

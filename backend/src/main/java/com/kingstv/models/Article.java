@@ -1,11 +1,9 @@
 package com.kingstv.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "articles")
 public class Article implements Serializable {
@@ -53,7 +51,7 @@ public class Article implements Serializable {
     private Integer viewsCount = 0;
 
     @Column(nullable = false)
-    private String status = "draft";
+    private String status = "published";
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt = LocalDateTime.now();

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO - NewsCMS Pro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3 z-3"></div>
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <div class="wrapper">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-newspaper"></i></div><span class="brand-text">NewsCMS Pro</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-grid-1x2-fill"></i><span class="nav-text">Dashboard</span></a></li>
+          <li class="nav-item"><a href="news.html" class="nav-link"><i class="nav-icon bi bi-file-text"></i><span class="nav-text">News</span><span class="nav-badge badge bg-danger rounded-pill">12</span></a></li>
+          <li class="nav-item"><a href="add-news.html" class="nav-link"><i class="nav-icon bi bi-plus-circle"></i><span class="nav-text">Add News</span></a></li>
+        </ul>
+        <div class="nav-label">Content</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="categories.html" class="nav-link"><i class="nav-icon bi bi-collection"></i><span class="nav-text">Categories</span></a></li>
+          <li class="nav-item"><a href="hero-slider.html" class="nav-link"><i class="nav-icon bi bi-images"></i><span class="nav-text">Hero Slider</span></a></li>
+          <li class="nav-item"><a href="media.html" class="nav-link"><i class="nav-icon bi bi-folder"></i><span class="nav-text">Media Library</span><span class="nav-badge badge bg-primary rounded-pill">48</span></a></li>
+          <li class="nav-item"><a href="comments.html" class="nav-link"><i class="nav-icon bi bi-chat-dots"></i><span class="nav-text">Comments</span><span class="nav-badge badge bg-warning rounded-pill">7</span></a></li>
+        </ul>
+        <div class="nav-label">Monetization</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="advertisements.html" class="nav-link"><i class="nav-icon bi bi-megaphone"></i><span class="nav-text">Advertisements</span></a></li>
+        </ul>
+        <div class="nav-label">SEO</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="seo.html" class="nav-link active"><i class="nav-icon bi bi-search-heart"></i><span class="nav-text">SEO</span></a></li>
+        </ul>
+        <div class="nav-label">Administration</div>
+        <ul class="list-unstyled mb-0">
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><span class="nav-text">Users</span></a></li>
+          <li class="nav-item"><a href="settings.html" class="nav-link"><i class="nav-icon bi bi-gear"></i><span class="nav-text">Settings</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer"><a href="#" class="nav-link btn-logout"><i class="nav-icon bi bi-box-arrow-left"></i><span class="nav-text">Logout</span></a></div>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+          <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Home</a></li><li class="breadcrumb-item active">SEO</li></ol></nav>
+        </div>
+        <div class="header-right">
+          <div class="theme-switch"><input type="checkbox" id="themeToggle" aria-label="Toggle dark mode"><span class="slider"></span></div>
+          <div class="dropdown">
+            <button class="btn-icon" data-bs-toggle="dropdown" aria-label="Notifications"><i class="bi bi-bell"></i><span class="badge-dot"></span></button>
+            <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+              <div class="dropdown-header d-flex justify-content-between align-items-center"><span>Notifications</span><span class="badge bg-primary rounded-pill">3</span></div>
+              <div class="notif-item"><div class="notif-icon bg-soft-primary text-primary"><i class="bi bi-file-text"></i></div><div class="notif-content"><div class="notif-title">New article published</div><div class="notif-text">"Breaking: Tech Innovation 2026" has been published.</div><div class="notif-time">2 minutes ago</div></div></div>
+              <a href="#" class="dropdown-item text-center py-2 border-top small">View all notifications</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <div class="user-profile" data-bs-toggle="dropdown" role="button"><div class="avatar">JD</div><div class="user-info"><div class="user-name">John Doe</div><div class="user-role">Senior Editor</div></div><i class="bi bi-chevron-down text-muted" style="font-size: 12px;"></i></div>
+            <ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="#"><i class="bi bi-person dropdown-icon"></i> Profile</a></li><li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear dropdown-icon"></i> Settings</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item btn-logout" href="#"><i class="bi bi-box-arrow-left dropdown-icon"></i> Logout</a></li></ul>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div><h4>SEO Settings</h4><p>Optimize your content for search engines.</p></div>
+          <div class="page-actions d-flex gap-2">
+            <button class="btn btn-primary btn-sm"><i class="bi bi-search-heart me-1"></i> Run SEO Audit</button>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <!-- Main Form -->
+          <div class="col-lg-8">
+            <div class="card mb-4">
+              <div class="card-header"><span class="card-title">SEO Meta Settings</span></div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label for="seoTitle" class="form-label">Meta Title</label>
+                  <input type="text" class="form-control" id="seoTitle" placeholder="Home - NewsCMS Pro" maxlength="70" value="NewsCMS Pro - Breaking News & In-depth Analysis">
+                  <div class="form-text" id="titleCount">Recommended: 50-60 characters</div>
+                </div>
+                <div class="mb-3">
+                  <label for="seoDesc" class="form-label">Meta Description</label>
+                  <textarea class="form-control" id="seoDesc" rows="3" placeholder="Brief description..." maxlength="160">NewsCMS Pro delivers the latest breaking news, in-depth analysis, and expert coverage on technology, politics, business, sports, and health.</textarea>
+                  <div class="form-text" id="descCount">Recommended: 150-160 characters</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Keywords</label>
+                  <input type="text" class="form-control" placeholder="news, breaking news, technology, politics, business, sports, health">
+                  <div class="form-text">Comma-separated keywords.</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Canonical URL</label>
+                  <input type="url" class="form-control" placeholder="https://yourdomain.com/">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Focus Keyword</label>
+                  <input type="text" class="form-control" placeholder="Primary focus keyword for this page">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Open Graph Image</label>
+                  <div class="upload-zone" style="padding: 20px;">
+                    <i class="bi bi-image upload-icon" style="font-size: 32px;"></i>
+                    <div class="upload-text">Upload OG Image (1200x630px recommended)</div>
+                    <input type="file" accept="image/*" hidden>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Twitter Card</label>
+                  <select class="form-select">
+                    <option>Summary</option>
+                    <option>Summary Large Image</option>
+                    <option>App</option>
+                    <option>Player</option>
+                  </select>
+                </div>
+                <div class="mb-0">
+                  <label class="form-label">Schema Type</label>
+                  <select class="form-select">
+                    <option>WebSite</option>
+                    <option>NewsArticle</option>
+                    <option>Organization</option>
+                    <option>Person</option>
+                    <option>BlogPosting</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Google Preview -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Google Search Preview</span></div>
+              <div class="card-body">
+                <div class="seo-preview">
+                  <div class="seo-url">https://yourdomain.com/</div>
+                  <div class="seo-title" id="seoPreviewTitle">NewsCMS Pro - Breaking News & In-depth Analysis</div>
+                  <div class="seo-desc" id="seoPreviewDesc">NewsCMS Pro delivers the latest breaking news, in-depth analysis, and expert coverage on technology, politics, business, sports, and health.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="col-lg-4">
+            <!-- SEO Score -->
+            <div class="card mb-4">
+              <div class="card-header"><span class="card-title">SEO Score</span></div>
+              <div class="card-body text-center">
+                <div class="score-circle good mb-3">
+                  85
+                  <span class="score-label">Good</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="fs-13">Meta Title</span>
+                  <span class="badge bg-success-soft">Pass</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="fs-13">Meta Description</span>
+                  <span class="badge bg-success-soft">Pass</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="fs-13">Keywords</span>
+                  <span class="badge bg-warning-soft">Needs Work</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="fs-13">OG Tags</span>
+                  <span class="badge bg-success-soft">Pass</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                  <span class="fs-13">Canonical URL</span>
+                  <span class="badge bg-danger-soft">Missing</span>
+                </div>
+                <div class="progress mb-2" style="height: 8px;">
+                  <div class="progress-bar bg-success" style="width: 85%"></div>
+                </div>
+                <span class="fs-12 text-secondary">Overall SEO Health</span>
+              </div>
+            </div>
+
+            <!-- Readability Score -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Readability Score</span></div>
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <div class="score-circle good" style="width: 80px; height: 80px; font-size: 24px; border-width: 4px;">
+                    72
+                    <span class="score-label" style="font-size: 9px;">Good</span>
+                  </div>
+                  <div>
+                    <div class="fw-600">Readability: Good</div>
+                    <div class="fs-12 text-secondary">Flesch Reading Ease: 72</div>
+                    <div class="fs-12 text-secondary mt-1">Grade Level: 8th Grade</div>
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between fs-12 mb-1">
+                  <span>Sentence Length</span>
+                  <span class="text-success">Good</span>
+                </div>
+                <div class="d-flex justify-content-between fs-12 mb-1">
+                  <span>Paragraph Length</span>
+                  <span class="text-success">Good</span>
+                </div>
+                <div class="d-flex justify-content-between fs-12 mb-1">
+                  <span>Subheadings</span>
+                  <span class="text-warning">Needs Work</span>
+                </div>
+                <div class="d-flex justify-content-between fs-12">
+                  <span>Transition Words</span>
+                  <span class="text-success">Good</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>&copy; <span id="currentYear"></span> NewsCMS Pro. All rights reserved.</span>
+          <span class="d-flex gap-3"><a href="#" class="text-muted">Privacy Policy</a><a href="#" class="text-muted">Terms of Service</a><a href="#" class="text-muted">Support</a></span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

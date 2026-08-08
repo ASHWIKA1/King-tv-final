@@ -12,7 +12,6 @@ const STATUS_OPTIONS = [
   { value: 'published', label: '✅ Published' },
   { value: 'draft', label: '📝 Draft' },
   { value: 'pending', label: '⏳ Pending Review' },
-  { value: 'pending_review', label: '⏳ Needs Review' },
   { value: 'rejected', label: '❌ Rejected' },
   { value: 'archived', label: '📦 Archived' },
 ];
@@ -21,7 +20,6 @@ const STATUS_BADGE = {
   published: { bg: 'rgba(16,185,129,0.15)', color: '#10B981', label: 'Published' },
   draft: { bg: 'rgba(156,163,175,0.2)', color: '#9CA3AF', label: 'Draft' },
   pending: { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', label: 'Pending' },
-  pending_review: { bg: 'rgba(245,158,11,0.2)', color: '#D97706', label: '⏳ Needs Review' },
   rejected: { bg: 'rgba(239,68,68,0.15)', color: '#EF4444', label: 'Rejected' },
   archived: { bg: 'rgba(107,114,128,0.15)', color: '#6B7280', label: 'Archived' },
   deleted: { bg: 'rgba(239,68,68,0.1)', color: '#EF4444', label: 'Deleted' },
@@ -53,7 +51,7 @@ const NewsManagement = () => {
       const params = new URLSearchParams({
         page,
         size: 12,
-        sortBy: 'id',
+        sortBy: 'publishedAt',
         direction: 'desc',
       });
       if (search) params.set('search', search);
@@ -326,9 +324,9 @@ const NewsManagement = () => {
                           <Edit3 size={13} />
                         </button>
                         
-                        {/* View Live Article on Reader App - always points to frontend root */}
+                        {/* View Live Article on Reader App */}
                         <a 
-                          href={`${window.location.protocol}//${window.location.hostname}/article/${art.id}`}
+                          href={`${window.location.origin}/article/${art.slug || art.id}`}
                           target="_blank" 
                           rel="noreferrer"
                           title="View Live Reader Page"

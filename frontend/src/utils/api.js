@@ -5,7 +5,7 @@ const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE && !import.meta.env.VITE_API_BASE.includes('localhost')) {
     return import.meta.env.VITE_API_BASE;
   }
-  return `${window.location.protocol}//${window.location.host}/api/v1`;
+  return 'https://kings-tv.onrender.com/api/v1';
 };
 
 const getBaseServer = () => {
@@ -15,7 +15,7 @@ const getBaseServer = () => {
   if (import.meta.env.VITE_SERVER_BASE && !import.meta.env.VITE_SERVER_BASE.includes('localhost')) {
     return import.meta.env.VITE_SERVER_BASE;
   }
-  return `${window.location.protocol}//${window.location.host}`;
+  return 'https://kings-tv.onrender.com';
 };
 
 export const SERVER_BASE = getBaseServer();
@@ -110,8 +110,8 @@ export const fetchApi = async (endpoint, options = {}) => {
     circuits[basePath] = circuit;
   }
 
-  // Bypass circuit breaker and stale cache for live articles, breaking news, public layout, categories, districts, and menus
-  const isBypassed = endpoint.includes('articles') || endpoint.includes('breaking-news') || endpoint.includes('layout') || endpoint.includes('categories') || endpoint.includes('districts') || endpoint.includes('menus');
+  // Bypass circuit breaker and stale cache for live breaking news, public layout, categories, districts, and menus
+  const isBypassed = endpoint.includes('breaking-news') || endpoint.includes('layout') || endpoint.includes('categories') || endpoint.includes('districts') || endpoint.includes('menus');
   if (isBypassed) {
     circuit.status = 'closed';
     circuit.failures = 0;

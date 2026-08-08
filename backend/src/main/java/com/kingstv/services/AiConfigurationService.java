@@ -48,11 +48,11 @@ public class AiConfigurationService {
             "ollama", "http://localhost:11434/api/chat"
         );
         Map<String, String> defaultModels = Map.of(
-            "gemini", "gemini-2.0-flash",
+            "gemini", "gemini-flash-latest",
             "openai", "gpt-4o-mini",
             "anthropic", "claude-3-5-sonnet-20241022",
             "groq", "llama-3.3-70b-versatile",
-            "openrouter", "nvidia/nemotron-nano-9b-v2:free",
+            "openrouter", "google/gemini-2.0-flash-exp:free",
             "ollama", "llama3"
         );
 
@@ -63,19 +63,7 @@ public class AiConfigurationService {
                 conf.setProvider(prov);
                 conf.setBaseUrl(defaultUrls.get(prov));
                 conf.setModel(defaultModels.get(prov));
-                if ("openrouter".equals(prov)) {
-                    String openrouterKey = System.getenv("OPENROUTER_API_KEY");
-                    if (openrouterKey != null && !openrouterKey.isBlank()) {
-                        try {
-                            conf.setApiKey(encryptionService.encrypt(openrouterKey));
-                            conf.setIsEncrypted(true);
-                        } catch (Exception e) {
-                            conf.setApiKey(openrouterKey);
-                            conf.setIsEncrypted(false);
-                        }
-                    }
-                    conf.setEnableAi(true);
-                } else if ("gemini".equals(prov)) {
+                if ("gemini".equals(prov)) {
                     String geminiKey = System.getenv("GEMINI_API_KEY");
                     if (geminiKey != null && !geminiKey.isBlank()) {
                         try {
@@ -95,9 +83,7 @@ public class AiConfigurationService {
                 conf.setMaxTokens(1024);
                 conf.setTimeout(30);
                 conf.setRetryAttempts(3);
-                if (!"gemini".equals(prov) && !"openrouter".equals(prov)) {
-                    conf.setEnableAi(false);
-                }
+                conf.setEnableAi(prov.equals("gemini"));
                 conf.setEnableTranslation(true);
                 conf.setEnableSeo(true);
                 conf.setEnableSummary(true);
@@ -168,13 +154,13 @@ public class AiConfigurationService {
         existing.setMaxTokens(request.getMaxTokens());
         existing.setTimeout(request.getTimeout());
         existing.setRetryAttempts(request.getRetryAttempts());
-        existing.setEnableAi(request.getEnableAi() != null ? request.getEnableAi() : true);
-        existing.setEnableTranslation(request.getEnableTranslation() != null ? request.getEnableTranslation() : true);
-        existing.setEnableSeo(request.getEnableSeo() != null ? request.getEnableSeo() : true);
-        existing.setEnableSummary(request.getEnableSummary() != null ? request.getEnableSummary() : true);
-        existing.setEnableRewrite(request.getEnableRewrite() != null ? request.getEnableRewrite() : true);
-        existing.setEnableTags(request.getEnableTags() != null ? request.getEnableTags() : true);
-        existing.setEnableKeywords(request.getEnableKeywords() != null ? request.getEnableKeywords() : true);
+        existing.setEnableAi(request.getEnableAi());
+        existing.setEnableTranslation(request.getEnableTranslation());
+        existing.setEnableSeo(request.getEnableSeo());
+        existing.setEnableSummary(request.getEnableSummary());
+        existing.setEnableRewrite(request.getEnableRewrite());
+        existing.setEnableTags(request.getEnableTags());
+        existing.setEnableKeywords(request.getEnableKeywords());
         existing.setEnableLogging(request.getEnableLogging());
         existing.setEnableCache(request.getEnableCache());
         existing.setUpdatedAt(LocalDateTime.now());

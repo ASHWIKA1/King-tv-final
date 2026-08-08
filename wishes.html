@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ta" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>வாழ்த்துகள் & கொண்டாட்டங்கள் - KING 24x7 | Local Wishes</title>
+  <meta name="description"
+    content="உள்ளூர் மக்களின் பிறந்தநாள், திருமண நாள், கல்விச் சாதனை மற்றும் விளையாட்டு வெற்றிகளுக்கான வாழ்த்துகள் தமிழில்.">
+  <meta name="keywords"
+    content="local wishes tamil nadu, birthday wishes tamil, wedding greetings, local achievement awards">
+  <link rel="canonical" href="https://king24x7.com/wishes.html">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="வாழ்த்துகள் & கொண்டாட்டங்கள் - KING 24x7">
+  <meta property="og:description" content="உள்ளூர் மக்களின் கொண்டாட்டங்கள் மற்றும் பாராட்டுப் செய்திகள்">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://king24x7.com/wishes.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#EC4899">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-light.png" id="favicon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css?v=8">
+
+  <!-- Respective Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "name": "Local Greetings and Wishes",
+    "description": "Greetings and congratulations for birthdays, weddings, and achievements of local citizens in Tamil Nadu towns.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "KING 24x7"
+    }
+  }
+  </script>
+
+  <style>
+    /* Wishes Specific Styles */
+    .wishes-hero {
+      background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%);
+      color: white;
+      padding: 40px 0;
+      border-radius: var(--radius-lg);
+      margin: 20px 0;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wishes-hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .wishes-hero p {
+      font-size: 15px;
+      opacity: 0.9;
+      margin-bottom: 24px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .search-wrapper {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      padding: 0 20px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .search-wrapper input {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 30px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-dark);
+      font-size: 14px;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .search-wrapper button {
+      padding: 12px 28px;
+      border-radius: 30px;
+      background: var(--white);
+      color: #8B5CF6;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .search-wrapper button:hover {
+      transform: scale(1.05);
+      background: #F5F3FF;
+    }
+
+    .category-filter-row {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px 0;
+      margin-bottom: 24px;
+      scrollbar-width: none;
+    }
+
+    .category-filter-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pill {
+      padding: 8px 18px;
+      border-radius: 20px;
+      background: var(--white);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    .filter-pill:hover,
+    .filter-pill.active {
+      background: #8B5CF6;
+      color: white;
+      border-color: #8B5CF6;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .wishes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .wish-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .wish-card:hover {
+      transform: translateY(-5px) scale(1.01);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-banner {
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+      padding: 16px;
+      position: relative;
+    }
+
+    .card-banner .badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .card-banner .emoji {
+      font-size: 32px;
+      margin-bottom: 4px;
+    }
+
+    .card-banner h3 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .wish-body {
+      padding: 20px;
+      text-align: center;
+      flex: 1;
+    }
+
+    .wish-message {
+      font-size: 14px;
+      color: var(--text-dark);
+      line-height: 1.6;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .wish-from {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: block;
+    }
+
+    .wish-action-btn {
+      width: 100%;
+      padding: 12px 0;
+      background: #F5F3FF;
+      color: #8B5CF6;
+      border: none;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .wish-action-btn:hover {
+      background: #8B5CF6;
+      color: white;
+    }
+
+    .post-wish-banner {
+      background: var(--white);
+      border: 2px dashed #8B5CF6;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .post-wish-banner h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .post-wish-banner button {
+      margin-top: 14px;
+      padding: 10px 24px;
+      border-radius: 20px;
+      background: #8B5CF6;
+      color: white;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .post-wish-banner button:hover {
+      background: #7C3AED;
+    }
+
+    /* Modal Form Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: zoomIn 0.3s ease;
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      background: #8B5CF6;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #E2E8F0;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #8B5CF6;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: #8B5CF6;
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .submit-btn:hover {
+      background: #7C3AED;
+    }
+
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Confetti element for greetings cards interaction -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-bar-left">
+        <span><i class="far fa-calendar-alt"></i> <span id="tamilDate"></span></span>
+        <span><i class="far fa-clock"></i> <span id="currentTime"></span></span>
+        <span><i class="fas fa-map-marker-alt"></i> <select id="districtSelector" class="district-select-top"
+            aria-label="District">
+            <option value="சென்னை" selected>சென்னை</option>
+            <option value="கோயம்புத்தூர்">கோயம்புத்தூர்</option>
+            <option value="மதுரை">மதுரை</option>
+            <option value="சேலம்">சேலம்</option>
+            <option value="திருச்சி">திருச்சி</option>
+            <option value="திருநெல்வேலி">திருநெல்வேலி</option>
+            <option value="வேலூர்">வேலூர்</option>
+            <option value="ஈரோடு">ஈரோடு</option>
+            <option value="தஞ்சாவூர்">தஞ்சாவூர்</option>
+            <option value="கன்னியாகுமரி">கன்னியாகுமரி</option>
+          </select></span>
+        <span><i class="fas fa-thermometer-half"></i> <span id="topTemp">32°C</span></span>
+      </div>
+      <div class="top-bar-right">
+        <a href="#" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-icon" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="#" class="social-icon" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        <a href="#" class="social-icon" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+        <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode"><i class="fas fa-moon"></i>
+          இருள்</button>
+        <select class="lang-switcher" aria-label="Language">
+          <option value="ta" selected>தமிழ்</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+        <!-- HEADER MAIN -->
+  <header class="header-main">
+    <div class="container">
+      <div class="header-left">
+        <a href="index.html" class="logo-link">
+          <img src="assets/images/logo-banner-light.png" alt="KING 24x7" class="main-logo-img logo-light-only">
+          <img src="assets/images/logo-banner-dark.png" alt="KING 24x7" class="main-logo-img logo-dark-only">
+          <span class="logo-sub-text">LIVE • TRUE • TAMIL</span>
+        </a>
+      </div>
+      <div class="header-center"></div>
+      <div class="header-right">
+        <a href="index.html#section-livetv" class="livetv-btn">
+          <i class="fas fa-play-circle"></i> LIVE TV WATCH NOW
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="main-nav" id="mainNav">
+    <div class="container">
+      <div class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <i class="fas fa-bars"></i>
+      </div>
+            <ul class="nav-menu" id="navMenu">
+        <li class="nav-item"><a href="index.html" class="nav-link">முகப்பு</a></li>
+        <li class="nav-item"><a href="directory.html" class="nav-link">நம்ம ஊர்</a></li>
+        <li class="nav-item"><a href="index.html" class="nav-link">செய்திகள்</a></li>
+        <li class="nav-item active"><a href="wishes.html" class="nav-link">வாழ்த்து</a></li>
+        <li class="nav-item"><a href="obituaries.html" class="nav-link">இரங்கல்</a></li>
+        <li class="nav-item"><a href="business-studies.html" class="nav-link">வணிகம்</a></li>
+        <li class="nav-item"><a href="jobs.html" class="nav-link">வேலை</a></li>
+        <li class="nav-item"><a href="classifieds.html" class="nav-link">தள்ளுபடி</a></li>
+      </ul>
+      <div class="nav-search" id="searchToggle" aria-label="Search"><i class="fas fa-search"></i></div>
+    </div>
+  </nav>
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="container">
+
+    <!-- HERO / SEARCH -->
+    <section class="wishes-hero">
+      <h1>நமது ஊர் வாழ்த்துகளும் கொண்டாட்டங்களும்</h1>
+      <p>உள்ளூர் மக்களின் பிறந்தநாள், திருமண நாள் மற்றும் சாதனையாளர்களை வாழ்த்தி மகிழுங்கள்</p>
+      <div class="search-wrapper">
+        <input type="text" id="wishesSearch" placeholder="பெயர் கொண்டு தேடுக..." aria-label="Search Wishes">
+        <button id="wishesSearchBtn">தேடுக</button>
+      </div>
+    </section>
+
+    <!-- FILTERS -->
+    <div class="category-filter-row">
+      <button class="filter-pill active" data-cat="all">அனைத்தும்</button>
+      <button class="filter-pill" data-cat="birthday">பிறந்தநாள் வாழ்த்து</button>
+      <button class="filter-pill" data-cat="wedding">திருமண வாழ்த்து</button>
+      <button class="filter-pill" data-cat="achievement">சாதனைகள்</button>
+    </div>
+
+    <!-- WISHES GRID -->
+    <section class="wishes-grid" id="wishesGrid">
+
+      <!-- Wish 1 -->
+      <div class="wish-card" data-category="birthday">
+        <div class="card-banner" style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)">
+          <span class="badge">பிறந்தநாள்</span>
+          <span class="emoji">🎂</span>
+          <h3>செல்வன். தருண் குமார்</h3>
+        </div>
+        <div class="wish-body">
+          <p class="wish-message">நமது அண்ணா நகரைச் சேர்ந்த செல்வன். தருண் குமார் தனது 10-வது பிறந்தநாளை இன்று கொண்டாடுகிறார். அவர் எல்லா வளமும் பெற்று நீண்ட ஆயுளுடன் வாழ வாழ்த்துகிறோம்!</p>
+          <span class="wish-from">✍️ வாழ்த்துபவர்கள்: பெற்றோர் மற்றும் உறவினர்கள்</span>
+        </div>
+        <button class="wish-action-btn"><i class="fas fa-gift"></i> வாழ்த்துக்களைத் தெரிவி</button>
+      </div>
+
+      <!-- Wish 2 -->
+      <div class="wish-card" data-category="wedding">
+        <div class="card-banner" style="background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)">
+          <span class="badge">திருமண நாள்</span>
+          <span class="emoji">💑</span>
+          <h3>திரு & திருமதி. விவேகானந்தன்</h3>
+        </div>
+        <div class="wish-body">
+          <p class="wish-message">தங்களது 25-வது வெள்ளி விழா திருமண நாளை இன்று கொண்டாடும் தாரமங்கலம் விவேகானந்தன்-கலா தம்பதியினர் மென்மேலும் இன்புற்று வாழ வாழ்த்துகிறோம்!</p>
+          <span class="wish-from">✍️ வாழ்த்துபவர்கள்: அன்பு மகன்கள் மற்றும் குடும்பத்தினர்</span>
+        </div>
+        <button class="wish-action-btn"><i class="fas fa-heart"></i> வாழ்த்துக்களைத் தெரிவி</button>
+      </div>
+
+      <!-- Wish 3 -->
+      <div class="wish-card" data-category="achievement">
+        <div class="card-banner" style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%)">
+          <span class="badge">சாதனை</span>
+          <span class="emoji">🏆</span>
+          <h3>செல்வி. கார்த்திகா தேவி</h3>
+        </div>
+        <div class="wish-body">
+          <p class="wish-message">பத்தாம் வகுப்பு பொதுத்தேர்வில் 492 மதிப்பெண்கள் பெற்று பள்ளியில் முதலிடம் பெற்ற நமது ஊரைச் சேர்ந்த மாணவி கார்த்திகா தேவிக்கு மனமார்ந்த வாழ்த்துகள்!</p>
+          <span class="wish-from">✍️ வாழ்த்துபவர்கள்: நமது ஊர் மக்கள் மற்றும் ஆசிரியர்கள்</span>
+        </div>
+        <button class="wish-action-btn"><i class="fas fa-trophy"></i> பாராட்டுக்களைத் தெரிவி</button>
+      </div>
+
+    </section>
+
+    <!-- BANNER TO POST WISH -->
+    <section class="post-wish-banner">
+      <h3>உங்கள் குடும்பத்தினரின் பிறந்தநாள் அல்லது திருமண நாட்களைப் பகிர விரும்புகிறீர்களா?</h3>
+      <p>நமது ஊர் மக்கள் அனைவரும் இணைந்து வாழ்த்துக்களைத் தெரிவிக்க இலவசமாகப் பதியுங்கள்.</p>
+      <button id="postWishBtn"><i class="fas fa-plus-circle"></i> வாழ்த்து அட்டை அனுப்ப</button>
+    </section>
+
+  </main>
+
+  <!-- POST WISH MODAL -->
+  <div class="modal" id="postWishModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>வாழ்த்து அட்டை பதியவும்</h3>
+        <button class="modal-close" id="postClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="postWishForm">
+          <div class="form-group">
+            <label for="wishNameInput">வாழ்த்தப் பெறுபவர் பெயர் *</label>
+            <input type="text" id="wishNameInput" required placeholder="எ.கா: சுரேஷ் குமார்">
+          </div>
+          <div class="form-group">
+            <label for="wishCatInput">வாழ்த்து வகை *</label>
+            <select id="wishCatInput" required>
+              <option value="birthday">பிறந்தநாள் வாழ்த்து</option>
+              <option value="wedding">திருமண வாழ்த்து</option>
+              <option value="achievement">சாதனைகள்</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="wishMsgInput">வாழ்த்துச் செய்தி *</label>
+            <textarea id="wishMsgInput" rows="3" required placeholder="அன்பான வாழ்த்து வரிகளைப் பதியவும்..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="wishFromInput">வாழ்த்துபவர் பெயர்(கள்) *</label>
+            <input type="text" id="wishFromInput" required placeholder="எ.கா: நண்பர்கள் குழு">
+          </div>
+          <button type="submit" class="submit-btn">வாழ்த்து அட்டையை வெளியிடு</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMIZATION PANEL -->
+  <div class="panel-backdrop" id="panelBackdrop"></div>
+  <button class="customize-toggle" id="customizeToggle" aria-label="Customize"><i class="fas fa-sliders-h"></i></button>
+  <div class="customize-panel" id="customizePanel">
+    <div class="panel-header">
+      <h3><i class="fas fa-palette"></i> தனிப்பயனாக்கு</h3>
+      <button class="close-panel" id="closePanel" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="customize-group">
+        <h4>⭐ தீம்</h4>
+        <div class="customize-row">
+          <div><label>இருண்ட பயன்முறை</label>
+            <div class="custom-desc">இருண்ட தீமுக்கு மாற்றவும்</div>
+          </div>
+          <label class="custom-switch"><input type="checkbox" id="ctrlDarkMode"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🎨 முதன்மை நிறம்</h4>
+        <div class="color-picker-row">
+          <span class="color-swatch active" data-color="#0057FF" style="background:#0057FF"
+            title="நீலம் (இயல்புநிலை)"><input type="color" value="#0057FF"></span>
+          <span class="color-swatch" data-color="#DC2626" style="background:#DC2626" title="சிவப்பு"><input type="color"
+              value="#DC2626"></span>
+          <span class="color-swatch" data-color="#059669" style="background:#059669" title="பச்சை"><input type="color"
+              value="#059669"></span>
+          <span class="color-swatch" data-color="#7C3AED" style="background:#7C3AED" title="ஊதா"><input type="color"
+              value="#7C3AED"></span>
+          <span class="color-swatch" data-color="#D97706" style="background:#D97706" title="ஆரஞ்சு"><input type="color"
+              value="#D97706"></span>
+          <span class="color-swatch" data-color="#EC4899" style="background:#EC4899" title="இளஞ்சிவப்பு"><input
+              type="color" value="#EC4899"></span>
+          <span class="color-swatch" data-color="#06B6D4" style="background:#06B6D4" title="சியான்"><input type="color"
+              value="#06B6D4"></span>
+        </div>
+      </div>
+      <div class="customize-group">
+        <h4>🔤 எழுத்து அளவு</h4>
+        <div class="customize-row">
+          <button class="font-size-btn" data-size="small">சிறியது</button>
+          <button class="font-size-btn active" data-size="medium">நடுத்தரம்</button>
+          <button class="font-size-btn" data-size="large">பெரியது</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <button class="reset-btn" id="resetCustomize">மீட்டமை</button>
+      <button class="apply-btn" id="applyCustomize">பயன்படுத்து</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="assets/icons/logo-icon-light.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-light-only">
+            <img src="assets/icons/logo-icon-dark.png" alt="KING 24x7" style="height: 40px; width: auto;" class="logo-dark-only">
+            <span style="font-size:24px; font-weight:800; color:white;">KING 24x7</span>
+          </div>
+          <div class="tagline" style="color:rgba(255,255,255,0.5); margin-top:8px;">உண்மை. பொறுப்புடன். தமிழ்.</div>
+          <p>KING 24x7 ஒரு முன்னணி தமிழ் செய்தி போர்டல். தமிழகம், இந்தியா மற்றும் உலகம் முழுவதும் இருந்து தமிழில் உடனடி,
+            நம்பகமான செய்திகளை வழங்குகிறோம்.</p>
+        </div>
+<div class="footer-col">
+          <h5>செய்திகள்</h5>
+          <a href="#">அரசியல்</a>
+          <a href="#">தமிழ்நாடு</a>
+          <a href="#">இந்தியா</a>
+          <a href="#">உலகம்</a>
+          <a href="#">வணிகம்</a>
+          <a href="#">விளையாட்டு</a>
+          <a href="#">சினிமா</a>
+        </div>
+        <div class="footer-col">
+          <h5>கூடுதல்</h5>
+          <a href="#">வீдеоக்கள்</a>
+          <a href="#">லைவ் டிவி</a>
+          <a href="#">பாட்காஸ்ட்கள்</a>
+          <a href="#">வெப் ஸ்டோரிஸ்</a>
+          <a href="#">வானிலை</a>
+          <a href="#">தேர்தல் மையம்</a>
+          <a href="#">சந்தை விலை</a>
+        </div>
+        <div class="footer-col">
+          <h5>தகவல்</h5>
+          <a href="#">எங்களைப் பற்றி</a>
+          <a href="#">தொடர்புக்கு</a>
+          <a href="#">விளம்பரம்</a>
+          <a href="#">வேலைவாய்ப்பு</a>
+          <a href="#">தனியுரிமைக் கொள்கை</a>
+          <a href="#">பயன்பாட்டு விதிமுறைகள்</a>
+        </div>
+        <div class="footer-col">
+          <h5>பதிவிறக்கம்</h5>
+          <a href="#"><i class="fab fa-google-play"></i> Google Play</a>
+          <a href="#"><i class="fab fa-apple"></i> App Store</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2025 <strong>KING 24x7</strong> - All Rights Reserved.</div>
+        <div>
+          <a href="#">RSS Feeds</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Sitemap</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Accessibility</a> <span style="margin:0 8px;opacity:0.3">|</span>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BACK TO TOP -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top"><i class="fas fa-arrow-up"></i></button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+  <script src="js/main.js?v=4" charset="UTF-8"></script>
+
+  <!-- Confetti script and Wishes Page logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+      // Confetti Animation Effect
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const colors = ['#f43f5e', '#8b5cf6', '#eab308', '#3b82f6', '#10b981', '#ec4899'];
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      class ConfettiParticle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.size = Math.random() * 8 + 4;
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+          this.speedX = Math.random() * 6 - 3;
+          this.speedY = Math.random() * -10 - 5;
+          this.gravity = 0.3;
+          this.opacity = 1;
+        }
+
+        update() {
+          this.x += this.speedX;
+          this.speedY += this.gravity;
+          this.y += this.speedY;
+          this.opacity -= 0.015;
+        }
+
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = this.opacity;
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function triggerConfetti(clientX, clientY) {
+        for (let i = 0; i < 40; i++) {
+          particles.push(new ConfettiParticle(clientX, clientY));
+        }
+        if (particles.length === 40) {
+          animateConfetti();
+        }
+      }
+
+      function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles = particles.filter(p => p.opacity > 0);
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+        if (particles.length > 0) {
+          requestAnimationFrame(animateConfetti);
+        }
+      }
+
+      // Add confetti triggers to wish buttons
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('wish-action-btn') || e.target.closest('.wish-action-btn')) {
+          const btn = e.target.classList.contains('wish-action-btn') ? e.target : e.target.closest('.wish-action-btn');
+          
+          triggerConfetti(e.clientX, e.clientY);
+          
+          btn.innerHTML = '<i class="fas fa-check-circle"></i> வாழ்த்தப்பட்டது!';
+          btn.style.background = '#8B5CF6';
+          btn.style.color = 'white';
+          btn.disabled = true;
+        }
+      });
+
+      // Search functionality
+      const searchInput = document.getElementById('wishesSearch');
+      const searchBtn = document.getElementById('wishesSearchBtn');
+      const cards = document.querySelectorAll('.wish-card');
+
+      function performSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        cards.forEach(card => {
+          const title = card.querySelector('h3').textContent.toLowerCase();
+          const msg = card.querySelector('.wish-message').textContent.toLowerCase();
+          const from = card.querySelector('.wish-from').textContent.toLowerCase();
+
+          if (title.includes(query) || msg.includes(query) || from.includes(query)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+
+      searchBtn.addEventListener('click', performSearch);
+      searchInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') performSearch();
+      });
+
+      // Category filtering
+      const filterPills = document.querySelectorAll('.filter-pill');
+      
+      function filterCategory(cat) {
+        cards.forEach(card => {
+          if (cat === 'all' || card.dataset.category === cat) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+
+      filterPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          filterPills.forEach(p => p.classList.remove('active'));
+          this.classList.add('active');
+          filterCategory(this.dataset.cat);
+        });
+      });
+
+      // Modal management
+      const postBtn = document.getElementById('postWishBtn');
+      const postModal = document.getElementById('postWishModal');
+      const postClose = document.getElementById('postClose');
+
+      if(postBtn) postBtn.addEventListener('click', () => postModal.classList.add('open'));
+      if(postClose) postClose.addEventListener('click', () => postModal.classList.remove('open'));
+
+      window.addEventListener('click', (e) => {
+        if (e.target === postModal) postModal.classList.remove('open');
+      });
+
+      // Form submission
+      const postForm = document.getElementById('postWishForm');
+      if (postForm) {
+        postForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const name = document.getElementById('wishNameInput').value;
+          const cat = document.getElementById('wishCatInput').value;
+          const msg = document.getElementById('wishMsgInput').value;
+          const from = document.getElementById('wishFromInput').value;
+
+          const grid = document.getElementById('wishesGrid');
+          const card = document.createElement('div');
+          card.className = 'wish-card';
+          card.dataset.category = cat;
+
+          let catText = 'பிறந்தநாள்';
+          let grad = 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)';
+          let emoji = '🎂';
+          if (cat === 'wedding') { catText = 'திருமண நாள்'; grad = 'linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)'; emoji = '💑'; }
+          else if (cat === 'achievement') { catText = 'சாதனை'; grad = 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)'; emoji = '🏆'; }
+
+          card.innerHTML = `
+            <div class="card-banner" style="background: ${grad}">
+              <span class="badge">${catText}</span>
+              <span class="emoji">${emoji}</span>
+              <h3>${name}</h3>
+            </div>
+            <div class="wish-body">
+              <p class="wish-message">${msg}</p>
+              <span class="wish-from">✍️ வாழ்த்துபவர்கள்: ${from}</span>
+            </div>
+            <button class="wish-action-btn"><i class="fas fa-gift"></i> வாழ்த்துக்களைத் தெரிவி</button>
+          `;
+
+          grid.prepend(card);
+          postModal.classList.remove('open');
+          postForm.reset();
+          alert('வாழ்த்து அட்டை வெற்றிகரமாக வெளியிடப்பட்டது! வாழ்த்துக்கள்.');
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

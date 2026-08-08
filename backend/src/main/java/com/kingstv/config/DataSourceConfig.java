@@ -68,7 +68,7 @@ public class DataSourceConfig {
                 hikariConfig.setIdleTimeout(idleTimeout);
                 hikariConfig.setMaxLifetime(maxLifetime);
                 hikariConfig.setConnectionTimeout(connectionTimeout);
-                hikariConfig.setInitializationFailTimeout(15000); // Allow up to 15 seconds to connect to primary database before fallback
+                hikariConfig.setInitializationFailTimeout(2000); // Fast fail after 2 seconds if primary DB fails
 
                 ds = new HikariDataSource(hikariConfig);
                 try (Connection conn = ds.getConnection()) {
@@ -80,16 +80,16 @@ public class DataSourceConfig {
                     try { ds.close(); } catch (Exception ignored) {}
                 }
                 log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
-                log.warn("Falling back to embedded persistent H2 database for resilient application startup.");
+                log.warn("Falling back to embedded H2 database for resilient application startup.");
             }
         } else {
-            log.warn("Primary database credentials or URL incomplete. Falling back to embedded persistent H2 database.");
+            log.warn("Primary database credentials or URL incomplete. Falling back to embedded H2 database.");
         }
 
-        // Resilient Fallback: Persistent file-based H2 database with full MySQL compatibility
-        log.info("Initializing persistent H2 fallback database (MODE=MySQL)...");
+        // Resilient Fallback: Embedded H2 database with full MySQL compatibility
+        log.info("Initializing embedded H2 fallback database (MODE=MySQL)...");
         HikariConfig fallbackConfig = new HikariConfig();
-        fallbackConfig.setJdbcUrl("jdbc:h2:file:./database;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=USER,ROLE,VALUE");
+        fallbackConfig.setJdbcUrl("jdbc:h2:mem:kingstvdb;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=USER,ROLE,VALUE");
         fallbackConfig.setUsername("sa");
         fallbackConfig.setPassword("");
         fallbackConfig.setDriverClassName("org.h2.Driver");

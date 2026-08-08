@@ -12,7 +12,6 @@ const ArticleDetail = () => {
   const navigate = useNavigate();
 
   const [article, setArticle] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState([]);
   const [related, setRelated] = useState([]);
   const [trending, setTrending] = useState([]);
@@ -111,17 +110,9 @@ const ArticleDetail = () => {
     const title = (lang === 'ta' ? article.titleTa : article.titleEn) || article.titleTa || '';
     const description = (lang === 'ta' ? article.shortDescTa : article.shortDescEn) || article.metaDescription || '';
     const image = article.ogImage || article.featuredImage || article.imageUrl || '';
-    const safeIso = (dateVal) => {
-      if (!dateVal) return new Date().toISOString();
-      try {
-        const d = new Date(dateVal);
-        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
-      } catch (e) {
-        return new Date().toISOString();
-      }
-    };
-    const pubDate = safeIso(article.publishedAt);
-    const modDate = safeIso(article.updatedAt || article.publishedAt);
+    const author = article.authorName || 'Kings TV News Desk';
+    const pubDate = article.publishedAt ? new Date(article.publishedAt).toISOString() : new Date().toISOString();
+    const modDate = article.updatedAt ? new Date(article.updatedAt).toISOString() : pubDate;
 
     const setMeta = (selector, attrName, attrVal, content) => {
       let el = document.querySelector(selector);
@@ -220,7 +211,8 @@ const ArticleDetail = () => {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/weather?city=Chennai`)
+    const baseApi = import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1';
+    fetch(`${baseApi}/weather?city=Chennai`)
       .then(res => res.json())
       .then(data => {
         if (data && data.temp) {
@@ -285,7 +277,6 @@ const ArticleDetail = () => {
   };
 
   const loadData = () => {
-    setLoading(true);
     const catLookup = {
       1: { slug: 'politics', name: 'Politics', nameTa: 'அரசியல்' },
       2: { slug: 'business', name: 'Business', nameTa: 'வணிகம்' },
@@ -323,8 +314,6 @@ const ArticleDetail = () => {
             authorNameEn: data.authorNameEn || 'Kings TV Desk',
             authorRole: 'செய்தி நிருபர்',
             authorRoleEn: 'News Reporter',
-            publishedAt: data.publishedAt,
-            updatedAt: data.updatedAt,
             pubDate: data.publishedAt ? new Date(data.publishedAt).toLocaleDateString() : new Date().toLocaleDateString(),
             updDate: data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
             readTime: `${data.readingTime || 1} நிமிட வாசிப்பு`,
@@ -397,9 +386,6 @@ const ArticleDetail = () => {
         setArticle(null);
         setRelated([]);
         setComments([]);
-      })
-      .finally(() => {
-        setLoading(false);
       });
 
     fetchApi('/articles/public/trending')
@@ -631,7 +617,7 @@ const ArticleDetail = () => {
     runAutoTranslationIfNeeded();
   }, [lang, article?.id]);
 
-  if (loading) {
+  if (!article) {
     return (
       <div className="container" style={{ marginTop: '30px', marginBottom: '40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '30px' }} className="detail-skeleton-grid">
@@ -644,46 +630,6 @@ const ArticleDetail = () => {
               <SkeletonLoader type="list" count={3} />
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!article) {
-    return (
-      <div className="container" style={{ marginTop: '50px', marginBottom: '80px', textAlign: 'center' }}>
-        <div style={{
-          background: 'var(--bg-secondary, #f8fafc)',
-          borderRadius: '16px',
-          padding: '48px 24px',
-          maxWidth: '600px',
-          margin: '0 auto',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-          border: '1px solid var(--border-color, #e2e8f0)'
-        }}>
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📰</div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '12px', color: 'var(--text-primary)' }}>
-            {lang === 'en' ? 'Article Not Found' : 'கட்டுரை கண்டறியப்படவில்லை'}
-          </h2>
-          <p style={{ color: 'var(--text-secondary, #64748b)', fontSize: '15px', marginBottom: '24px', lineHeight: '1.6' }}>
-            {lang === 'en' 
-              ? 'The article you are looking for may have been moved, archived, or deleted.' 
-              : 'நீங்கள் தேடும் செய்தி நகர்த்தப்பட்டிருக்கலாம் அல்லது நீக்கப்பட்டிருக்கலாம்.'}
-          </p>
-          <Link to="/" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'var(--primary, #1e3a8a)',
-            color: '#ffffff',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            fontWeight: '600',
-            fontSize: '15px',
-            textDecoration: 'none'
-          }}>
-            <i className="fas fa-home"></i> {lang === 'en' ? 'Return to Home Page' : 'முகப்புப் பக்கத்திற்குத் திரும்பு'}
-          </Link>
         </div>
       </div>
     );

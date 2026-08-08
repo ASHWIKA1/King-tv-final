@@ -195,7 +195,7 @@ const Jobs = () => {
   const handleFileUpload = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const uploadUrl = `${API_BASE}/jobs/upload`;
+    const uploadUrl = `${import.meta.env.VITE_API_BASE || 'https://kings-tv.onrender.com/api/v1'}/jobs/upload`;
     const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData

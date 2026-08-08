@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-  // In dev (localhost), use env var or localhost backend
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return import.meta.env.VITE_API_BASE_DEV || 'http://localhost:8080/api/v1';
+    return import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
   }
-  // In production: always use same-origin to avoid cross-server mismatches
-  // (works for EC2, Hostinger, any reverse proxy setup)
-  return `${window.location.protocol}//${window.location.host}/api/v1`;
+  if (import.meta.env.VITE_API_BASE && !import.meta.env.VITE_API_BASE.includes('localhost')) {
+    return import.meta.env.VITE_API_BASE;
+  }
+  return 'https://kings-tv.onrender.com/api/v1';
 };
 
 const api = axios.create({
