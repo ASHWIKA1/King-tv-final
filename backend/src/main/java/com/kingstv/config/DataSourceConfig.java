@@ -68,7 +68,7 @@ public class DataSourceConfig {
                 hikariConfig.setIdleTimeout(idleTimeout);
                 hikariConfig.setMaxLifetime(maxLifetime);
                 hikariConfig.setConnectionTimeout(connectionTimeout);
-                hikariConfig.setInitializationFailTimeout(2000); // Fast fail after 2 seconds if primary DB fails
+                hikariConfig.setInitializationFailTimeout(15000); // 15 seconds initialization timeout for cloud databases
 
                 ds = new HikariDataSource(hikariConfig);
                 try (Connection conn = ds.getConnection()) {
@@ -80,9 +80,17 @@ public class DataSourceConfig {
                     try { ds.close(); } catch (Exception ignored) {}
                 }
                 log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
+                boolean isProductionDb = cleanUrl.contains("tidbcloud.com") || cleanUrl.contains("amazonaws.com") || cleanUrl.contains("rds.amazonaws.com");
+                if (isProductionDb) {
+                    throw new RuntimeException("CRITICAL: Production cloud database connection failed. Startup aborted to prevent silent fallback to in-memory H2 database and subsequent data loss.", e);
+                }
                 log.warn("Falling back to embedded H2 database for resilient application startup.");
             }
         } else {
+            boolean isProductionDb = cleanUrl.contains("tidbcloud.com") || cleanUrl.contains("amazonaws.com") || cleanUrl.contains("rds.amazonaws.com");
+            if (isProductionDb) {
+                throw new RuntimeException("CRITICAL: Production cloud database credentials or URL are incomplete. Startup aborted.");
+            }
             log.warn("Primary database credentials or URL incomplete. Falling back to embedded H2 database.");
         }
 
